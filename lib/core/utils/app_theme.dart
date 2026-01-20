@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
 
 class AppTheme {
@@ -18,30 +19,47 @@ class AppTheme {
         onBackground: AppColors.silverMarble,
         onSurface: AppColors.silverMarble,
       ),
-      iconTheme: const IconThemeData(
-        color: AppColors.silverMarble,
-      ),
+      iconTheme: const IconThemeData(color: AppColors.silverMarble),
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.amoledBackground,
         elevation: 0,
         iconTheme: IconThemeData(color: AppColors.silverMarble),
         titleTextStyle: TextStyle(
-            color: AppColors.silverMarble,
-            fontSize: 20,
-            fontWeight: FontWeight.bold),
+          color: AppColors.silverMarble,
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
       ),
-      textTheme: const TextTheme(
-        bodyLarge: TextStyle(color: AppColors.silverMarble),
-        bodyMedium: TextStyle(color: AppColors.silverMarble),
+      textTheme: TextTheme(
+        // bodyLarge: TextStyle(color: AppColors.silverMarble),
+        // bodyMedium: TextStyle(color: AppColors.silverMarble),
         titleLarge: TextStyle(
-            color: AppColors.secondaryGold, fontWeight: FontWeight.bold),
+          color: AppColors.secondaryGold,
+          fontWeight: FontWeight.bold,
+        ),
+        displayLarge: TextStyle(
+          fontFamily: 'Thuluth',
+          fontSize: 45,
+          color: AppColors.secondaryGold,
+          fontWeight: FontWeight.bold,
+          height: 1.2,
+        ),
+        bodyLarge: GoogleFonts.amiri(
+          fontSize: 20,
+          color: AppColors.silverMarble,
+          fontWeight: FontWeight.bold,
+        ),
+
+        bodyMedium: GoogleFonts.cairo(
+          fontSize: 14,
+          color: AppColors.silverMarble.withOpacity(0.7),
+        ),
       ),
+
       buttonTheme: ButtonThemeData(
         buttonColor: AppColors.secondaryGold,
         textTheme: ButtonTextTheme.primary,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8.0),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
       ),
     );
   }
@@ -62,30 +80,29 @@ class AppTheme {
         onBackground: Colors.black,
         onSurface: Colors.black,
       ),
-      iconTheme: IconThemeData(
-        color: Colors.grey[800],
-      ),
+      iconTheme: IconThemeData(color: Colors.grey[800]),
       appBarTheme: AppBarTheme(
         backgroundColor: const Color(0xFFF5F5F5),
         elevation: 0,
         iconTheme: IconThemeData(color: Colors.grey[800]),
         titleTextStyle: TextStyle(
-            color: Colors.grey[800],
-            fontSize: 20,
-            fontWeight: FontWeight.bold),
+          color: Colors.grey[800],
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
       ),
       textTheme: TextTheme(
         bodyLarge: TextStyle(color: Colors.grey[800]),
         bodyMedium: TextStyle(color: Colors.grey[800]),
         titleLarge: const TextStyle(
-            color: AppColors.secondaryGold, fontWeight: FontWeight.bold),
+          color: AppColors.secondaryGold,
+          fontWeight: FontWeight.bold,
+        ),
       ),
       buttonTheme: ButtonThemeData(
         buttonColor: AppColors.secondaryGold,
         textTheme: ButtonTextTheme.primary,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8.0),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
       ),
     );
   }
