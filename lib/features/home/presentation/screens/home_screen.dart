@@ -83,7 +83,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             const Expanded(
               flex: 4,
-              child: TimeDateSection(isLandscape: true, isTabletDesktop: true),
+              child: TimeDateSection(isLandscape: false, isTabletDesktop: true),
             ),
 
             const SizedBox(width: 40),
