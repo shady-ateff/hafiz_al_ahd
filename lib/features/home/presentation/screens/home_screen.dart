@@ -1,17 +1,9 @@
-import 'dart:developer';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:hafiz_al_ahd/features/home/domain/entities/prayer_times_entity.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit/prayer_times_cubit.dart';
-import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit/prayer_times_states.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/widgets/prayer_times_grid.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/widgets/time_date_section.dart';
-import 'package:hijri/hijri_calendar.dart';
-import 'package:intl/intl.dart';
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
-import 'package:hafiz_al_ahd/features/home/presentation/cubit/time_cubit.dart';
 
 /// A screen that displays the current time and date in a visually appealing,
 /// responsive layout. It adapts to both portrait and landscape orientations.
@@ -44,31 +36,25 @@ class _HomeScreenState extends State<HomeScreen> {
             // Determine if the screen is wide enough for a landscape layout.
             bool isLandscape = constraints.maxWidth > 600;
 
-            /*_buildWatchLayout (لو العرض أقل من 300 مثلاً).
-
-                _buildMobileLayout (لو العرض متوسط).
-
-                _buildTabletDesktopLayout (لو العرض كبير جداً). */
-
-            switch (constraints.maxWidth) {
-              case (<= 300):
-                return _buildWatchLayout();
-              case (>= 301 && <= 800):
-                return _buildMobileLayout();
-              case (>= 801):
+            if (constraints.maxWidth <= 300) {
+              return _buildWatchLayout();
+            } else if (constraints.maxWidth >= 301 &&
+                constraints.maxWidth <= 800) {
+              return _buildMobileLayout();
+            } else if (constraints.maxWidth >= 801) {
+              return _buildTabletDesktopLayout(
+                maxHeight: constraints.maxHeight,
+                maxWidth: constraints.maxWidth,
+              );
+            } else {
+              if (isLandscape) {
                 return _buildTabletDesktopLayout(
-                  maxHight: constraints.maxHeight,
+                  maxHeight: constraints.maxHeight,
                   maxWidth: constraints.maxWidth,
                 );
-              default:
-                if (isLandscape) {
-                  return _buildTabletDesktopLayout(
-                    maxHight: constraints.maxHeight,
-                    maxWidth: constraints.maxWidth,
-                  );
-                } else {
-                  return _buildMobileLayout();
-                }
+              } else {
+                return SizedBox.shrink();
+              }
             }
           },
         ),
@@ -76,31 +62,35 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  /// Builds the layout for Tablet and Desktop screens.
   Widget _buildTabletDesktopLayout({
-    required double maxHight,
+    required double maxHeight,
     required double maxWidth,
   }) {
-    double aspectRatio = maxWidth / maxHight;
+    double aspectRatio = maxWidth / maxHeight;
 
     var calculatedCrossAxisCount = aspectRatio.floor() == 0
-        ? 1
+        ? 2
         : aspectRatio.floor();
- 
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32.0),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.max,
           children: [
-            const Expanded(flex: 4, child: TimeDateSection(isLandscape: true)),
+            const Expanded(
+              flex: 4,
+              child: TimeDateSection(isLandscape: true, isTabletDesktop: true),
+            ),
 
             const SizedBox(width: 40),
 
             Expanded(
               flex: 3,
-              child: PrayerTimesGrid(
-                crossAxisCount: calculatedCrossAxisCount,
-              ),
+              child: PrayerTimesGrid(crossAxisCount: calculatedCrossAxisCount),
             ),
           ],
         ),
@@ -108,51 +98,47 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  /// Builds the layout for Mobile screens.
   Widget _buildMobileLayout() {
-    return const Center(
-      child: SingleChildScrollView(
-        child: Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: 20.0,
-          ), // قللنا الحواف الجانبية شوية
-          child: Column(
-            children: [
-              SizedBox(height: 30), // كانت 60، خليناها 30
-              // قسم الساعة
-              TimeDateSection(isLandscape: false),
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 20.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.max,
+        children: [
+          SizedBox(height: MediaQuery.sizeOf(context).height * 0.1),
 
-              SizedBox(
-                height: 30,
-              ), // المسافة بين الساعة والصلوات كانت 60، كفاية 30
-              // شبكة الصلوات
-              PrayerTimesGrid(
-                crossAxisCount: 2,
-              ),
-
-              SizedBox(height: 20),
-            ],
+          Expanded(
+            flex: 2,
+            child: TimeDateSection(isLandscape: false, isMobile: true),
           ),
-        ),
+
+          Expanded(flex: 3, child: PrayerTimesGrid(crossAxisCount: 2)),
+        ],
       ),
     );
   }
 
+  /// Builds the layout for Watch/Small screens.
   Widget _buildWatchLayout() {
     return Center(
       child: SingleChildScrollView(
-        // Ensures the content doesn't overflow on vertically small screens.
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
           child: Column(
             children: [
-              SizedBox(height: 60),
-              TimeDateSection(isLandscape: false),
+              SizedBox(height: MediaQuery.sizeOf(context).height * 0.1),
+              SizedBox(
+                height: 200,
+                child: TimeDateSection(isLandscape: false, isWatch: true),
+              ),
               const SizedBox(height: 60),
               PrayerTimesGrid(
                 crossAxisCount: 1,
+                isScrollable: true,
+                forceVerticalCardLayout: false,
               ),
               SizedBox(height: 20),
-              // Additional watch-specific UI components can be added here.
             ],
           ),
         ),

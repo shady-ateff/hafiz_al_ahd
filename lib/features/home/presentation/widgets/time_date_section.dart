@@ -7,18 +7,28 @@ import 'package:hijri/hijri_calendar.dart';
 import 'package:intl/intl.dart';
 
 class TimeDateSection extends StatelessWidget {
-  const TimeDateSection({super.key, required this.isLandscape});
+  const TimeDateSection({
+    super.key,
+    required this.isLandscape,
+    this.isTabletDesktop = false,
+    this.isMobile = false,
+    this.isWatch = false,
+  });
 
   final bool isLandscape;
-
+  final bool isTabletDesktop;
+  final bool isMobile;
+  final bool isWatch;
 
   @override
   Widget build(BuildContext context) {
+    // معامل تصغير: لو موبايل (مش لاندسكيب) صغر العناصر بنسبة 60%
+    double scale = isLandscape ? 1.0 : 0.6;
+
     return BlocBuilder<TimeCubit, DateTime>(
       builder: (context, state) {
         DateTime currentTime = state;
-        // --- Text Preparation ---
-        // Format the current time and date components using 'intl' for localization (Arabic).
+
         String time = DateFormat('hh:mm', 'ar').format(currentTime);
         String seconds = DateFormat('ss', 'ar').format(currentTime);
         String amPm = DateFormat('a', 'ar').format(currentTime);
@@ -27,116 +37,149 @@ class TimeDateSection extends StatelessWidget {
         String hijriDate = HijriCalendar.fromDate(
           currentTime,
         ).toFormat("dd MMMM yyyy هـ ");
-        return Flex(
-          // Use Row for landscape, Column for portrait.
-          direction: isLandscape ? Axis.horizontal : Axis.vertical,
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisSize: MainAxisSize.max, // Take up only necessary space.
-          children: [
-            // === 1. The Large Time Section ===
-            Flexible(
-              flex: 2, // Takes up more space.
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.start,
 
-                  textBaseline: TextBaseline.alphabetic,
-                  children: [
-                    Text(
-                      seconds,
-                      style: TextStyle(
-                        fontSize: 40,
-                        color: AppColors.secondaryGold.withOpacity(0.8),
+        return Padding(
+          padding: isMobile
+              ? const EdgeInsets.only(left: 20, right: 20, bottom: 20)
+              : isTabletDesktop
+              ? const EdgeInsets.symmetric(horizontal: 40, vertical: 10)
+              : const EdgeInsets.all(1),
+          child: Flex(
+            direction: isLandscape ? Axis.horizontal : Axis.vertical,
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisSize: MainAxisSize.max,
+            children: [
+              // === 1. قسم الساعة ===
+              Expanded(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    mainAxisAlignment: MainAxisAlignment.center, // سنترناها
+                    children: [
+                      Text(
+                        seconds,
+                        style: TextStyle(
+                          fontSize: 40 * scale, // 👈 تصغير
+                          color: AppColors.secondaryGold.withOpacity(0.8),
+                        ),
                       ),
-                    ),
-
-                    Text(
-                      time,
-                      style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                        fontSize: 120, // Large initial font size.
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.secondaryGold, // Golden color.
-                        height: 1.0,
+                      const SizedBox(width: 8),
+                      Text(
+                        time,
+                        style: Theme.of(context).textTheme.displayLarge
+                            ?.copyWith(
+                              fontSize: 120 * scale, // 👈 تصغير الخط الضخم
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.secondaryGold,
+                              height: 1.0,
+                              fontFamily: 'Thuluth', // تأكد إن الخط ده موجود
+                            ),
                       ),
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      amPm,
-                      style: TextStyle(
-                        fontSize: 40,
-                        color: AppColors.secondaryGold.withOpacity(0.8),
+                      const SizedBox(width: 8),
+                      Text(
+                        amPm,
+                        style: TextStyle(
+                          fontSize: 40 * scale, // 👈 تصغير
+                          color: AppColors.secondaryGold.withOpacity(0.8),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
 
-            // === 2. Separator (Visible only in landscape) ===
-            if (isLandscape) ...[
-              const SizedBox(width: 40),
-              Container(
-                height: 100, // Line height.
-                width: 2, // Line thickness.
-                decoration: BoxDecoration(
-                  color: AppColors.secondaryGold.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(2),
+              // === 2. الفاصل ===
+              if (isLandscape) ...[
+                const SizedBox(width: 40),
+                Container(
+                  height: 100,
+                  width: 2,
+                  decoration: BoxDecoration(
+                    color: AppColors.secondaryGold.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(width: 40),
+              ] else
+                // مسافة رأسية صغيرة في الموبايل بدل المسافات الكبيرة
+                const SizedBox(height: 10),
+
+              // === 3. قسم التاريخ ===
+              Expanded(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    spacing: isLandscape ? 20.0 : 10.0,
+                    children: [
+                      Text(
+                        dayName,
+                        style: Theme.of(context).textTheme.displayLarge
+                            ?.copyWith(
+                              fontSize: isLandscape
+                                  ? 50
+                                  : 35, // 👈 تصغير اسم اليوم
+                              color: Colors.white,
+                              fontFamily: 'Thuluth',
+                            ),
+                      ),
+                
+                      Flex(
+                        direction: isWatch ? Axis.vertical : Axis.horizontal,
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        spacing: isLandscape ? 20.0 : 15.0,
+                        mainAxisSize: MainAxisSize.max,
+                
+                        children: [
+                          Text(
+                            "$date م",
+                            style: GoogleFonts.cairo(
+                              fontSize: isLandscape ? 22 : 16,
+                              color: Colors.grey[400],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                
+                          if (isLandscape) ...[
+                            Container(
+                              height: 30,
+                              width: 2,
+                              decoration: BoxDecoration(
+                                color: AppColors.secondaryGold.withOpacity(0.5),
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                          ] else
+                            isWatch?
+                            const SizedBox.shrink()
+                            : Container(
+                              height: 2,
+                              width: 15,
+                              decoration: BoxDecoration(
+                                color: AppColors.secondaryGold.withOpacity(0.5),
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                          Text(
+                            hijriDate,
+                            style: GoogleFonts.cairo(
+                              fontSize: isLandscape ? 20 : 16,
+                              color: Colors.grey[400],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(width: 40),
-            ] else
-              // Vertical spacing in portrait mode.
-              const SizedBox(height: 20),
-
-            // === 3. Date and Day Section ===
-            Flexible(
-              flex: 1,
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: isLandscape
-                      ? CrossAxisAlignment.center
-                      : CrossAxisAlignment.center,
-                  children: [
-                    Text.rich(
-                      TextSpan(children: [TextSpan(text: hijriDate)]),
-                      style: GoogleFonts.cairo(
-                        fontSize: isLandscape ? 20 : 16,
-                        color: Colors.grey[400],
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 60),
-              
-                    // Day name (using Thuluth font if available in the theme).
-                    Text(
-                      dayName,
-                      style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                        fontSize: isLandscape ? 50 : 40,
-                        color: Colors.white,
-                        // height: 1.2, // Adjust for Thuluth font ascenders.
-                      ),
-                    ),
-                    // Full date.
-                    SizedBox(height: isLandscape ? 16 : 8),
-                    Text(
-                      date,
-                      style: GoogleFonts.cairo(
-                        fontSize: isLandscape ? 22 : 18,
-                        color: Colors.grey[400],
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
+            ],
+          ),
         );
       },
     );
