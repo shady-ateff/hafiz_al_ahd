@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
+import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit/prayer_times_cubit.dart';
+import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit/prayer_times_states.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/cubit/time_cubit.dart';
 import 'package:hijri/hijri_calendar.dart';
 import 'package:intl/intl.dart';
@@ -51,6 +53,21 @@ class TimeDateSection extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               mainAxisSize: MainAxisSize.max,
               children: [
+                BlocBuilder<PrayerTimesCubit, PrayerTimesStates>(
+                  builder: (context, state) {
+                    return Text(
+                      state is PrayerTimesLoaded
+                          ? state.city ?? "غير معروف"
+                          : "جار التحميل...",
+                      style: GoogleFonts.cairo(
+                        fontSize: isLandscape ? 30 : 16,
+                        color: Colors.grey[400],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    );
+                  },
+                ),
+                SizedBox(height: 50),
                 // === 1. قسم الساعة ===
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -61,11 +78,11 @@ class TimeDateSection extends StatelessWidget {
                       fit: BoxFit.scaleDown,
                       clipBehavior: Clip.antiAlias,
                       child: SizedBox(
-                        width: 90 * scale,
+                        width: 80 * scale,
                         child: Text(
                           seconds,
                           style: TextStyle(
-                            fontSize: 50 * scale, 
+                            fontSize: 50 * scale,
                             color: AppColors.secondaryGold.withOpacity(0.8),
                           ),
                         ),
@@ -75,11 +92,11 @@ class TimeDateSection extends StatelessWidget {
                     Text(
                       time,
                       style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                        fontSize: 140 * scale ,
+                        fontSize: 140 * scale,
                         fontWeight: FontWeight.bold,
                         color: AppColors.secondaryGold,
                         height: 1.0,
-                        fontFamily: 'Thuluth', 
+                        fontFamily: 'Thuluth',
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -92,8 +109,10 @@ class TimeDateSection extends StatelessWidget {
                     ),
                   ],
                 ),
-                SizedBox(height: 30 *MediaQuery.sizeOf(context).height * 0.001 ),
-                    
+                SizedBox(
+                  height: 30 * MediaQuery.sizeOf(context).height * 0.001,
+                ),
+
                 // === 3. قسم التاريخ ===
                 Column(
                   mainAxisSize: MainAxisSize.min,
@@ -107,14 +126,14 @@ class TimeDateSection extends StatelessWidget {
                         fontFamily: 'Thuluth',
                       ),
                     ),
-                        
+
                     Flex(
                       direction: isWatch ? Axis.vertical : Axis.horizontal,
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       spacing: isLandscape ? 30.0 : 15.0,
                       mainAxisSize: MainAxisSize.max,
-                        
+
                       children: [
                         Text(
                           "$date م",
@@ -124,7 +143,7 @@ class TimeDateSection extends StatelessWidget {
                             fontWeight: FontWeight.w500,
                           ),
                         ),
-                        
+
                         if (isLandscape) ...[
                           Container(
                             height: 30,

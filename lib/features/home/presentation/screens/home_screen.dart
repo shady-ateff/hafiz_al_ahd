@@ -18,11 +18,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    context.read<PrayerTimesCubit>().fetchPrayerTimes(
-      latitude: 30.0444,
-      longitude: 31.2357,
-      date: DateTime.now(),
-    );
+    context.read<PrayerTimesCubit>().fetchPrayerTimesByLocation();
   }
 
   @override
@@ -106,8 +102,7 @@ class _HomeScreenState extends State<HomeScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.max,
         children: [
-          SizedBox(height: MediaQuery.sizeOf(context).height * 0.1),
-
+          // SizedBox(height: MediaQuery.sizeOf(context).height * 0.1),
           Expanded(
             flex: 2,
             child: TimeDateSection(isLandscape: false, isMobile: true),
