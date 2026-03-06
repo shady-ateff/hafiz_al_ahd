@@ -5,6 +5,7 @@ import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
 import 'package:hafiz_al_ahd/features/home/domain/entities/prayer_times_entity.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit/prayer_times_cubit.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit/prayer_times_states.dart';
+import 'package:hafiz_al_ahd/features/home/presentation/widgets/prayer_card_widget.dart';
 import 'package:intl/intl.dart';
 
 class PrayerTimesGrid extends StatelessWidget {
@@ -30,10 +31,13 @@ class PrayerTimesGrid extends StatelessWidget {
     return BlocBuilder<PrayerTimesCubit, PrayerTimesStates>(
       builder: (context, state) {
         if (state is! PrayerTimesLoaded) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(
+            child: CircularProgressIndicator(color: AppColors.secondaryGold),
+          );
         }
 
         final prayers = _getPrayersList(state.prayerTimes);
+        final nextPrayer = state.prayerTimes.getNextPrayer(DateTime.now());
 
         int rowCount = (prayers.length / crossAxisCount).ceil();
 
@@ -49,6 +53,7 @@ class PrayerTimesGrid extends StatelessWidget {
                       child: _buildFlexCard(
                         prayers[itemIndex],
                         crossAxisCount == 1,
+                        nextPrayer.name,
                       ),
                     );
                   } else {
@@ -75,6 +80,7 @@ class PrayerTimesGrid extends StatelessWidget {
                         forceVerticalCardLayout
                             ? !forceVerticalCardLayout
                             : crossAxisCount == 1,
+                        nextPrayer.name,
                       ),
                     );
                   } else {
@@ -89,65 +95,18 @@ class PrayerTimesGrid extends StatelessWidget {
     );
   }
 
-  Widget _buildFlexCard(Map<String, dynamic> data, bool isWideLayout) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      margin: const EdgeInsets.all(6),
-      constraints: const BoxConstraints(minHeight: 70, minWidth: 100),
-      decoration: BoxDecoration(
-        color: AppColors.primaryBlack,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.secondaryGold.withAlpha(100)),
-      ),
-      child: Flex(
-        direction: isWideLayout ? Axis.horizontal : Axis.vertical,
-        mainAxisAlignment: isWideLayout
-            ? MainAxisAlignment.spaceBetween
-            : MainAxisAlignment.center,
-
-        children: [
-          Expanded(
-            flex: 2,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              clipBehavior: Clip.antiAlias,
-              child: Flex(
-                direction: isWideLayout ? Axis.horizontal : Axis.vertical,
-                spacing: isWideLayout ? 12.0 : 6.0,
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  Icon(data['icon'], color: AppColors.secondaryGold, size: 28),
-                  Text(
-                    '${data['name']}',
-                    style: GoogleFonts.cairo(
-                      color: Colors.white,
-                      fontSize: 21,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Flexible(
-            fit: FlexFit.loose,
-            flex: isWideLayout ? 3 : 1,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                data['time'] != null
-                    ? DateFormat('hh:mm a', 'ar').format(data['time'])
-                    : '--:--',
-                style: GoogleFonts.cairo(
-                  color: AppColors.secondaryGold,
-                  fontSize: 21,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
+  Widget _buildFlexCard(
+    Map<String, dynamic> data,
+    bool isWideLayout,
+    String? nextPrayerName,
+  ) {
+    return PrayerCard(
+      name: data['name'],
+      time: data['time'],
+      icon: data['icon'],
+      remaining: data['remaining'],
+      isWideLayout: isWideLayout,
+      isNextPrayer: nextPrayerName == data['name'],
     );
   }
 
