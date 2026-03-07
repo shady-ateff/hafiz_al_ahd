@@ -53,64 +53,16 @@ class TimeDateSection extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               mainAxisSize: MainAxisSize.max,
               children: [
-                BlocBuilder<PrayerTimesCubit, PrayerTimesStates>(
-                  builder: (context, state) {
-                    return Text(
-                      state is PrayerTimesLoaded
-                          ? state.city ?? "غير معروف"
-                          : "جار التحميل...",
-                      style: GoogleFonts.cairo(
-                        fontSize: isLandscape ? 30 : 16,
-                        color: Colors.grey[400],
-                        fontWeight: FontWeight.w500,
-                      ),
-                    );
-                  },
-                ),
-                SizedBox(height: 50),
+                // SizedBox(height: 50),
                 // === 1. قسم الساعة ===
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
-                  mainAxisAlignment: MainAxisAlignment.center, // سنترناها
-                  children: [
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      clipBehavior: Clip.antiAlias,
-                      child: SizedBox(
-                        width: 80 * scale,
-                        child: Text(
-                          seconds,
-                          style: TextStyle(
-                            fontSize: 50 * scale,
-                            color: AppColors.secondaryGold.withOpacity(0.8),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      time,
-                      style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                        fontSize: 140 * scale,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.secondaryGold,
-                        height: 1.0,
-                        fontFamily: 'Thuluth',
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      amPm,
-                      style: TextStyle(
-                        fontSize: 50 * scale,
-                        color: AppColors.secondaryGold.withOpacity(0.8),
-                      ),
-                    ),
-                  ],
+                ClockSectionBuilder(
+                  scale: scale,
+                  seconds: seconds,
+                  time: time,
+                  amPm: amPm,
                 ),
                 SizedBox(
-                  height: 30 * MediaQuery.sizeOf(context).height * 0.001,
+                  height: 25 * MediaQuery.sizeOf(context).height * 0.001,
                 ),
 
                 // === 3. قسم التاريخ ===
@@ -118,12 +70,24 @@ class TimeDateSection extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   spacing: 10,
                   children: [
-                    Text(
-                      dayName,
-                      style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                        fontSize: isLandscape ? 60 : 35,
-                        color: Colors.white,
-                        fontFamily: 'Thuluth',
+                    ShaderMask(
+                      shaderCallback: (bounds) => LinearGradient(
+                        colors: [
+                          AppColors.silverMarble,
+                          AppColors.silverMarble,
+                          AppColors.silverMarble.withOpacity(0.3),
+                        ],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ).createShader(bounds),
+                      child: Text(
+                        dayName,
+                        style: Theme.of(context).textTheme.displayLarge
+                            ?.copyWith(
+                              fontSize: isLandscape ? 60 : 35,
+                              color: Colors.white,
+                              fontFamily: 'Thuluth',
+                            ),
                       ),
                     ),
 
@@ -183,6 +147,76 @@ class TimeDateSection extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class ClockSectionBuilder extends StatelessWidget {
+  const ClockSectionBuilder({
+    super.key,
+    required this.scale,
+    required this.seconds,
+    required this.time,
+    required this.amPm,
+  });
+
+  final double scale;
+  final String seconds;
+  final String time;
+  final String amPm;
+
+  @override
+  Widget build(BuildContext context) {
+    return ShaderMask(
+      shaderCallback: (bounds) => LinearGradient(
+        colors: [
+          AppColors.lightGold,
+          AppColors.secondaryGold,
+          AppColors.secondaryGold.withOpacity(0.4),
+        ],
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+      ).createShader(bounds),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.baseline,
+        textBaseline: TextBaseline.alphabetic,
+        mainAxisAlignment: MainAxisAlignment.center, // سنترناها
+        children: [
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            clipBehavior: Clip.antiAlias,
+            child: SizedBox(
+              width: 80 * scale,
+              child: Text(
+                seconds,
+                style: TextStyle(
+                  fontSize: 50 * scale,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            time,
+            style: GoogleFonts.tajawal().copyWith(
+              fontSize: 200 * scale,
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            amPm,
+            style: TextStyle(
+              fontSize: 50 * scale,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

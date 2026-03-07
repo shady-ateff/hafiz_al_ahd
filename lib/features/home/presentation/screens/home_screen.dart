@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit/prayer_times_cubit.dart';
+import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit/prayer_times_states.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/widgets/prayer_times_grid.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/widgets/time_date_section.dart';
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
@@ -25,7 +27,49 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       // Use a deep, dark background for a luxurious feel.
-      backgroundColor: AppColors.deepBackground,
+      // backgroundColor: AppColors.deepBackground,
+      appBar: AppBar(
+        leading: IconButton(
+          icon: Icon(Icons.menu),
+          color: AppColors.secondaryGold,
+          onPressed: () {
+            Scaffold.of(context).openDrawer();
+          },
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              context.read<PrayerTimesCubit>().fetchPrayerTimesByLocation();
+            },
+          ),
+        ],
+        title: BlocBuilder<PrayerTimesCubit, PrayerTimesStates>(
+          builder: (context, state) {
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              spacing: 8,
+              children: [
+                const Icon(
+                  Icons.location_on_outlined,
+                  color: AppColors.secondaryGold,
+                ),
+                Text(
+                  state is PrayerTimesLoaded
+                      ? state.city ?? "غير معروف"
+                      : "جار التحميل...",
+                  style: GoogleFonts.cairo(
+                    color: AppColors.secondaryGold,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+        centerTitle: true,
+      ),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {

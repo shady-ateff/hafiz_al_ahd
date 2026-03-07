@@ -28,13 +28,27 @@ class PrayerTimesEntity {
       (name: 'العشاء', time: isha),
     ];
 
+
     // 2. بنمشي عليهم صلاة صلاة، أول صلاة وقتها لسه مجاش (isAfter) تبقى هي دي!
     for (var prayer in prayers) {
+      DateTime iqamaTime = prayer.time!.add(Duration(minutes: _getIqamaMinutes(prayer.name)));
       if (prayer.time!.isAfter(currentTime)) {
         return NextPrayerTime(
           name: prayer.name,
           time: prayer.time,
           remaining: prayer.time!.difference(currentTime),
+          isNextPrayer: true,
+          isIqama: false,
+        );
+      } else if (currentTime.isBefore(iqamaTime) &&
+          _getIqamaMinutes(prayer.name) > 0) {
+        // لو الوقت الحالي هو بالظبط وقت الصلاة أو بعده بقليل، نعتبرها الصلاة القادمة
+        return NextPrayerTime(
+          name: prayer.name,
+          time: iqamaTime,
+          remaining: iqamaTime.difference(currentTime), // الصلاة جايه دلوقتي
+          isNextPrayer: true,
+          isIqama: true,
         );
       }
     }
@@ -46,6 +60,14 @@ class PrayerTimesEntity {
       name: 'الفجر',
       time: nextFajr,
       remaining: nextFajr?.difference(currentTime) ?? Duration.zero,
+      isNextPrayer: true,
+      isIqama: false,
     );
+  }
+
+  int _getIqamaMinutes(String prayerName) {
+    if (prayerName == 'المغرب') return 15;
+    if (prayerName == 'الشروق') return 0; // مفيش إقامة للشروق
+    return 20; // الفجر، الظهر، العصر، العشاء
   }
 }

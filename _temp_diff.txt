@@ -1,0 +1,710 @@
+diff --git a/lib/features/home/presentation/widgets/time_date_section.dart b/lib/features/home/presentation/widgets/time_date_section.dart
+index 1fd9ef4..353abfe 100644
+--- a/lib/features/home/presentation/widgets/time_date_section.dart
++++ b/lib/features/home/presentation/widgets/time_date_section.dart
+@@ -70,12 +70,24 @@ class TimeDateSection extends StatelessWidget {
+                   mainAxisSize: MainAxisSize.min,
+                   spacing: 10,
+                   children: [
+-                    Text(
+-                      dayName,
+-                      style: Theme.of(context).textTheme.displayLarge?.copyWith(
+-                        fontSize: isLandscape ? 60 : 35,
+-                        color: Colors.white,
+-                        fontFamily: 'Thuluth',
++                    ShaderMask(
++                      shaderCallback: (bounds) => LinearGradient(
++                        colors: [
++                          AppColors.silverMarble,
++                          AppColors.silverMarble,
++                          AppColors.silverMarble.withOpacity(0.3),
++                        ],
++                        begin: Alignment.topCenter,
++                        end: Alignment.bottomCenter,
++                      ).createShader(bounds),
++                      child: Text(
++                        dayName,
++                        style: Theme.of(context).textTheme.displayLarge
++                            ?.copyWith(
++                              fontSize: isLandscape ? 60 : 35,
++                              color: Colors.white,
++                              fontFamily: 'Thuluth',
++                            ),
+                       ),
+                     ),
+ 
+diff --git a/lib/core/utils/app_colors.dart b/lib/core/utils/app_colors.dart
+index c994257..37ff3e4 100644
+--- a/lib/core/utils/app_colors.dart
++++ b/lib/core/utils/app_colors.dart
+@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
+ class AppColors {
+   static const Color primaryBlack = Color(0xFF1E1E1E);
+   static const Color secondaryGold = Color(0xFFD4AF37);
++  static const Color lightGold = Color.fromARGB(255, 255, 220, 107);
+   static const Color silverMarble = Color(0xFFE0E0E0);
+   static const Color deepBackground = Color(0xFF121212);
+   static const Color amoledBackground = Color(0xFF000000);
+diff --git a/lib/core/utils/app_theme.dart b/lib/core/utils/app_theme.dart
+index c553511..9032aa5 100644
+--- a/lib/core/utils/app_theme.dart
++++ b/lib/core/utils/app_theme.dart
+@@ -5,6 +5,17 @@ import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
+ class AppTheme {
+   static ThemeData get darkTheme {
+     return ThemeData(
++      iconButtonTheme: IconButtonThemeData(
++        style: ButtonStyle(
++          backgroundColor: WidgetStateProperty.all(AppColors.primaryBlack),
++          foregroundColor: WidgetStateProperty.all(AppColors.secondaryGold),
++          shape: WidgetStateProperty.all(
++            CircleBorder(
++              side: const BorderSide(color: AppColors.secondaryGold, width: .3),
++            ),
++          ),
++        ),
++      ),
+       primaryColor: AppColors.primaryBlack,
+       scaffoldBackgroundColor: AppColors.amoledBackground,
+       cardColor: AppColors.primaryBlack,
+diff --git a/lib/features/home/domain/entities/next_pray_time.dart b/lib/features/home/domain/entities/next_pray_time.dart
+index e4056db..8600b01 100644
+--- a/lib/features/home/domain/entities/next_pray_time.dart
++++ b/lib/features/home/domain/entities/next_pray_time.dart
+@@ -2,10 +2,14 @@ class NextPrayerTime {
+   final String name;
+   final DateTime? time;
+   final Duration remaining;
++  final bool isNextPrayer;
++  final bool isIqama;
+ 
+   NextPrayerTime({
+     required this.name,
+     required this.time,
+     required this.remaining,
++    required this.isNextPrayer,
++    required this.isIqama,
+   });
+ }
+diff --git a/lib/features/home/domain/entities/prayer_times_entity.dart b/lib/features/home/domain/entities/prayer_times_entity.dart
+index a0a76a3..f1cab02 100644
+--- a/lib/features/home/domain/entities/prayer_times_entity.dart
++++ b/lib/features/home/domain/entities/prayer_times_entity.dart
+@@ -28,13 +28,27 @@ class PrayerTimesEntity {
+       (name: 'العشاء', time: isha),
+     ];
+ 
++
+     // 2. بنمشي عليهم صلاة صلاة، أول صلاة وقتها لسه مجاش (isAfter) تبقى هي دي!
+     for (var prayer in prayers) {
++      DateTime iqamaTime = prayer.time!.add(Duration(minutes: _getIqamaMinutes(prayer.name)));
+       if (prayer.time!.isAfter(currentTime)) {
+         return NextPrayerTime(
+           name: prayer.name,
+           time: prayer.time,
+           remaining: prayer.time!.difference(currentTime),
++          isNextPrayer: true,
++          isIqama: false,
++        );
++      } else if (currentTime.isBefore(iqamaTime) &&
++          _getIqamaMinutes(prayer.name) > 0) {
++        // لو الوقت الحالي هو بالظبط وقت الصلاة أو بعده بقليل، نعتبرها الصلاة القادمة
++        return NextPrayerTime(
++          name: prayer.name,
++          time: iqamaTime,
++          remaining: iqamaTime.difference(currentTime), // الصلاة جايه دلوقتي
++          isNextPrayer: true,
++          isIqama: true,
+         );
+       }
+     }
+@@ -46,6 +60,14 @@ class PrayerTimesEntity {
+       name: 'الفجر',
+       time: nextFajr,
+       remaining: nextFajr?.difference(currentTime) ?? Duration.zero,
++      isNextPrayer: true,
++      isIqama: false,
+     );
+   }
++
++  int _getIqamaMinutes(String prayerName) {
++    if (prayerName == 'المغرب') return 15;
++    if (prayerName == 'الشروق') return 0; // مفيش إقامة للشروق
++    return 20; // الفجر، الظهر، العصر، العشاء
++  }
+ }
+diff --git a/lib/features/home/presentation/screens/home_screen.dart b/lib/features/home/presentation/screens/home_screen.dart
+index 208dd2e..291c399 100644
+--- a/lib/features/home/presentation/screens/home_screen.dart
++++ b/lib/features/home/presentation/screens/home_screen.dart
+@@ -1,6 +1,8 @@
+ import 'package:flutter/material.dart';
+ import 'package:flutter_bloc/flutter_bloc.dart';
++import 'package:google_fonts/google_fonts.dart';
+ import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit/prayer_times_cubit.dart';
++import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit/prayer_times_states.dart';
+ import 'package:hafiz_al_ahd/features/home/presentation/widgets/prayer_times_grid.dart';
+ import 'package:hafiz_al_ahd/features/home/presentation/widgets/time_date_section.dart';
+ import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
+@@ -25,7 +27,49 @@ class _HomeScreenState extends State<HomeScreen> {
+   Widget build(BuildContext context) {
+     return Scaffold(
+       // Use a deep, dark background for a luxurious feel.
+-      backgroundColor: AppColors.deepBackground,
++      // backgroundColor: AppColors.deepBackground,
++      appBar: AppBar(
++        leading: IconButton(
++          icon: Icon(Icons.menu),
++          color: AppColors.secondaryGold,
++          onPressed: () {
++            Scaffold.of(context).openDrawer();
++          },
++        ),
++        actions: [
++          IconButton(
++            icon: const Icon(Icons.refresh),
++            onPressed: () {
++              context.read<PrayerTimesCubit>().fetchPrayerTimesByLocation();
++            },
++          ),
++        ],
++        title: BlocBuilder<PrayerTimesCubit, PrayerTimesStates>(
++          builder: (context, state) {
++            return Row(
++              mainAxisSize: MainAxisSize.min,
++              mainAxisAlignment: MainAxisAlignment.center,
++              spacing: 8,
++              children: [
++                const Icon(
++                  Icons.location_on_outlined,
++                  color: AppColors.secondaryGold,
++                ),
++                Text(
++                  state is PrayerTimesLoaded
++                      ? state.city ?? "غير معروف"
++                      : "جار التحميل...",
++                  style: GoogleFonts.cairo(
++                    color: AppColors.secondaryGold,
++                    fontWeight: FontWeight.bold,
++                  ),
++                ),
++              ],
++            );
++          },
++        ),
++        centerTitle: true,
++      ),
+       body: SafeArea(
+         child: LayoutBuilder(
+           builder: (context, constraints) {
+diff --git a/lib/features/home/presentation/widgets/prayer_card_widget.dart b/lib/features/home/presentation/widgets/prayer_card_widget.dart
+index add61f5..3d2eb06 100644
+--- a/lib/features/home/presentation/widgets/prayer_card_widget.dart
++++ b/lib/features/home/presentation/widgets/prayer_card_widget.dart
+@@ -1,24 +1,30 @@
+ import 'package:flutter/material.dart';
++import 'package:flutter_bloc/flutter_bloc.dart';
+ import 'package:google_fonts/google_fonts.dart';
+ import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
++import 'package:hafiz_al_ahd/features/home/presentation/cubit/time_cubit.dart';
+ import 'package:intl/intl.dart';
+ 
+ class PrayerCard extends StatefulWidget {
+   final String name;
++  final DateTime? displayTime;
+   final DateTime? time;
+   final Duration? remaining;
+   final IconData icon;
+   final bool isWideLayout;
+   final bool? isNextPrayer;
++  final bool isIqama;
+ 
+   const PrayerCard({
+     super.key,
+     required this.name,
+-    required this.time,
++    required this.displayTime,
+     required this.remaining,
+     required this.icon,
+     required this.isWideLayout,
+     required this.isNextPrayer,
++    required this.time,
++    this.isIqama = false,
+   });
+ 
+   @override
+@@ -125,17 +131,26 @@ class _PrayerCardState extends State<PrayerCard>
+             flex: widget.isWideLayout ? 3 : 1,
+             child: FittedBox(
+               fit: BoxFit.scaleDown,
+-              child: Text(
+-                widget.time != null
+-                    ? DateFormat('hh:mm a', 'ar').format(widget.time!)
+-                    : '--:--',
+-                style: GoogleFonts.cairo(
+-                  color: widget.isNextPrayer == true
+-                      ? Colors.white
+-                      : AppColors.secondaryGold,
+-                  fontSize: 21,
+-                  fontWeight: FontWeight.bold,
+-                ),
++              child: Flex(
++                direction: widget.isWideLayout
++                    ? Axis.horizontal
++                    : Axis.vertical,
++                spacing: widget.isWideLayout ? 12.0 : 6.0,
++                children: [
++                  Text(
++                    widget.displayTime != null
++                        ? DateFormat(
++                            'hh:mm a',
++                            'ar',
++                          ).format(widget.displayTime!)
++                        : '--:--',
++                    style: GoogleFonts.cairo(
++                      color: AppColors.secondaryGold,
++                      fontSize: 21,
++                      fontWeight: FontWeight.bold,
++                    ),
++                  ),
++                ],
+               ),
+             ),
+           ),
+@@ -143,31 +158,100 @@ class _PrayerCardState extends State<PrayerCard>
+       ),
+       builder: (context, child) {
+         return Container(
+-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
++          // padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+           margin: const EdgeInsets.all(6),
+           constraints: const BoxConstraints(minHeight: 70, minWidth: 100),
+           decoration: BoxDecoration(
+-            color: AppColors.primaryBlack,
++            color: AppColors.deepBackground,
+             borderRadius: BorderRadius.circular(12),
+             // الفريم هنا بياخد قيمة الأنيميشن المتغيرة
+-            border: widget.isNextPrayer == true
++            border: widget.isIqama
++                ? Border.all(
++                    color: AppColors.errorColor,
++                    width: _animation!.value,
++                  )
++                : widget.isNextPrayer == true
+                 ? Border.all(
+-                    color: AppColors.silverMarble, // لون التوهج
+-                    width: _animation!.value, // السُمك بيتغير من 1 لـ 4
++                    color: AppColors.silverMarble,
++                    width: _animation!.value,
+                   )
+-                : Border.all(color: AppColors.secondaryGold.withAlpha(100)),
+-            // نقدر نضيف BoxShadow صغير بيكبر ويصغر بيدي شكل فخم جداً
++                : Border.all(color: AppColors.secondaryGold.withAlpha(50)),
+             boxShadow: widget.isNextPrayer == true
+                 ? [
+                     BoxShadow(
+                       color: AppColors.silverMarble.withOpacity(0.3),
+-                      blurRadius: _animation!.value * 3, // التوهج بيكبر ويصغر
++                      blurRadius: _animation!.value * 5, // التوهج بيكبر ويصغر
+                       spreadRadius: 0,
+                     ),
+                   ]
+                 : [],
+           ),
+-          child: child,
++          child: Stack(
++            alignment: Alignment.topLeft,
++            children: [
++              Center(child: child!),
++              if (widget.isNextPrayer == true)
++                Positioned(
++                  top: 6,
++                  left: 8,
++                  child: Container(
++                    padding: const EdgeInsets.symmetric(
++                      horizontal: 8,
++                      vertical: 2,
++                    ),
++                    decoration: BoxDecoration(
++                      color: widget.isIqama
++                          ? AppColors.errorColor.withOpacity(
++                              0.8,
++                            ) // أحمر واضح للإقامة
++                          : AppColors.silverMarble.withOpacity(
++                              0.2,
++                            ), // فضي شفاف للصلاة
++                      borderRadius: BorderRadius.circular(20),
++                    ),
++                    child: NextPrayerTimer(
++                      targetTime: widget.time,
++                      isIqama: widget.isIqama,
++                    ),
++                  ),
++                ),
++            ],
++          ),
++        );
++      },
++    );
++  }
++}
++
++class NextPrayerTimer extends StatelessWidget {
++  const NextPrayerTimer({super.key, this.targetTime, this.isIqama = false});
++
++  final DateTime? targetTime;
++  final bool isIqama;
++
++  @override
++  Widget build(BuildContext context) {
++    return BlocBuilder<TimeCubit, DateTime>(
++      builder: (context, currentTime) {
++        Duration remaining =
++            targetTime?.difference(currentTime) ?? Duration.zero;
++
++        if (remaining.isNegative) remaining = Duration.zero;
++
++        String prefix = isIqama ? 'إقامة' : '-';
++        Color textColor = isIqama
++            ? Colors.white
++            : AppColors.silverMarble; // خليتها أبيض للإقامة عشان تبان أحسن
++
++        return Text(
++          isIqama
++              ? '$prefix ${(remaining.inMinutes % 60).toString().padLeft(2, '0')}:${(remaining.inSeconds % 60).toString().padLeft(2, '0')}'
++              : '$prefix ${remaining.inHours.toString().padLeft(2, '0')}:${(remaining.inMinutes % 60).toString().padLeft(2, '0')}:${(remaining.inSeconds % 60).toString().padLeft(2, '0')}',
++          style: GoogleFonts.cairo(
++            color: textColor,
++            // fontSize: 12, // 👈 السر هنا: الخط صغر عشان يكفي جوه الكبسولة
++            fontWeight: FontWeight.bold,
++          ),
+         );
+       },
+     );
+diff --git a/lib/features/home/presentation/widgets/prayer_times_grid.dart b/lib/features/home/presentation/widgets/prayer_times_grid.dart
+index 659a7cc..f41e915 100644
+--- a/lib/features/home/presentation/widgets/prayer_times_grid.dart
++++ b/lib/features/home/presentation/widgets/prayer_times_grid.dart
+@@ -1,22 +1,16 @@
+ import 'package:flutter/material.dart';
+ import 'package:flutter_bloc/flutter_bloc.dart';
+-import 'package:google_fonts/google_fonts.dart';
+ import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
++import 'package:hafiz_al_ahd/features/home/domain/entities/next_pray_time.dart'; // تأكد من المسار
+ import 'package:hafiz_al_ahd/features/home/domain/entities/prayer_times_entity.dart';
+ import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit/prayer_times_cubit.dart';
+ import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit/prayer_times_states.dart';
++import 'package:hafiz_al_ahd/features/home/presentation/cubit/time_cubit.dart';
+ import 'package:hafiz_al_ahd/features/home/presentation/widgets/prayer_card_widget.dart';
+-import 'package:intl/intl.dart';
+ 
+ class PrayerTimesGrid extends StatelessWidget {
+-  /// The number of columns in the grid.
+-  /// Typically 2 for mobile and 3 for tablet/desktop.
+   final int crossAxisCount;
+-
+-  /// Whether the grid should be scrollable.
+   final bool isScrollable;
+-
+-  /// Whether to force specific vertical card layout.
+   final bool forceVerticalCardLayout;
+ 
+   const PrayerTimesGrid({
+@@ -37,76 +31,94 @@ class PrayerTimesGrid extends StatelessWidget {
+         }
+ 
+         final prayers = _getPrayersList(state.prayerTimes);
+-        final nextPrayer = state.prayerTimes.getNextPrayer(DateTime.now());
+-
+         int rowCount = (prayers.length / crossAxisCount).ceil();
+ 
+-        if (isScrollable) {
+-          return Column(
+-            children: List.generate(rowCount, (rowIndex) {
+-              return Row(
+-                children: List.generate(crossAxisCount, (colIndex) {
+-                  int itemIndex = (rowIndex * crossAxisCount) + colIndex;
++        // 👈 المحرك السحري: ده اللي هيخلي الشبكة تعمل Switch وقت الأذان والإقامة
++        return BlocSelector<TimeCubit, DateTime, String>(
++          selector: (currentTime) {
++            final next = state.prayerTimes.getNextPrayer(currentTime);
++            // لو اسم الصلاة أو حالة الإقامة اتغيرت، اعمل Rebuild للشبكة فوراً
++            return "${next.name}_${next.isIqama}";
++          },
++          builder: (context, triggerValue) {
++            // بنجيب الصلاة (الجديدة) بعد ما الـ Trigger اشتغل
++            final nextPrayer = state.prayerTimes.getNextPrayer(DateTime.now());
+ 
+-                  if (itemIndex < prayers.length) {
+-                    return Expanded(
+-                      child: _buildFlexCard(
+-                        prayers[itemIndex],
+-                        crossAxisCount == 1,
+-                        nextPrayer.name,
+-                      ),
+-                    );
+-                  } else {
+-                    return const Spacer();
+-                  }
++            if (isScrollable) {
++              return Column(
++                children: List.generate(rowCount, (rowIndex) {
++                  return Row(
++                    children: List.generate(crossAxisCount, (colIndex) {
++                      int itemIndex = (rowIndex * crossAxisCount) + colIndex;
++                      if (itemIndex < prayers.length) {
++                        return Expanded(
++                          child: _buildFlexCard(
++                            data: prayers[itemIndex],
++                            isWideLayout: crossAxisCount == 1,
++                            nextPrayer: nextPrayer, // 👈 بنبعت الأوبجكت كله
++                          ),
++                        );
++                      } else {
++                        return const Spacer();
++                      }
++                    }),
++                  );
+                 }),
+               );
+-            }),
+-          );
+-        }
++            }
+ 
+-        return Column(
+-          mainAxisAlignment: MainAxisAlignment.center,
+-          children: List.generate(rowCount, (rowIndex) {
+-            return Expanded(
+-              child: Row(
+-                children: List.generate(crossAxisCount, (colIndex) {
+-                  int itemIndex = (rowIndex * crossAxisCount) + colIndex;
++            return Column(
++              mainAxisAlignment: MainAxisAlignment.center,
++              children: List.generate(rowCount, (rowIndex) {
++                return Expanded(
++                  child: Row(
++                    children: List.generate(crossAxisCount, (colIndex) {
++                      int itemIndex = (rowIndex * crossAxisCount) + colIndex;
+ 
+-                  if (itemIndex < prayers.length) {
+-                    return Expanded(
+-                      child: _buildFlexCard(
+-                        prayers[itemIndex],
+-                        forceVerticalCardLayout
+-                            ? !forceVerticalCardLayout
+-                            : crossAxisCount == 1,
+-                        nextPrayer.name,
+-                      ),
+-                    );
+-                  } else {
+-                    return const Spacer();
+-                  }
+-                }),
+-              ),
++                      if (itemIndex < prayers.length) {
++                        return Expanded(
++                          child: _buildFlexCard(
++                            data: prayers[itemIndex],
++                            isWideLayout: forceVerticalCardLayout
++                                ? !forceVerticalCardLayout
++                                : crossAxisCount == 1,
++                            nextPrayer: nextPrayer, // 👈 بنبعت الأوبجكت كله
++                          ),
++                        );
++                      } else {
++                        return const Spacer();
++                      }
++                    }),
++                  ),
++                );
++              }),
+             );
+-          }),
++          },
+         );
+       },
+     );
+   }
+ 
+-  Widget _buildFlexCard(
+-    Map<String, dynamic> data,
+-    bool isWideLayout,
+-    String? nextPrayerName,
+-  ) {
++  Widget _buildFlexCard({
++    required Map<String, dynamic> data,
++    required bool isWideLayout,
++    required NextPrayerTime nextPrayer, // 👈 استقبلنا الأوبجكت
++  }) {
++    // هل الكارت اللي بيتبني دلوقتي هو كارت الصلاة القادمة؟
++    bool isThisCardNext = nextPrayer.name == data['name'];
++
+     return PrayerCard(
+       name: data['name'],
+-      time: data['time'],
++      displayTime: data['time'], // وقت العرض الثابت
++      // 👈 لو ده كارت الصلاة الجاية، ابعتله وقت الهدف (ممكن يبقى الإقامة)، غير كده ابعتله الوقت العادي
++      time: isThisCardNext ? nextPrayer.time : data['time'],
+       icon: data['icon'],
+-      remaining: data['remaining'],
+       isWideLayout: isWideLayout,
+-      isNextPrayer: nextPrayerName == data['name'],
++      isNextPrayer: isThisCardNext,
++      isIqama: isThisCardNext
++          ? nextPrayer.isIqama
++          : false, // 👈 جبناها من المصدر الصح
++      remaining: null,
+     );
+   }
+ 
+diff --git a/lib/features/home/presentation/widgets/time_date_section.dart b/lib/features/home/presentation/widgets/time_date_section.dart
+index c8027dc..1fd9ef4 100644
+--- a/lib/features/home/presentation/widgets/time_date_section.dart
++++ b/lib/features/home/presentation/widgets/time_date_section.dart
+@@ -53,64 +53,16 @@ class TimeDateSection extends StatelessWidget {
+               crossAxisAlignment: CrossAxisAlignment.center,
+               mainAxisSize: MainAxisSize.max,
+               children: [
+-                BlocBuilder<PrayerTimesCubit, PrayerTimesStates>(
+-                  builder: (context, state) {
+-                    return Text(
+-                      state is PrayerTimesLoaded
+-                          ? state.city ?? "غير معروف"
+-                          : "جار التحميل...",
+-                      style: GoogleFonts.cairo(
+-                        fontSize: isLandscape ? 30 : 16,
+-                        color: Colors.grey[400],
+-                        fontWeight: FontWeight.w500,
+-                      ),
+-                    );
+-                  },
+-                ),
+-                SizedBox(height: 50),
++                // SizedBox(height: 50),
+                 // === 1. قسم الساعة ===
+-                Row(
+-                  crossAxisAlignment: CrossAxisAlignment.baseline,
+-                  textBaseline: TextBaseline.alphabetic,
+-                  mainAxisAlignment: MainAxisAlignment.center, // سنترناها
+-                  children: [
+-                    FittedBox(
+-                      fit: BoxFit.scaleDown,
+-                      clipBehavior: Clip.antiAlias,
+-                      child: SizedBox(
+-                        width: 80 * scale,
+-                        child: Text(
+-                          seconds,
+-                          style: TextStyle(
+-                            fontSize: 50 * scale,
+-                            color: AppColors.secondaryGold.withOpacity(0.8),
+-                          ),
+-                        ),
+-                      ),
+-                    ),
+-                    const SizedBox(width: 8),
+-                    Text(
+-                      time,
+-                      style: Theme.of(context).textTheme.displayLarge?.copyWith(
+-                        fontSize: 140 * scale,
+-                        fontWeight: FontWeight.bold,
+-                        color: AppColors.secondaryGold,
+-                        height: 1.0,
+-                        fontFamily: 'Thuluth',
+-                      ),
+-                    ),
+-                    const SizedBox(width: 8),
+-                    Text(
+-                      amPm,
+-                      style: TextStyle(
+-                        fontSize: 50 * scale,
+-                        color: AppColors.secondaryGold.withOpacity(0.8),
+-                      ),
+-                    ),
+-                  ],
++                ClockSectionBuilder(
++                  scale: scale,
++                  seconds: seconds,
++                  time: time,
++                  amPm: amPm,
+                 ),
+                 SizedBox(
+-                  height: 30 * MediaQuery.sizeOf(context).height * 0.001,
++                  height: 25 * MediaQuery.sizeOf(context).height * 0.001,
+                 ),
+ 
+                 // === 3. قسم التاريخ ===
+@@ -186,3 +138,73 @@ class TimeDateSection extends StatelessWidget {
+     );
+   }
+ }
++
++class ClockSectionBuilder extends StatelessWidget {
++  const ClockSectionBuilder({
++    super.key,
++    required this.scale,
++    required this.seconds,
++    required this.time,
++    required this.amPm,
++  });
++
++  final double scale;
++  final String seconds;
++  final String time;
++  final String amPm;
++
++  @override
++  Widget build(BuildContext context) {
++    return ShaderMask(
++      shaderCallback: (bounds) => LinearGradient(
++        colors: [
++          AppColors.lightGold,
++          AppColors.secondaryGold,
++          AppColors.secondaryGold.withOpacity(0.4),
++        ],
++        begin: Alignment.topCenter,
++        end: Alignment.bottomCenter,
++      ).createShader(bounds),
++      child: Row(
++        crossAxisAlignment: CrossAxisAlignment.baseline,
++        textBaseline: TextBaseline.alphabetic,
++        mainAxisAlignment: MainAxisAlignment.center, // سنترناها
++        children: [
++          FittedBox(
++            fit: BoxFit.scaleDown,
++            clipBehavior: Clip.antiAlias,
++            child: SizedBox(
++              width: 80 * scale,
++              child: Text(
++                seconds,
++                style: TextStyle(
++                  fontSize: 50 * scale,
++                  color: Colors.white,
++                  fontWeight: FontWeight.w900,
++                ),
++              ),
++            ),
++          ),
++          const SizedBox(width: 8),
++          Text(
++            time,
++            style: GoogleFonts.tajawal().copyWith(
++              fontSize: 200 * scale,
++              color: Colors.white,
++              fontWeight: FontWeight.bold,
++            ),
++          ),
++          const SizedBox(width: 8),
++          Text(
++            amPm,
++            style: TextStyle(
++              fontSize: 50 * scale,
++              fontWeight: FontWeight.bold,
++              color: Colors.white,
++            ),
++          ),
++        ],
++      ),
++    );
++  }
++}

@@ -5,6 +5,17 @@ import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
 class AppTheme {
   static ThemeData get darkTheme {
     return ThemeData(
+      iconButtonTheme: IconButtonThemeData(
+        style: ButtonStyle(
+          backgroundColor: WidgetStateProperty.all(AppColors.primaryBlack),
+          foregroundColor: WidgetStateProperty.all(AppColors.secondaryGold),
+          shape: WidgetStateProperty.all(
+            CircleBorder(
+              side: const BorderSide(color: AppColors.secondaryGold, width: .3),
+            ),
+          ),
+        ),
+      ),
       primaryColor: AppColors.primaryBlack,
       scaffoldBackgroundColor: AppColors.amoledBackground,
       cardColor: AppColors.primaryBlack,
