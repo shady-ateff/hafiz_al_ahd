@@ -16,3 +16,6 @@ class PrayerTimesError extends PrayerTimesStates {
   final String message;
   PrayerTimesError(this.message);
 }
+class PrayerTimesNeedsManualLocation extends PrayerTimesStates {
+  PrayerTimesNeedsManualLocation();
+}

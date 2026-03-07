@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit/prayer_times_cubit.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit/prayer_times_states.dart';
+import 'package:hafiz_al_ahd/features/home/presentation/widgets/manual_location_dialog.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/widgets/prayer_times_grid.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/widgets/time_date_section.dart';
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
@@ -44,7 +45,25 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           ),
         ],
-        title: BlocBuilder<PrayerTimesCubit, PrayerTimesStates>(
+        title: BlocConsumer<PrayerTimesCubit, PrayerTimesStates>(
+          listener: (context, state) {
+            // السحر كله هنا: مراقبة حالة اللوكيشن اليدوي
+            if (state is PrayerTimesNeedsManualLocation) {
+              showDialog(
+                context: context,
+                barrierDismissible:
+                    false, // عشان اليوزر ميقفلش الديالوج من غير ما يختار حاجة
+                builder: (context) => const ManualLocationDialog(),
+              );
+            }
+
+            // ممكن تزود هنا حالة للـ Error لو حابب تظهر SnackBar
+            if (state is PrayerTimesError) {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text(state.message)));
+            }
+          },
           builder: (context, state) {
             return Row(
               mainAxisSize: MainAxisSize.min,

@@ -31,10 +31,10 @@ class LocationService {
     }
 
     if (permission == LocationPermission.deniedForever) {
-      // Permissions are denied forever, handle appropriately.
-      return Future.error(
-        'Location permissions are permanently denied, we cannot request permissions.',
-      );
+      // الزن الأعظم: اليوزر عمل Deny Forever!
+      // هنا هنرميه على إعدادات الأبلكيشن جوه الموبايل عشان يدينا الصلاحية غصب عنه
+      await Geolocator.openAppSettings();
+      return Future.error('Location permissions are permanently denied.');
     }
 
     // When we reach here, permissions are granted and we can
