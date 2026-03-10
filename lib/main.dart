@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hafiz_al_ahd/app/view/app.dart';
+import 'package:hafiz_al_ahd/features/notifications/data/repos/notification_repository_impl.dart';
 import 'package:hijri/hijri_calendar.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -8,6 +9,12 @@ late SharedPreferences pref;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize notifications using Clean Architecture Repository
+  final notificationRepository = NotificationRepositoryImpl();
+  await notificationRepository.initialize();
+  await notificationRepository.requestPermissions();
+
   WakelockPlus.enable(); // Keep the screen awake
   HijriCalendar.setLocal("ar"); // Set Hijri calendar locale to Arabic
   pref = await SharedPreferences.getInstance();

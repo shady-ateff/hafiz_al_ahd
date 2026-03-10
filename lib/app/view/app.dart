@@ -13,6 +13,9 @@ import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit
 import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit/prayer_times_states.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/cubit/time_cubit.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/screens/home_screen.dart';
+import 'package:hafiz_al_ahd/features/notifications/data/repos/notification_repository_impl.dart';
+import 'package:hafiz_al_ahd/features/notifications/domain/usecases/cancel_all_notfication_usecase.dart';
+import 'package:hafiz_al_ahd/features/notifications/domain/usecases/schedule_prayer_usecase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class App extends StatelessWidget {
@@ -40,8 +43,16 @@ class App extends StatelessWidget {
               localDataSource: locationDataSource,
             );
             final saveLocationUseCase = SaveLocationUseCase(baseLocationRepo);
+
             final getCachedLocationUseCase = GetCachedLocationUseCase(
               baseLocationRepo,
+            );
+
+            final cancelAllNotificationsUseCase = CancelAllNotificationsUseCase(
+              NotificationRepositoryImpl(),
+            );
+            final schedulePrayerUseCase = SchedulePrayerUseCase(
+              NotificationRepositoryImpl(),
             );
 
             return PrayerTimesCubit(
@@ -49,6 +60,8 @@ class App extends StatelessWidget {
               getPrayerTimesUseCase: getPrayerTimesUseCase,
               saveLocationUseCase: saveLocationUseCase,
               getCachedLocationUseCase: getCachedLocationUseCase,
+              cancelAllNotificationsUseCase: cancelAllNotificationsUseCase,
+              schedulePrayerUseCase: schedulePrayerUseCase,
             )..fetchPrayerTimesByLocation();
           },
         ),

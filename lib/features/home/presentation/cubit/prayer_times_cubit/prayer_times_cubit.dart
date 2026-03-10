@@ -8,17 +8,28 @@ import 'package:hafiz_al_ahd/features/home/domain/usecases/get_cached_location_u
 import 'package:hafiz_al_ahd/features/home/domain/usecases/get_prayer_times_use_case.dart';
 import 'package:hafiz_al_ahd/features/home/domain/usecases/save_location_usecase.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit/prayer_times_states.dart';
+import 'package:hafiz_al_ahd/features/notifications/domain/usecases/cancel_all_notfication_usecase.dart';
+import 'package:hafiz_al_ahd/features/notifications/domain/usecases/schedule_prayer_usecase.dart';
+import 'package:hafiz_al_ahd/features/settings/domain/usecases/get_iqama_delays_usecase.dart';
 
 class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
   final GetPrayerTimesUseCase getPrayerTimesUseCase;
   final SaveLocationUseCase saveLocationUseCase;
   final GetCachedLocationUseCase getCachedLocationUseCase;
+  final SchedulePrayerUseCase schedulePrayerUseCase;
+  // 👈 إضافة الـ Cancel UseCase
+  final CancelAllNotificationsUseCase cancelAllNotificationsUseCase;
+  final GetIqamaDelaysUseCase getIqamaDelaysUseCase = GetIqamaDelaysUseCase();
+
 
   PrayerTimesCubit({
     required this.getPrayerTimesUseCase,
     required PrayerTimesInitial initialState,
     required this.saveLocationUseCase,
     required this.getCachedLocationUseCase,
+    required this.schedulePrayerUseCase,
+    // 👈 إضافته في الـ Constructor
+    required this.cancelAllNotificationsUseCase,
   }) : super(initialState);
 
   Future<void> fetchPrayerTimes({
@@ -111,10 +122,147 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
       city: city,
     );
 
-    result.fold(
-      (failure) => emit(PrayerTimesError(failure.message)),
-      (prayerTimes) => emit(PrayerTimesLoaded(prayerTimes)),
-    );
+    result.fold((failure) => emit(PrayerTimesError(failure.message)), (
+      prayerTimes,
+    ) {
+      emit(PrayerTimesLoaded(prayerTimes, city: city));
+      _scheduleNotificationsForNext6Days(lat, lng, city);
+    });
+  }
+
+ Future<void> _scheduleNotificationsForNext6Days( // 👈 يستحسن تغير اسم الدالة لـ 6 أيام
+    double lat,
+    double lng,
+    String city,
+  ) async {
+    // 1. مسحنا الإشعارات القديمة
+    await cancelAllNotificationsUseCase.execute();
+
+    int notificationId = 0;
+
+    // 2. سحبنا أرقام الإقامة من (المصدر الوحيد للحقيقة)
+    final iqamaDelays = getIqamaDelaysUseCase.execute();
+
+    // 3. قللنا اللوب لـ 6 أيام عشان نتفادى الـ Crash بتاع الـ iOS (10 إشعارات في اليوم * 6 = 60)
+    for (int i = 0; i < 6; i++) {
+      final date = DateTime.now().add(Duration(days: i));
+      final result = await getPrayerTimesUseCase(
+        latitude: lat,
+        longitude: lng,
+        date: date,
+        city: city,
+      );
+
+      result.fold((_) {}, (prayerTimes) async {
+        
+        // ==================== الفجر ====================
+        if (prayerTimes.fajr != null) {
+          // أ. إشعار الأذان (بصوت الأذان)
+          await schedulePrayerUseCase.execute(
+            id: notificationId++,
+            title: 'حان الآن موعد صلاة الفجر',
+            body: 'الصلاة خير من النوم',
+            scheduledTime: prayerTimes.fajr!,
+            soundName: 'adhan', 
+          );
+
+          // ب. إشعار الإقامة (بالرنة العادية)
+          int delay = iqamaDelays['fajr'] ?? 25;
+          if (delay > 0) {
+            await schedulePrayerUseCase.execute(
+              id: notificationId++,
+              title: 'إقامة صلاة الفجر',
+              body: 'تجهز للصلاة، ستقام الصلاة الآن',
+              scheduledTime: prayerTimes.fajr!.add(Duration(minutes: delay)),
+            );
+          }
+        }
+
+        // ==================== الظهر ====================
+        if (prayerTimes.dhuhr != null) {
+          await schedulePrayerUseCase.execute(
+            id: notificationId++,
+            title: 'حان الآن موعد صلاة الظهر',
+            body: 'حي على الصلاة، حي على الفلاح',
+            scheduledTime: prayerTimes.dhuhr!,
+            soundName: 'adhan',
+          );
+
+          int delay = iqamaDelays['dhuhr'] ?? 15;
+          if (delay > 0) {
+            await schedulePrayerUseCase.execute(
+              id: notificationId++,
+              title: 'إقامة صلاة الظهر',
+              body: 'تجهز للصلاة، ستقام الصلاة الآن',
+              scheduledTime: prayerTimes.dhuhr!.add(Duration(minutes: delay)),
+            );
+          }
+        }
+
+        // ==================== العصر ====================
+        if (prayerTimes.asr != null) {
+          await schedulePrayerUseCase.execute(
+            id: notificationId++,
+            title: 'حان الآن موعد صلاة العصر',
+            body: 'حي على الصلاة، حي على الفلاح',
+            scheduledTime: prayerTimes.asr!,
+            soundName: 'adhan',
+          );
+
+          int delay = iqamaDelays['asr'] ?? 15;
+          if (delay > 0) {
+            await schedulePrayerUseCase.execute(
+              id: notificationId++,
+              title: 'إقامة صلاة العصر',
+              body: 'تجهز للصلاة، ستقام الصلاة الآن',
+              scheduledTime: prayerTimes.asr!.add(Duration(minutes: delay)),
+            );
+          }
+        }
+
+        // ==================== المغرب ====================
+        if (prayerTimes.maghrib != null) {
+          await schedulePrayerUseCase.execute(
+            id: notificationId++,
+            title: 'حان الآن موعد صلاة المغرب',
+            body: 'حي على الصلاة، حي على الفلاح',
+            scheduledTime: prayerTimes.maghrib!,
+            soundName: 'adhan',
+          );
+
+          int delay = iqamaDelays['maghrib'] ?? 10;
+          if (delay > 0) {
+            await schedulePrayerUseCase.execute(
+              id: notificationId++,
+              title: 'إقامة صلاة المغرب',
+              body: 'تجهز للصلاة، ستقام الصلاة الآن',
+              scheduledTime: prayerTimes.maghrib!.add(Duration(minutes: delay)),
+            );
+          }
+        }
+
+        // ==================== العشاء ====================
+        if (prayerTimes.isha != null) {
+          await schedulePrayerUseCase.execute(
+            id: notificationId++,
+            title: 'حان الآن موعد صلاة العشاء',
+            body: 'حي على الصلاة، حي على الفلاح',
+            scheduledTime: prayerTimes.isha!,
+            soundName: 'adhan',
+          );
+
+          int delay = iqamaDelays['isha'] ?? 15;
+          if (delay > 0) {
+            await schedulePrayerUseCase.execute(
+              id: notificationId++,
+              title: 'إقامة صلاة العشاء',
+              body: 'تجهز للصلاة، ستقام الصلاة الآن',
+              scheduledTime: prayerTimes.isha!.add(Duration(minutes: delay)),
+            );
+          }
+        }
+      });
+    }
   }
 
   // -------------------------------------------------------------------
@@ -132,5 +280,17 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
         location.city,
       );
     });
+  }
+  // -------------------------------------------------------------------
+  // دالة مؤقتة لاختبار الإشعارات فوراً
+  Future<void> testNotification() async {
+    print("⏳ جاري جدولة إشعار تجريبي بعد 5 ثواني...");
+    
+    await schedulePrayerUseCase.execute(
+      id: 999, // رقم مميز عشان ميتعارضش مع الصلوات
+      title: 'إشعار تجريبي 🚀',
+      body: 'عاش يا هندسة! الإشعارات شغالة في الخلفية زي الفل.',
+      scheduledTime: DateTime.now().add(const Duration(seconds: 5)),
+    );
   }
 }
