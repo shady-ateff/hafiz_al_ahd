@@ -1,5 +1,8 @@
 // lib/features/notifications/data/repositories/notification_repository_impl.dart
 
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/repos/base_notification_repository.dart';
 import 'package:timezone/data/latest.dart' as tz;
@@ -28,11 +31,18 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
           requestSoundPermission: true,
         );
 
+    const WindowsInitializationSettings initializationSettingsWindows =
+        WindowsInitializationSettings(
+          appName: 'Hafiz Al Ahd',
+          appUserModelId: '234567890',
+          guid: '12345678-1234-5678-1234-567812345678',
+        );
     // تجميع الإعدادات
     const InitializationSettings initializationSettings =
         InitializationSettings(
           android: initializationSettingsAndroid,
           iOS: initializationSettingsIOS,
+          windows: initializationSettingsWindows,
         );
 
     // تهيئة المكتبة
@@ -68,6 +78,7 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
   }
 
   @override
+  @override
   Future<void> schedulePrayerNotification({
     required int id,
     required String title,
@@ -75,45 +86,66 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
     required DateTime scheduledTime,
     String? soundName,
   }) async {
-    // تحويل الوقت العادي لـ توقيت محلي دقيق (Timezone)
-    final tz.TZDateTime tzScheduledTime = tz.TZDateTime.from(
-      scheduledTime,
-      tz.local,
-    );
-
-    // إعدادات الإشعار نفسه (القناة، الأهمية، الصوت)
-    final AndroidNotificationDetails
-    androidPlatformChannelSpecifics = AndroidNotificationDetails(
-      'prayer_times_channel', // ID القناة (مهم جداً ويفضل يكون ثابت)
-      'مواقيت الصلاة', // اسم القناة اللي بيظهر لليوزر في الإعدادات
+    
+    // إعدادات الأندرويد
+    AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+      'prayer_times_channel',
+      'مواقيت الصلاة',
       channelDescription: 'إشعارات التنبيه بأوقات الصلاة والأذان',
-      importance: Importance.max, // عشان يظهر Pop-up من فوق
+      importance: Importance.max,
       priority: Priority.high,
       playSound: true,
-      sound: soundName != null ?  RawResourceAndroidNotificationSound(soundName) : const RawResourceAndroidNotificationSound('adhan'), // 👈 هنفعل السطر ده لما نحط ملف الأذان الـ mp3
+      sound: soundName != null ? RawResourceAndroidNotificationSound(soundName) : null,
     );
 
-    final NotificationDetails platformChannelSpecifics = NotificationDetails(
-      android: androidPlatformChannelSpecifics,
+    // إعدادات الويندوز
+    const WindowsNotificationDetails windowsDetails = WindowsNotificationDetails(); 
+
+    NotificationDetails platformSpecifics = NotificationDetails(
+      android: androidDetails,
+      windows: windowsDetails,
     );
 
-    // أمر الجدولة الفعلي
+    // ==========================================
+    // 👈 السحر هنا: لو إحنا على ويندوز، هنستخدم Timer
+    // ==========================================
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      // نحسب الفرق بين دلوقتي وموعد الإشعار
+      final delay = scheduledTime.difference(DateTime.now());
+      
+      // لو الوقت لسة مجاش، نعمل Timer
+      if (!delay.isNegative) {
+        Timer(delay, () async {
+          await _flutterLocalNotificationsPlugin.show(
+            id: id,
+            title: title,
+            body: body,
+            notificationDetails: platformSpecifics,
+          );
+        });
+      }
+      return; // اخرج من الدالة عشان ميكملش لكود الأندرويد
+    }
+
+    // ==========================================
+    // 👈 لو إحنا على أندرويد/iOS، نستخدم الجدولة العادية
+    // ==========================================
+    final tz.TZDateTime tzScheduledTime = tz.TZDateTime.from(scheduledTime, tz.local);
+
     await _flutterLocalNotificationsPlugin.zonedSchedule(
       id: id,
       title: title,
       body: body,
       scheduledDate: tzScheduledTime,
-      notificationDetails: platformChannelSpecifics,
-      androidScheduleMode: AndroidScheduleMode
-          .exactAllowWhileIdle, // عشان يضرب في وقته حتى لو الجهاز في وضع توفير طاقة
+      notificationDetails: platformSpecifics,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
     );
   }
-
   @override
   Future<void> cancelAllNotifications() async {
     await _flutterLocalNotificationsPlugin.cancelAll();
   }
-  
+
   // في الملفين (الـ Repo والـ UseCase) ضيف المتغير ده:
   @override
   Future<void> execute({
@@ -133,5 +165,4 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
       scheduledTime: scheduledTime,
     );
   }
-  
 }

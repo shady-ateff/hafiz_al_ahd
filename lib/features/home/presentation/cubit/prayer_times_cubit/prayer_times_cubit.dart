@@ -21,7 +21,6 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
   final CancelAllNotificationsUseCase cancelAllNotificationsUseCase;
   final GetIqamaDelaysUseCase getIqamaDelaysUseCase = GetIqamaDelaysUseCase();
 
-
   PrayerTimesCubit({
     required this.getPrayerTimesUseCase,
     required PrayerTimesInitial initialState,
@@ -54,10 +53,15 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
         method: method,
       );
 
-      result.fold(
-        (failure) => emit(PrayerTimesError(failure.message)),
-        (prayerTimes) => emit(PrayerTimesLoaded(prayerTimes, city: city)),
-      );
+      result.fold((failure) => emit(PrayerTimesError(failure.message)), (
+        prayerTimes,
+      ) {
+        // 1. تحديث واجهة المستخدم
+        emit(PrayerTimesLoaded(prayerTimes, city: city));
+
+        // 2. 👈 السطر السحري: جدولة الإشعارات في كل الحالات
+        _scheduleNotificationsForNext6Days(latitude, longitude, city ?? '');
+      });
     } catch (e) {
       emit(PrayerTimesError(e.toString()));
     }
@@ -104,40 +108,45 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
       LocationEntity(latitude: lat, longitude: lng, city: city),
     );
 
-    // نحسب الصلوات
-    await _calculateAndEmitPrayerTimes(lat, lng, city);
-  }
-
-  // -------------------------------------------------------------------
-  // دالة مساعدة (Helper) عشان منكررش كود حساب الصلوات في كل مرة
-  Future<void> _calculateAndEmitPrayerTimes(
-    double lat,
-    double lng,
-    String city,
-  ) async {
-    final result = await getPrayerTimesUseCase(
+    // 👈 ننادي على الدالة الأساسية بدل الدالة اللي مسحناها
+    await fetchPrayerTimes(
       latitude: lat,
       longitude: lng,
       date: DateTime.now(),
       city: city,
     );
+  }
 
-    result.fold((failure) => emit(PrayerTimesError(failure.message)), (
-      prayerTimes,
-    ) {
-      emit(PrayerTimesLoaded(prayerTimes, city: city));
-      _scheduleNotificationsForNext6Days(lat, lng, city);
+  // -------------------------------------------------------------------
+
+  Future<void> loadPrayerTimesFromCache() async {
+    emit(PrayerTimesLoading());
+
+    final result = await getCachedLocationUseCase();
+
+    result.fold((failure) => emit(PrayerTimesNeedsManualLocation()), (
+      location,
+    ) async {
+      // 👈 ننادي على الدالة الأساسية بدل الدالة اللي مسحناها
+      await fetchPrayerTimes(
+        latitude: location.latitude,
+        longitude: location.longitude,
+        date: DateTime.now(),
+        city: location.city,
+      );
     });
   }
 
- Future<void> _scheduleNotificationsForNext6Days( // 👈 يستحسن تغير اسم الدالة لـ 6 أيام
+
+  Future<void> _scheduleNotificationsForNext6Days(
+    // 👈 يستحسن تغير اسم الدالة لـ 6 أيام
     double lat,
     double lng,
     String city,
   ) async {
     // 1. مسحنا الإشعارات القديمة
     await cancelAllNotificationsUseCase.execute();
-
+    log("Notifications cleared. Scheduling new notifications for the next 6 days......");
     int notificationId = 0;
 
     // 2. سحبنا أرقام الإقامة من (المصدر الوحيد للحقيقة)
@@ -154,7 +163,6 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
       );
 
       result.fold((_) {}, (prayerTimes) async {
-        
         // ==================== الفجر ====================
         if (prayerTimes.fajr != null) {
           // أ. إشعار الأذان (بصوت الأذان)
@@ -163,7 +171,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
             title: 'حان الآن موعد صلاة الفجر',
             body: 'الصلاة خير من النوم',
             scheduledTime: prayerTimes.fajr!,
-            soundName: 'adhan', 
+            soundName: 'adhan',
           );
 
           // ب. إشعار الإقامة (بالرنة العادية)
@@ -265,27 +273,13 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
     }
   }
 
-  // -------------------------------------------------------------------
-  Future<void> loadPrayerTimesFromCache() async {
-    emit(PrayerTimesLoading());
 
-    final result = await getCachedLocationUseCase();
 
-    result.fold((failure) => emit(PrayerTimesNeedsManualLocation()), (
-      location,
-    ) async {
-      await _calculateAndEmitPrayerTimes(
-        location.latitude,
-        location.longitude,
-        location.city,
-      );
-    });
-  }
   // -------------------------------------------------------------------
   // دالة مؤقتة لاختبار الإشعارات فوراً
   Future<void> testNotification() async {
     print("⏳ جاري جدولة إشعار تجريبي بعد 5 ثواني...");
-    
+
     await schedulePrayerUseCase.execute(
       id: 999, // رقم مميز عشان ميتعارضش مع الصلوات
       title: 'إشعار تجريبي 🚀',

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -17,15 +18,74 @@ import 'package:hafiz_al_ahd/features/notifications/data/repos/notification_repo
 import 'package:hafiz_al_ahd/features/notifications/domain/usecases/cancel_all_notfication_usecase.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/usecases/schedule_prayer_usecase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:window_manager/window_manager.dart';
+import 'package:tray_manager/tray_manager.dart';
 
-class App extends StatelessWidget {
+// 1. 👈 حولناها لـ StatefulWidget
+class App extends StatefulWidget {
   final SharedPreferences sharedPreferences;
   const App({super.key, required this.sharedPreferences});
 
   @override
+  State<App> createState() => _AppState();
+}
+
+// 2. 👈 ضفنا الـ Listeners بتاعة الويندوز والأيقونة
+class _AppState extends State<App> with TrayListener, WindowListener {
+  
+  @override
+  void initState() {
+    super.initState();
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      trayManager.addListener(this);
+      windowManager.addListener(this);
+      _preventClose(); 
+    }
+  }
+
+  @override
+  void dispose() {
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      trayManager.removeListener(this);
+      windowManager.removeListener(this);
+    }
+    super.dispose();
+  }
+
+  void _preventClose() async {
+    await windowManager.setPreventClose(true);
+  }
+
+  // 🖱️ منع قفل البرنامج عند الضغط على X وإخفاؤه بدلاً من ذلك
+  @override
+  void onWindowClose() async {
+    bool isPreventClose = await windowManager.isPreventClose();
+    if (isPreventClose) {
+      await windowManager.hide(); 
+    }
+  }
+
+  // 🖱️ إظهار الشاشة لما اليوزر يدوس على الأيقونة
+  @override
+  void onTrayIconMouseDown() async {
+    await windowManager.show();
+    await windowManager.focus();
+  }
+
+  // 🖱️ التفاعل مع القائمة الجانبية للأيقونة
+  @override
+  void onTrayMenuItemClick(MenuItem menuItem) async {
+    if (menuItem.key == 'show_app') {
+      await windowManager.show();
+      await windowManager.focus();
+    } else if (menuItem.key == 'exit_app') {
+      await windowManager.destroy();
+      exit(0); 
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    // 1. 👈 الاختلاف الأول: الـ MultiBlocProvider بقى هو الأب بره خالص
     return MultiBlocProvider(
       providers: [
         BlocProvider(
@@ -37,7 +97,8 @@ class App extends StatelessWidget {
             );
 
             final locationDataSource = LocationLocalDataSourceImpl(
-              sharedPreferences: sharedPreferences,
+              // 👈 استخدمنا widget.sharedPreferences عشان إحنا جوه State
+              sharedPreferences: widget.sharedPreferences, 
             );
             final baseLocationRepo = LocationRepositoryImpl(
               localDataSource: locationDataSource,
@@ -67,16 +128,12 @@ class App extends StatelessWidget {
         ),
         BlocProvider(create: (context) => TimeCubit()),
       ],
-      // 2. 👈 الاختلاف التاني: الـ MaterialApp بقى هو الـ child
       child: MaterialApp(
         title: 'Hafiz Al Ahd',
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
         themeMode: ThemeMode.dark,
-
-        // 3. 👈 الاختلاف التالت: الـ home بقت الشاشة على طول
         home: const HomeScreen(),
-
         debugShowCheckedModeBanner: false,
         localizationsDelegates: const [
           GlobalMaterialLocalizations.delegate,
