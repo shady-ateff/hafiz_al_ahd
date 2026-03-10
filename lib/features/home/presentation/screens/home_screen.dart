@@ -8,6 +8,8 @@ import 'package:hafiz_al_ahd/features/home/presentation/widgets/prayer_times_gri
 import 'package:hafiz_al_ahd/features/home/presentation/widgets/time_date_section.dart';
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
 
+import 'package:hafiz_al_ahd/features/settings/presentation/screens/settings_screen.dart';
+
 /// A screen that displays the current time and date in a visually appealing,
 /// responsive layout. It adapts to both portrait and landscape orientations.
 class HomeScreen extends StatefulWidget {
@@ -31,10 +33,12 @@ class _HomeScreenState extends State<HomeScreen> {
       // backgroundColor: AppColors.deepBackground,
       appBar: AppBar(
         leading: IconButton(
-          icon: Icon(Icons.menu),
+          icon: const Icon(Icons.settings),
           color: AppColors.secondaryGold,
           onPressed: () {
-            Scaffold.of(context).openDrawer();
+            Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const SettingsScreen()));
           },
         ),
         actions: [
@@ -118,13 +122,13 @@ class _HomeScreenState extends State<HomeScreen> {
           },
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          context.read<PrayerTimesCubit>().testNotification();
-        },
-        backgroundColor: AppColors.secondaryGold,
-        child: const Icon(Icons.refresh, color: AppColors.primaryBlack),
-      )
+      // floatingActionButton: FloatingActionButton(
+      //   onPressed: () {
+      //     context.read<PrayerTimesCubit>().testNotification();
+      //   },
+      //   backgroundColor: AppColors.secondaryGold,
+      //   child: const Icon(Icons.refresh, color: AppColors.primaryBlack),
+      // ),
     );
   }
 

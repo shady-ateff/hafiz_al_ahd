@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
-import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit/prayer_times_cubit.dart';
-import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit/prayer_times_states.dart';
+
 import 'package:hafiz_al_ahd/features/home/presentation/cubit/time_cubit.dart';
 import 'package:hijri/hijri_calendar.dart';
 import 'package:intl/intl.dart';

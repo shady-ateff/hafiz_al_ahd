@@ -11,6 +11,7 @@ import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit
 import 'package:hafiz_al_ahd/features/notifications/domain/usecases/cancel_all_notfication_usecase.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/usecases/schedule_prayer_usecase.dart';
 import 'package:hafiz_al_ahd/features/settings/domain/usecases/get_iqama_delays_usecase.dart';
+import 'package:hafiz_al_ahd/core/utils/calculation_method_helper.dart';
 
 class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
   final GetPrayerTimesUseCase getPrayerTimesUseCase;
@@ -72,7 +73,17 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
     try {
       emit(PrayerTimesLoading());
       position = await LocationService.determinePosition();
-      String cityName = await LocationService.getCityName(position);
+      LocationEntity locationDetails = await LocationService.getLocationDetails(
+        position,
+      );
+      String cityName = locationDetails.city;
+
+      String method = '3'; // Default method
+      if (locationDetails.country != null) {
+        method = CalculationMethodHelper.getMethodForCountry(
+          locationDetails.country!,
+        );
+      }
 
       // حفظ الموقع الجديد في الكاش للمرات القادمة
       await saveLocationUseCase(
@@ -80,6 +91,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
           latitude: position.latitude,
           longitude: position.longitude,
           city: cityName,
+          country: locationDetails.country, // Save country code if possible
         ),
       );
 
@@ -88,6 +100,8 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
         longitude: position.longitude,
         date: DateTime.now(),
         city: cityName,
+        country: locationDetails.country,
+        method: method,
       );
     } catch (e) {
       print("GPS Failed, loading from Cache... Error was: ${e.toString()}");
@@ -99,13 +113,24 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
   Future<void> fetchPrayerTimesManually(
     double lat,
     double lng,
-    String city,
-  ) async {
+    String city, [
+    String? country,
+  ]) async {
     emit(PrayerTimesLoading());
+
+    String method = '3';
+    if (country != null) {
+      method = CalculationMethodHelper.getMethodForCountry(country);
+    }
 
     // نحفظ الموقع اللي اليوزر اختاره يدوياً في الكاش عشان المرات الجاية
     await saveLocationUseCase(
-      LocationEntity(latitude: lat, longitude: lng, city: city),
+      LocationEntity(
+        latitude: lat,
+        longitude: lng,
+        city: city,
+        country: country,
+      ),
     );
 
     // 👈 ننادي على الدالة الأساسية بدل الدالة اللي مسحناها
@@ -114,6 +139,8 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
       longitude: lng,
       date: DateTime.now(),
       city: city,
+      country: country,
+      method: method,
     );
   }
 
@@ -127,16 +154,22 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
     result.fold((failure) => emit(PrayerTimesNeedsManualLocation()), (
       location,
     ) async {
+      String method = '3';
+      if (location.country != null) {
+        method = CalculationMethodHelper.getMethodForCountry(location.country!);
+      }
+
       // 👈 ننادي على الدالة الأساسية بدل الدالة اللي مسحناها
       await fetchPrayerTimes(
         latitude: location.latitude,
         longitude: location.longitude,
         date: DateTime.now(),
         city: location.city,
+        country: location.country,
+        method: method,
       );
     });
   }
-
 
   Future<void> _scheduleNotificationsForNext6Days(
     // 👈 يستحسن تغير اسم الدالة لـ 6 أيام
@@ -146,11 +179,13 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
   ) async {
     // 1. مسحنا الإشعارات القديمة
     await cancelAllNotificationsUseCase.execute();
-    log("Notifications cleared. Scheduling new notifications for the next 6 days......");
+    log(
+      "Notifications cleared. Scheduling new notifications for the next 6 days......",
+    );
     int notificationId = 0;
 
     // 2. سحبنا أرقام الإقامة من (المصدر الوحيد للحقيقة)
-    final iqamaDelays = getIqamaDelaysUseCase.execute();
+    final iqamaDelays = await getIqamaDelaysUseCase.execute();
 
     // 3. قللنا اللوب لـ 6 أيام عشان نتفادى الـ Crash بتاع الـ iOS (10 إشعارات في اليوم * 6 = 60)
     for (int i = 0; i < 6; i++) {
@@ -272,8 +307,6 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
       });
     }
   }
-
-
 
   // -------------------------------------------------------------------
   // دالة مؤقتة لاختبار الإشعارات فوراً

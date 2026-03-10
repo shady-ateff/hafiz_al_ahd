@@ -2,6 +2,7 @@ import 'dart:developer';
 
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:hafiz_al_ahd/features/home/domain/entities/location_entity.dart';
 
 class LocationService {
   static Future<Position> determinePosition() async {
@@ -39,12 +40,12 @@ class LocationService {
 
     // When we reach here, permissions are granted and we can
     // continue accessing the position of the device.
-    return await Geolocator.getCurrentPosition();
+    return await Geolocator.getCurrentPosition(
+      timeLimit: const Duration(seconds: 10),
+    );
   }
 
-  // جوه ملف LocationService.dart
-
-  static Future<String> getCityName(Position position) async {
+  static Future<LocationEntity> getLocationDetails(Position position) async {
     try {
       setLocaleIdentifier("ar");
       List<Placemark> placemarks = await placemarkFromCoordinates(
@@ -59,12 +60,27 @@ class LocationService {
         log(placemark.administrativeArea ?? "غير معروف");
         log(placemark.locality ?? "غير معروف");
 
-        return '${placemark.subAdministrativeArea} , ${placemark.country}';
+        String cityName =
+            '${placemark.subAdministrativeArea} , ${placemark.country}';
+        return LocationEntity(
+          latitude: position.latitude,
+          longitude: position.longitude,
+          city: cityName,
+          country: placemark.isoCountryCode,
+        );
       }
-      return "غير معروف";
+      return LocationEntity(
+        latitude: position.latitude,
+        longitude: position.longitude,
+        city: "غير معروف",
+      );
     } catch (e) {
       // لو مفيش نت أو الخدمة مش شغالة
-      return "غير معروف";
+      return LocationEntity(
+        latitude: position.latitude,
+        longitude: position.longitude,
+        city: "غير معروف",
+      );
     }
   }
 }
