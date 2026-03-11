@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:hafiz_al_ahd/app/view/app.dart';
 import 'package:hafiz_al_ahd/core/services/desktop_window_service.dart';
+import 'package:hafiz_al_ahd/core/utils/app_permission.dart';
 import 'package:hafiz_al_ahd/features/notifications/data/repos/notification_repository_impl.dart';
 import 'package:hijri/hijri_calendar.dart';
 import 'package:launch_at_startup/launch_at_startup.dart';
@@ -14,6 +15,7 @@ late SharedPreferences pref;
 
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
+  await AppPermissions.requestProductionPermissions();
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
     // جلب اسم التطبيق الأصلي
     PackageInfo packageInfo = await PackageInfo.fromPlatform();
