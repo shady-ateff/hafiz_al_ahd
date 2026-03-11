@@ -8,6 +8,8 @@ import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit
 import 'package:hafiz_al_ahd/features/home/presentation/cubit/time_cubit.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/widgets/prayer_card_widget.dart';
 
+import 'package:hafiz_al_ahd/features/settings/domain/usecases/get_iqama_delays_usecase.dart';
+
 class PrayerTimesGrid extends StatelessWidget {
   final int crossAxisCount;
   final bool isScrollable;
@@ -33,65 +35,92 @@ class PrayerTimesGrid extends StatelessWidget {
         final prayers = _getPrayersList(state.prayerTimes);
         int rowCount = (prayers.length / crossAxisCount).ceil();
 
-        // 👈 المحرك السحري: ده اللي هيخلي الشبكة تعمل Switch وقت الأذان والإقامة
-        return BlocSelector<TimeCubit, DateTime, String>(
-          selector: (currentTime) {
-            final next = state.prayerTimes.getNextPrayer(currentTime);
-            // لو اسم الصلاة أو حالة الإقامة اتغيرت، اعمل Rebuild للشبكة فوراً
-            return "${next.name}_${next.isIqama}";
-          },
-          builder: (context, triggerValue) {
-            // بنجيب الصلاة (الجديدة) بعد ما الـ Trigger اشتغل
-            final nextPrayer = state.prayerTimes.getNextPrayer(DateTime.now());
+        // نحتاج لجلب الإعدادات المحفوظة من الـ SharedPreferences لعرض أوقات الإقامة الدقيقة
+        // بنستخدم FutureBuilder عشان نقرأ الإعدادات لأنها Future
+        return FutureBuilder<Map<String, int>>(
+          future: GetIqamaDelaysUseCase().execute(),
+          builder: (context, snapshot) {
+            // أثناء تحميل الإعدادات، نستخدم الـ defaults مؤقتاً
+            final iqamaDelays =
+                snapshot.data ??
+                {
+                  'fajr': 25,
+                  'shurooq': 0,
+                  'dhuhr': 15,
+                  'asr': 15,
+                  'maghrib': 10,
+                  'isha': 15,
+                };
 
-            if (isScrollable) {
-              return Column(
-                children: List.generate(rowCount, (rowIndex) {
-                  return Row(
-                    children: List.generate(crossAxisCount, (colIndex) {
-                      int itemIndex = (rowIndex * crossAxisCount) + colIndex;
-                      if (itemIndex < prayers.length) {
-                        return Expanded(
-                          child: _buildFlexCard(
-                            data: prayers[itemIndex],
-                            isWideLayout: crossAxisCount == 1,
-                            nextPrayer: nextPrayer, // 👈 بنبعت الأوبجكت كله
-                          ),
-                        );
-                      } else {
-                        return const Spacer();
-                      }
+            // 👈 المحرك السحري: ده اللي هيخلي الشبكة تعمل Switch وقت الأذان والإقامة
+            return BlocSelector<TimeCubit, DateTime, String>(
+              selector: (currentTime) {
+                final next = state.prayerTimes.getNextPrayer(
+                  currentTime,
+                  iqamaDelays: iqamaDelays,
+                );
+                // لو اسم الصلاة أو حالة الإقامة اتغيرت، اعمل Rebuild للشبكة فوراً
+                return "${next.name}_${next.isIqama}";
+              },
+              builder: (context, triggerValue) {
+                // بنجيب الصلاة (الجديدة) بعد ما الـ Trigger اشتغل
+                final nextPrayer = state.prayerTimes.getNextPrayer(
+                  DateTime.now(),
+                  iqamaDelays: iqamaDelays,
+                );
+
+                if (isScrollable) {
+                  return Column(
+                    children: List.generate(rowCount, (rowIndex) {
+                      return Row(
+                        children: List.generate(crossAxisCount, (colIndex) {
+                          int itemIndex =
+                              (rowIndex * crossAxisCount) + colIndex;
+                          if (itemIndex < prayers.length) {
+                            return Expanded(
+                              child: _buildFlexCard(
+                                data: prayers[itemIndex],
+                                isWideLayout: crossAxisCount == 1,
+                                nextPrayer: nextPrayer, // 👈 بنبعت الأوبجكت كله
+                              ),
+                            );
+                          } else {
+                            return const Spacer();
+                          }
+                        }),
+                      );
                     }),
                   );
-                }),
-              );
-            }
+                }
 
-            return Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(rowCount, (rowIndex) {
-                return Expanded(
-                  child: Row(
-                    children: List.generate(crossAxisCount, (colIndex) {
-                      int itemIndex = (rowIndex * crossAxisCount) + colIndex;
+                return Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(rowCount, (rowIndex) {
+                    return Expanded(
+                      child: Row(
+                        children: List.generate(crossAxisCount, (colIndex) {
+                          int itemIndex =
+                              (rowIndex * crossAxisCount) + colIndex;
 
-                      if (itemIndex < prayers.length) {
-                        return Expanded(
-                          child: _buildFlexCard(
-                            data: prayers[itemIndex],
-                            isWideLayout: forceVerticalCardLayout
-                                ? !forceVerticalCardLayout
-                                : crossAxisCount == 1,
-                            nextPrayer: nextPrayer, // 👈 بنبعت الأوبجكت كله
-                          ),
-                        );
-                      } else {
-                        return const Spacer();
-                      }
-                    }),
-                  ),
+                          if (itemIndex < prayers.length) {
+                            return Expanded(
+                              child: _buildFlexCard(
+                                data: prayers[itemIndex],
+                                isWideLayout: forceVerticalCardLayout
+                                    ? !forceVerticalCardLayout
+                                    : crossAxisCount == 1,
+                                nextPrayer: nextPrayer, // 👈 بنبعت الأوبجكت كله
+                              ),
+                            );
+                          } else {
+                            return const Spacer();
+                          }
+                        }),
+                      ),
+                    );
+                  }),
                 );
-              }),
+              },
             );
           },
         );

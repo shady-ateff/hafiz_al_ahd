@@ -17,21 +17,25 @@ class PrayerTimesEntity {
   });
   // دالة ذكية لمعرفة الصلاة القادمة والوقت المتبقي لها
   // بترجع Record فيه: اسم الصلاة، وقتها، والوقت المتبقي
-  NextPrayerTime getNextPrayer(DateTime currentTime) {
+  NextPrayerTime getNextPrayer(
+    DateTime currentTime, {
+    Map<String, int>? iqamaDelays,
+  }) {
     // 1. بنرتب الصلوات في مصفوفة بالترتيب الزمني
     final prayers = [
-      (name: 'الفجر', time: fajr),
-      (name: 'الشروق', time: sunrise),
-      (name: 'الظهر', time: dhuhr),
-      (name: 'العصر', time: asr),
-      (name: 'المغرب', time: maghrib),
-      (name: 'العشاء', time: isha),
+      (name: 'الفجر', time: fajr, key: 'fajr'),
+      (name: 'الشروق', time: sunrise, key: 'shurooq'),
+      (name: 'الظهر', time: dhuhr, key: 'dhuhr'),
+      (name: 'العصر', time: asr, key: 'asr'),
+      (name: 'المغرب', time: maghrib, key: 'maghrib'),
+      (name: 'العشاء', time: isha, key: 'isha'),
     ];
-
 
     // 2. بنمشي عليهم صلاة صلاة، أول صلاة وقتها لسه مجاش (isAfter) تبقى هي دي!
     for (var prayer in prayers) {
-      DateTime iqamaTime = prayer.time!.add(Duration(minutes: _getIqamaMinutes(prayer.name)));
+      int delay = _getIqamaMinutes(prayer.name, prayer.key, iqamaDelays);
+      DateTime iqamaTime = prayer.time!.add(Duration(minutes: delay));
+
       if (prayer.time!.isAfter(currentTime)) {
         return NextPrayerTime(
           name: prayer.name,
@@ -40,8 +44,7 @@ class PrayerTimesEntity {
           isNextPrayer: true,
           isIqama: false,
         );
-      } else if (currentTime.isBefore(iqamaTime) &&
-          _getIqamaMinutes(prayer.name) > 0) {
+      } else if (currentTime.isBefore(iqamaTime) && delay > 0) {
         // لو الوقت الحالي هو بالظبط وقت الصلاة أو بعده بقليل، نعتبرها الصلاة القادمة
         return NextPrayerTime(
           name: prayer.name,
@@ -65,9 +68,20 @@ class PrayerTimesEntity {
     );
   }
 
-  int _getIqamaMinutes(String prayerName) {
-    if (prayerName == 'المغرب') return 15;
-    if (prayerName == 'الشروق') return 0; // مفيش إقامة للشروق
-    return 20; // الفجر، الظهر، العصر، العشاء
+  int _getIqamaMinutes(
+    String prayerName,
+    String prayerKey,
+    Map<String, int>? delays,
+  ) {
+    if (prayerKey == 'shurooq') return 0; // مفيش إقامة للشروق
+
+    // لو فيه إعدادات جاية من المحفوظات، استخدمها
+    if (delays != null && delays.containsKey(prayerKey)) {
+      return delays[prayerKey]!;
+    }
+
+    // القيم الافتراضية لو مفيش إعدادات
+    if (prayerKey == 'maghrib') return 15;
+    return 20;
   }
 }

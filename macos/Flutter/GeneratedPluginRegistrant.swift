@@ -5,6 +5,7 @@
 import FlutterMacOS
 import Foundation
 
+import auto_start_flutter
 import flutter_local_notifications
 import geolocator_apple
 import package_info_plus
@@ -15,6 +16,7 @@ import wakelock_plus
 import window_manager
 
 func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
+  AutoStartFlutterPlugin.register(with: registry.registrar(forPlugin: "AutoStartFlutterPlugin"))
   FlutterLocalNotificationsPlugin.register(with: registry.registrar(forPlugin: "FlutterLocalNotificationsPlugin"))
   GeolocatorPlugin.register(with: registry.registrar(forPlugin: "GeolocatorPlugin"))
   FPPPackageInfoPlusPlugin.register(with: registry.registrar(forPlugin: "FPPPackageInfoPlusPlugin"))

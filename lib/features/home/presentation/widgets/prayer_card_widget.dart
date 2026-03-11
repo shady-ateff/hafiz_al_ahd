@@ -62,7 +62,6 @@ class _PrayerCardState extends State<PrayerCard>
     }
   }
 
-  // 👈 دالة المراقبة (خطوة 4 اللي سألت عليها)
   @override
   void didUpdateWidget(covariant PrayerCard oldWidget) {
     super.didUpdateWidget(oldWidget);

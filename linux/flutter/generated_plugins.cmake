@@ -3,6 +3,7 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  auto_start_flutter
   screen_retriever_linux
   tray_manager
   window_manager
