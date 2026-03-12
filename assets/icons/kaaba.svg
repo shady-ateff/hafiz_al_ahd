@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Base outline -->
+  <path d="M128 160v256h256V160H128zm216 232H168V184h176v208z" fill="currentColor"/>
+  <!-- Top decorative band -->
+  <rect x="168" y="216" width="176" height="24" fill="currentColor"/>
+  <!-- Middle decorative band -->
+  <rect x="168" y="272" width="176" height="12" fill="currentColor"/>
+  <!-- Door outline -->
+  <path d="M224 392h64V312h-64v80zm16-64h32v48h-32v-48z" fill="currentColor"/>
+</svg>

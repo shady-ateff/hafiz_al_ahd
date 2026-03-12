@@ -1,6 +1,7 @@
 import 'dart:math' show pi;
 import 'package:flutter/material.dart';
 import 'package:flutter_qiblah/flutter_qiblah.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
 import 'package:hafiz_al_ahd/core/widgets/gradient_icon.dart';
@@ -92,7 +93,7 @@ class _QiblaCompassWidget extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 50),
-                    
+
               // 👈 سحر الدوران بيحصل هنا
               Expanded(
                 child: Transform.rotate(
@@ -122,17 +123,28 @@ class _QiblaCompassWidget extends StatelessWidget {
                       ),
                       // سهم القبلة (باستخدام الـ GradientIcon بتاعك)
                       Transform.translate(
-                        offset: const Offset(0, -70), // رفع السهم لفوق شوية
-                        child: const GradientIcon(
-                          icon: Icons.navigation,
-                          size: 90,
+                        offset: const Offset(0, -100), // رفع السهم لفوق شوية
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            const GradientIcon(
+                              icon: Icons.navigation,
+                              size: 90,
+                            ),
+                            Image.asset(
+                              'assets/icons/kaaba_haram.png',
+                              width: 30,
+                              height: 30,
+                              color: AppColors.deepBackground,
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
               ),
-                    
+
               const SizedBox(height: 50),
               // عرض الزاوية بالدرجات
               GradientText(
