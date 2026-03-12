@@ -28,7 +28,7 @@ class PrayerCard extends StatefulWidget {
     required this.isNextPrayer,
     required this.time,
     this.isIqama = false,
-    this.activeTextColor = AppColors.darkText,
+    this.activeTextColor,
   });
 
   @override
@@ -112,8 +112,10 @@ class _PrayerCardState extends State<PrayerCard>
                   widget.isNextPrayer == true
                       ? Icon(
                           widget.icon,
-                          color:
-                              widget.activeTextColor ?? AppColors.primaryBlack,
+                          color: widget.isIqama
+                              ? AppColors.silverMarble
+                              : widget.activeTextColor ??
+                                    AppColors.primaryBlack,
                           size: 28,
                         )
                       : GradientIcon(icon: widget.icon, size: 28),
@@ -121,9 +123,10 @@ class _PrayerCardState extends State<PrayerCard>
                       ? Text(
                           widget.name,
                           style: GoogleFonts.cairo(
-                            color:
-                                widget.activeTextColor ??
-                                AppColors.primaryBlack,
+                            color: widget.isIqama
+                                ? AppColors.silverMarble
+                                : widget.activeTextColor ??
+                                      AppColors.primaryBlack,
                             fontSize: 21,
                             fontWeight: FontWeight.bold,
                           ),
@@ -160,9 +163,10 @@ class _PrayerCardState extends State<PrayerCard>
                                 ).format(widget.displayTime!)
                               : '--:--',
                           style: GoogleFonts.cairo(
-                            color:
-                                widget.activeTextColor ??
-                                AppColors.primaryBlack,
+                            color: widget.isIqama
+                                ? AppColors.silverMarble
+                                : widget.activeTextColor ??
+                                      AppColors.primaryBlack,
                             fontSize: 21,
                             fontWeight: FontWeight.bold,
                           ),
@@ -194,7 +198,9 @@ class _PrayerCardState extends State<PrayerCard>
             color: widget.isNextPrayer == true
                 ? null
                 : AppColors.deepBackground,
-            gradient: widget.isNextPrayer == true
+            gradient: widget.isIqama
+                ? AppColors.errorGradient
+                : widget.isNextPrayer == true
                 ? AppColors.goldenGradient.withOpacity(0.7)
                 : null,
             borderRadius: BorderRadius.circular(12),

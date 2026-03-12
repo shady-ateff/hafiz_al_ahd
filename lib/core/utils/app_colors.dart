@@ -29,4 +29,9 @@ class AppColors {
       // AppColors.deepBackground,
     ],
   );
+  static Gradient errorGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [AppColors.errorColor.withOpacity(0.7), AppColors.errorColor],
+  );
 }
