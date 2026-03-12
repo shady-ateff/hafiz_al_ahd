@@ -53,6 +53,7 @@ dependencies:
   country_state_city_picker: ^1.2.8
   permission_handler: ^12.0.1
   auto_start_flutter: ^1.0.0
+  google_nav_bar: ^5.0.7
 
 dev_dependencies:
   flutter_lints: ^6.0.0

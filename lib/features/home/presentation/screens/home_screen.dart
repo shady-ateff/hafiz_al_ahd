@@ -8,8 +8,6 @@ import 'package:hafiz_al_ahd/features/home/presentation/widgets/prayer_times_gri
 import 'package:hafiz_al_ahd/features/home/presentation/widgets/time_date_section.dart';
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
 
-import 'package:hafiz_al_ahd/features/settings/presentation/screens/settings_screen.dart';
-
 /// A screen that displays the current time and date in a visually appealing,
 /// responsive layout. It adapts to both portrait and landscape orientations.
 class HomeScreen extends StatefulWidget {
@@ -32,15 +30,6 @@ class _HomeScreenState extends State<HomeScreen> {
       // Use a deep, dark background for a luxurious feel.
       // backgroundColor: AppColors.deepBackground,
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.settings),
-          color: AppColors.secondaryGold,
-          onPressed: () {
-            Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const SettingsScreen()));
-          },
-        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),

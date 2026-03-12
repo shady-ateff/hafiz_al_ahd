@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
+import 'package:hafiz_al_ahd/core/widgets/gradient_icon.dart';
+import 'package:hafiz_al_ahd/core/widgets/gradient_text.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/cubit/time_cubit.dart';
 import 'package:intl/intl.dart';
 
@@ -14,6 +16,7 @@ class PrayerCard extends StatefulWidget {
   final bool isWideLayout;
   final bool? isNextPrayer;
   final bool isIqama;
+  final Color? activeTextColor;
 
   const PrayerCard({
     super.key,
@@ -25,6 +28,7 @@ class PrayerCard extends StatefulWidget {
     required this.isNextPrayer,
     required this.time,
     this.isIqama = false,
+    this.activeTextColor = AppColors.darkText,
   });
 
   @override
@@ -105,22 +109,33 @@ class _PrayerCardState extends State<PrayerCard>
                 spacing: widget.isWideLayout ? 12.0 : 6.0,
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
-                  Icon(
-                    widget.icon,
-                    // خلينا الأيقونة تنور أبيض لو دي الصلاة الجاية
-                    color: widget.isNextPrayer == true
-                        ? Colors.white
-                        : AppColors.secondaryGold,
-                    size: 28,
-                  ),
-                  Text(
-                    widget.name,
-                    style: GoogleFonts.cairo(
-                      color: Colors.white,
-                      fontSize: 21,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  widget.isNextPrayer == true
+                      ? Icon(
+                          widget.icon,
+                          color:
+                              widget.activeTextColor ?? AppColors.primaryBlack,
+                          size: 28,
+                        )
+                      : GradientIcon(icon: widget.icon, size: 28),
+                  widget.isNextPrayer == true
+                      ? Text(
+                          widget.name,
+                          style: GoogleFonts.cairo(
+                            color:
+                                widget.activeTextColor ??
+                                AppColors.primaryBlack,
+                            fontSize: 21,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        )
+                      : GradientText(
+                          widget.name,
+                          gradient: AppColors.silverGradient,
+                          style: GoogleFonts.cairo(
+                            fontSize: 21,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ],
               ),
             ),
@@ -136,19 +151,34 @@ class _PrayerCardState extends State<PrayerCard>
                     : Axis.vertical,
                 spacing: widget.isWideLayout ? 12.0 : 6.0,
                 children: [
-                  Text(
-                    widget.displayTime != null
-                        ? DateFormat(
-                            'hh:mm a',
-                            'ar',
-                          ).format(widget.displayTime!)
-                        : '--:--',
-                    style: GoogleFonts.cairo(
-                      color: AppColors.secondaryGold,
-                      fontSize: 21,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  widget.isNextPrayer == true
+                      ? Text(
+                          widget.displayTime != null
+                              ? DateFormat(
+                                  'hh:mm a',
+                                  'ar',
+                                ).format(widget.displayTime!)
+                              : '--:--',
+                          style: GoogleFonts.cairo(
+                            color:
+                                widget.activeTextColor ??
+                                AppColors.primaryBlack,
+                            fontSize: 21,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        )
+                      : GradientText(
+                          widget.displayTime != null
+                              ? DateFormat(
+                                  'hh:mm a',
+                                  'ar',
+                                ).format(widget.displayTime!)
+                              : '--:--',
+                          style: GoogleFonts.cairo(
+                            fontSize: 21,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ],
               ),
             ),
@@ -161,7 +191,12 @@ class _PrayerCardState extends State<PrayerCard>
           margin: const EdgeInsets.all(6),
           constraints: const BoxConstraints(minHeight: 70, minWidth: 100),
           decoration: BoxDecoration(
-            color: AppColors.deepBackground,
+            color: widget.isNextPrayer == true
+                ? null
+                : AppColors.deepBackground,
+            gradient: widget.isNextPrayer == true
+                ? AppColors.goldenGradient.withOpacity(0.7)
+                : null,
             borderRadius: BorderRadius.circular(12),
             // الفريم هنا بياخد قيمة الأنيميشن المتغيرة
             border: widget.isIqama
@@ -172,15 +207,17 @@ class _PrayerCardState extends State<PrayerCard>
                 : widget.isNextPrayer == true
                 ? Border.all(
                     color: AppColors.silverMarble,
-                    width: _animation!.value,
+                    width:
+                        _animation!.value /
+                        2, // خففنا السُمك عشان الخلفية أصلاً ذهبي
                   )
                 : Border.all(color: AppColors.secondaryGold.withAlpha(50)),
             boxShadow: widget.isNextPrayer == true
                 ? [
                     BoxShadow(
-                      color: AppColors.silverMarble.withOpacity(0.3),
-                      blurRadius: _animation!.value * 5, // التوهج بيكبر ويصغر
-                      spreadRadius: 0,
+                      color: AppColors.secondaryGold.withOpacity(0.5),
+                      blurRadius: _animation!.value * 4, // التوهج بيكبر ويصغر
+                      spreadRadius: 2,
                     ),
                   ]
                 : [],
@@ -211,6 +248,7 @@ class _PrayerCardState extends State<PrayerCard>
                     child: NextPrayerTimer(
                       targetTime: widget.time,
                       isIqama: widget.isIqama,
+                      isNextPrayer: widget.isNextPrayer ?? false,
                     ),
                   ),
                 ),
@@ -223,10 +261,16 @@ class _PrayerCardState extends State<PrayerCard>
 }
 
 class NextPrayerTimer extends StatelessWidget {
-  const NextPrayerTimer({super.key, this.targetTime, this.isIqama = false});
+  const NextPrayerTimer({
+    super.key,
+    this.targetTime,
+    this.isIqama = false,
+    this.isNextPrayer = false,
+  });
 
   final DateTime? targetTime;
   final bool isIqama;
+  final bool isNextPrayer;
 
   @override
   Widget build(BuildContext context) {
@@ -240,7 +284,9 @@ class NextPrayerTimer extends StatelessWidget {
         String prefix = isIqama ? 'إقامة' : '-';
         Color textColor = isIqama
             ? Colors.white
-            : AppColors.silverMarble; // خليتها أبيض للإقامة عشان تبان أحسن
+            : isNextPrayer
+            ? AppColors.primaryBlack
+            : AppColors.silverMarble; // أسود عشان الخلفية ذهبي
 
         return Text(
           isIqama

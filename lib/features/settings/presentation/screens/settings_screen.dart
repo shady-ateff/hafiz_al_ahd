@@ -5,6 +5,7 @@ import 'package:hafiz_al_ahd/features/settings/domain/usecases/get_iqama_delays_
 import 'package:hafiz_al_ahd/features/settings/domain/usecases/save_iqama_delays_usecase.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit/prayer_times_cubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hafiz_al_ahd/core/widgets/gradient_text.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -71,12 +72,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
+        title: GradientText(
           'الإعدادات',
-          style: GoogleFonts.cairo(
-            color: AppColors.secondaryGold,
-            fontWeight: FontWeight.bold,
-          ),
+          style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
         iconTheme: const IconThemeData(color: AppColors.secondaryGold),
@@ -134,11 +132,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       },
                     ),
                   ),
-                  SizedBox(
+                  Container(
                     width: double.infinity,
+                    decoration: BoxDecoration(
+                      gradient: AppColors.goldenGradient,
+                      borderRadius: BorderRadius.circular(24),
+                    ),
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.secondaryGold,
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
                       onPressed: _saveSettings,

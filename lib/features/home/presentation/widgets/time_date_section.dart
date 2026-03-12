@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
+import 'package:hafiz_al_ahd/core/widgets/gradient_text.dart';
 
 import 'package:hafiz_al_ahd/features/home/presentation/cubit/time_cubit.dart';
 import 'package:hijri/hijri_calendar.dart';
@@ -69,24 +70,13 @@ class TimeDateSection extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   spacing: 10,
                   children: [
-                    ShaderMask(
-                      shaderCallback: (bounds) => LinearGradient(
-                        colors: [
-                          AppColors.silverMarble,
-                          AppColors.silverMarble,
-                          AppColors.silverMarble.withOpacity(0.3),
-                        ],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                      ).createShader(bounds),
-                      child: Text(
-                        dayName,
-                        style: Theme.of(context).textTheme.displayLarge
-                            ?.copyWith(
-                              fontSize: isLandscape ? 60 : 35,
-                              color: Colors.white,
-                              fontFamily: 'Thuluth',
-                            ),
+                    GradientText(
+                      dayName,
+                      gradient: AppColors.silverGradient,
+                      style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                        fontSize: isLandscape ? 60 : 35,
+                        color: Colors.white,
+                        fontFamily: 'Thuluth',
                       ),
                     ),
 
@@ -167,15 +157,7 @@ class ClockSectionBuilder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ShaderMask(
-      shaderCallback: (bounds) => LinearGradient(
-        colors: [
-          AppColors.lightGold,
-          AppColors.secondaryGold,
-          AppColors.secondaryGold.withOpacity(0.4),
-        ],
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-      ).createShader(bounds),
+      shaderCallback: (bounds) => AppColors.goldenGradient.createShader(bounds),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.baseline,
         textBaseline: TextBaseline.alphabetic,
