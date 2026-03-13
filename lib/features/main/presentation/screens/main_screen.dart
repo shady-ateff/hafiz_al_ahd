@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
@@ -97,34 +98,24 @@ class _MainScreenState extends State<MainScreen> {
               selectedIndex: _currentIndex,
               onTabChange: (index) {
                 setState(() {
+                  if (index == 1) {
+                    // لو رايح لشاشة القبلة (Index 1)، اقفل الدوران بالطول بس
+                    SystemChrome.setPreferredOrientations([
+                      DeviceOrientation.portraitUp,
+                      DeviceOrientation.portraitDown,
+                    ]);
+                  } else {
+                    // لو أي شاشة تانية، افتح الدوران براحته للـ Fluid Design
+                    SystemChrome.setPreferredOrientations(
+                      DeviceOrientation.values,
+                    );
+                  }
                   _currentIndex = index;
                 });
               },
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class GradientIcon extends StatelessWidget {
-  final IconData icon;
-  final double size;
-
-  const GradientIcon({super.key, required this.icon, this.size = 24.0});
-
-  @override
-  Widget build(BuildContext context) {
-    return ShaderMask(
-      blendMode: BlendMode.srcIn,
-      shaderCallback: (Rect bounds) {
-        return AppColors.goldenGradient.createShader(bounds);
-      },
-      child: Icon(
-        icon,
-        size: size,
-        color: Colors.white, // The gradient will replace this
       ),
     );
   }
