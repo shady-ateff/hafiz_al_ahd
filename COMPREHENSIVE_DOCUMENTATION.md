@@ -42,6 +42,7 @@ The application relies on several carefully chosen Flutter packages. Below is a 
 ### Location & Device Capabilities
 *   **`geolocator` (v14.0.2)**: Interfaces with native platform APIs to retrieve the user's current exact GPS location (latitude and longitude).
 *   **`geocoding` (v4.0.0)**: Translates raw coordinates into human-readable addresses (e.g., City and Country names) to display in the UI.
+*   **`flutter_qiblah` (v3.2.0)**: Specifically handles the magnetometer sensors to calculate and pinpoint the precise direction of the Qibla locally without internet.
 
 ### System & Background Utilities
 *   **`shared_preferences` (v2.5.4)**: Maintains persistent key-value storage. Used to preserve user settings, caching the latest location, and maintaining offline state locally.
@@ -56,6 +57,9 @@ The application relies on several carefully chosen Flutter packages. Below is a 
 *   **`package_info_plus` (v9.0.0)**: Used alongside desktop packages to fetch the app name/version dynamically for system-level registries.
 
 ### UI & Aesthetics
+*   **`google_nav_bar` (v5.0.7)**: A modern, highly customizable bottom navigation bar with fluent interactions and pill-shaped active tabs.
+*   **`flutter_svg` (v2.2.4)**: Allows the rendering of scalable vector graphics (SVGs), ensuring icons like the Kaaba look pixel-perfect on any screen size.
+*   **`lottie` (v2.2.0)**: Renders Adobe After Effects animations natively in Flutter; used to guide users on calibrating the device compass.
 *   **`cupertino_icons` / `google_fonts`**: Provides high-quality iconography and standard typography alongside the customized Arabic fonts (Thuluth/Kufi) available in the project assets.
 
 ```mermaid
@@ -78,7 +82,10 @@ mindmap
       window_manager
       tray_manager
       launch_at_startup
-    UI & Utils
+    UI & Animations
+      google_nav_bar
+      flutter_svg
+      lottie
       intl
       wakelock_plus
       google_fonts
