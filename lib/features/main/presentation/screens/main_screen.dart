@@ -5,7 +5,7 @@ import 'package:google_nav_bar/google_nav_bar.dart';
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/screens/home_screen.dart';
 import 'package:hafiz_al_ahd/features/qibla/presentation/screens/qibla_screen.dart';
-import 'package:hafiz_al_ahd/features/quran/presentation/screens/quran_screen.dart';
+import 'package:hafiz_al_ahd/features/azkar/presentation/screens/azkar_screen.dart';
 import 'package:hafiz_al_ahd/features/settings/presentation/screens/settings_screen.dart';
 
 class MainScreen extends StatefulWidget {
@@ -21,7 +21,7 @@ class _MainScreenState extends State<MainScreen> {
   final List<Widget> _screens = const [
     HomeScreen(),
     QiblaScreen(),
-    QuranScreen(),
+    AzkarScreen(),
     SettingsScreen(),
   ];
 
@@ -92,7 +92,7 @@ class _MainScreenState extends State<MainScreen> {
               tabs: const [
                 GButton(icon: Icons.home_filled, text: 'الرئيسية'),
                 GButton(icon: Icons.explore, text: 'القبلة'),
-                GButton(icon: Icons.menu_book, text: 'المصحف'),
+                GButton(icon: Icons.book, text: 'الأذكار'),
                 GButton(icon: Icons.settings, text: 'الإعدادات'),
               ],
               selectedIndex: _currentIndex,
