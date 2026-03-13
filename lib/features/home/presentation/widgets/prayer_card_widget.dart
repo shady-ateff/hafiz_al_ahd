@@ -50,32 +50,25 @@ class _PrayerCardState extends State<PrayerCard>
     _animation =
         Tween<double>(
           begin: 1.0, // سُمك الفريم العادي
-          end: 4.0, // سُمك الفريم وهو منور
+          end: 5.0, // سُمك الفريم وهو منور
         ).animate(
           CurvedAnimation(
             parent: _animationController!,
-            curve: Curves.easeInOut, // عشان الحركة تبقى ناعمة
+            curve: Curves.easeInOut,
           ),
         );
 
-    // لو الكارت ده بتاع الصلاة الجاية أول ما الشاشة تفتح، شغله
     if (widget.isNextPrayer == true) {
-      _animationController!.repeat(
-        reverse: true,
-      ); // 👈 ده اللي هيخليه ينبض ميقفش!
+      _animationController!.repeat(reverse: true);
     }
   }
 
   @override
   void didUpdateWidget(covariant PrayerCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-
-    // لو الكارت ده لسه طازة متحدث وبقى هو الصلاة الجاية
     if (widget.isNextPrayer == true && oldWidget.isNextPrayer != true) {
       _animationController!.repeat(reverse: true);
-    }
-    // لو الكارت ده مابقاش هو الصلاة الجاية (خلاص الأذان أذن)
-    else if (widget.isNextPrayer != true && oldWidget.isNextPrayer == true) {
+    } else if (widget.isNextPrayer != true && oldWidget.isNextPrayer == true) {
       _animationController!.stop();
       _animationController!.reset();
     }
@@ -89,177 +82,210 @@ class _PrayerCardState extends State<PrayerCard>
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _animation!,
-      child: Flex(
-        direction: widget.isWideLayout ? Axis.horizontal : Axis.vertical,
-        mainAxisAlignment: widget.isWideLayout
-            ? MainAxisAlignment.spaceBetween
-            : MainAxisAlignment.center,
-        children: [
-          Expanded(
-            flex: 2,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              clipBehavior: Clip.antiAlias,
-              child: Flex(
-                direction: widget.isWideLayout
-                    ? Axis.horizontal
-                    : Axis.vertical,
-                spacing: widget.isWideLayout ? 12.0 : 6.0,
-                mainAxisAlignment: MainAxisAlignment.start,
+    // 👈 لفّينا الكارت بـ BlocBuilder عشان يحس بالوقت كل ثانية وينقل بين الـ 3 مراحل
+    return BlocBuilder<TimeCubit, DateTime>(
+      builder: (context, currentTime) {
+        Duration remaining =
+            widget.time?.difference(currentTime) ?? Duration.zero;
+
+        // --- تحديد المراحل الثلاثة ---
+        bool isIqama = widget.isIqama;
+        bool isNextPrayer = widget.isNextPrayer == true;
+        // المرحلة 2: هل متبقي 30 دقيقة أو أقل (ولسه مأذنش)؟
+        bool isWithinHalfHour =
+            isNextPrayer &&
+            !isIqama &&
+            remaining.inMinutes <= 30 &&
+            !remaining.isNegative;
+
+        // --- توزيع الألوان بناءً على المرحلة ---
+        Color cardColor;
+        Color borderColor;
+        Color textColor;
+        Color badgeColor;
+
+        if (isIqama) {
+          // 🔴 المرحلة 3: الإقامة (البرتقالي المحروق الشيك)
+          cardColor = AppColors.iqamaWarning;
+          borderColor = Colors.deepOrange.shade400;
+          textColor = Colors.white;
+          badgeColor = Colors.white24;
+        } else if (isWithinHalfHour) {
+          // 🟡 المرحلة 2: قبل الصلاة بنص ساعة (تعبئة ذهبي دافئ)
+          cardColor = AppColors.lightGold; // لون ذهبي مريح للعين
+          borderColor = Colors.amber.shade200;
+          textColor = AppColors.primaryBlack;
+          badgeColor = Colors.black12;
+        } else if (isNextPrayer) {
+          // ⚫ المرحلة 1: الوضع العادي للصلاة القادمة (أسود مع نبض ذهبي)
+          cardColor = AppColors.deepBackground;
+          borderColor = Colors.amber; // هيتم دمجه مع الأنيميشن تحت
+          textColor = Colors.white;
+          badgeColor = Colors.amber.withOpacity(0.15);
+        } else {
+          // ⚪ كارت عادي مش نشط
+          cardColor = AppColors.deepBackground;
+          borderColor = AppColors.secondaryGold.withAlpha(50);
+          textColor = AppColors.silverMarble;
+          badgeColor = Colors.transparent;
+        }
+
+        return AnimatedBuilder(
+          animation: _animation!,
+          builder: (context, child) {
+            // استخدمنا AnimatedContainer عشان لو اتنقل بين المراحل يغير لونه بنعومة
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 800),
+              margin: const EdgeInsets.all(6),
+              constraints: const BoxConstraints(minHeight: 70, minWidth: 100),
+              decoration: BoxDecoration(
+                // color: cardColor,
+                gradient: LinearGradient(
+                  colors: [cardColor, cardColor.withOpacity(0.9)],
+                ),
+                borderRadius: BorderRadius.circular(12),
+                // النبض يشتغل بس في المرحلة الأولى، غير كده الإطار ثابت
+                border: (isNextPrayer && !isWithinHalfHour && !isIqama)
+                    ? Border.all(
+                        color: borderColor,
+                        width: _animation!.value / 1.5,
+                      )
+                    : Border.all(color: borderColor, width: _animation!.value),
+                boxShadow: (isNextPrayer && !isWithinHalfHour && !isIqama)
+                    ? [
+                        BoxShadow(
+                          color: Colors.amber.withOpacity(0.3),
+                          blurRadius: _animation!.value * 3,
+                          spreadRadius: 1,
+                        ),
+                      ]
+                    : [],
+              ),
+              child: Stack(
+                alignment: Alignment.topLeft,
                 children: [
-                  widget.isNextPrayer == true
-                      ? Icon(
-                          widget.icon,
-                          color: widget.isIqama
-                              ? AppColors.silverMarble
-                              : widget.activeTextColor ??
-                                    AppColors.primaryBlack,
-                          size: 28,
-                        )
-                      : GradientIcon(icon: widget.icon, size: 28),
-                  widget.isNextPrayer == true
-                      ? Text(
-                          widget.name,
-                          style: GoogleFonts.cairo(
-                            color: widget.isIqama
-                                ? AppColors.silverMarble
-                                : widget.activeTextColor ??
-                                      AppColors.primaryBlack,
-                            fontSize: 21,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        )
-                      : GradientText(
-                          widget.name,
-                          gradient: AppColors.silverGradient,
-                          style: GoogleFonts.cairo(
-                            fontSize: 21,
-                            fontWeight: FontWeight.bold,
+                  // محتوى الكارت (الـ Flex)
+                  Center(
+                    child: Flex(
+                      direction: widget.isWideLayout
+                          ? Axis.horizontal
+                          : Axis.vertical,
+                      mainAxisAlignment: widget.isWideLayout
+                          ? MainAxisAlignment.spaceBetween
+                          : MainAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            clipBehavior: Clip.antiAlias,
+                            child: Flex(
+                              direction: widget.isWideLayout
+                                  ? Axis.horizontal
+                                  : Axis.vertical,
+                              spacing: widget.isWideLayout ? 12.0 : 6.0,
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: [
+                                isNextPrayer
+                                    ? Icon(
+                                        widget.icon,
+                                        color: textColor,
+                                        size: 28,
+                                      )
+                                    : GradientIcon(icon: widget.icon, size: 28),
+                                isNextPrayer
+                                    ? Text(
+                                        widget.name,
+                                        style: GoogleFonts.cairo(
+                                          color: textColor,
+                                          fontSize: 21,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      )
+                                    : GradientText(
+                                        widget.name,
+                                        gradient: AppColors.silverGradient,
+                                        style: GoogleFonts.cairo(
+                                          fontSize: 21,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                              ],
+                            ),
                           ),
                         ),
-                ],
-              ),
-            ),
-          ),
-          Flexible(
-            fit: FlexFit.loose,
-            flex: widget.isWideLayout ? 3 : 1,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Flex(
-                direction: widget.isWideLayout
-                    ? Axis.horizontal
-                    : Axis.vertical,
-                spacing: widget.isWideLayout ? 12.0 : 6.0,
-                children: [
-                  widget.isNextPrayer == true
-                      ? Text(
-                          widget.displayTime != null
-                              ? DateFormat(
-                                  'hh:mm a',
-                                  'ar',
-                                ).format(widget.displayTime!)
-                              : '--:--',
-                          style: GoogleFonts.cairo(
-                            color: widget.isIqama
-                                ? AppColors.silverMarble
-                                : widget.activeTextColor ??
-                                      AppColors.primaryBlack,
-                            fontSize: 21,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        )
-                      : GradientText(
-                          widget.displayTime != null
-                              ? DateFormat(
-                                  'hh:mm a',
-                                  'ar',
-                                ).format(widget.displayTime!)
-                              : '--:--',
-                          style: GoogleFonts.cairo(
-                            fontSize: 21,
-                            fontWeight: FontWeight.bold,
+                        Flexible(
+                          fit: FlexFit.loose,
+                          flex: widget.isWideLayout ? 3 : 1,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Flex(
+                              direction: widget.isWideLayout
+                                  ? Axis.horizontal
+                                  : Axis.vertical,
+                              spacing: widget.isWideLayout ? 12.0 : 6.0,
+                              children: [
+                                isNextPrayer
+                                    ? Text(
+                                        widget.displayTime != null
+                                            ? DateFormat(
+                                                'hh:mm a',
+                                                'ar',
+                                              ).format(widget.displayTime!)
+                                            : '--:--',
+                                        style: GoogleFonts.cairo(
+                                          color: textColor,
+                                          fontSize: 21,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      )
+                                    : GradientText(
+                                        widget.displayTime != null
+                                            ? DateFormat(
+                                                'hh:mm a',
+                                                'ar',
+                                              ).format(widget.displayTime!)
+                                            : '--:--',
+                                        style: GoogleFonts.cairo(
+                                          fontSize: 21,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                              ],
+                            ),
                           ),
                         ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-      builder: (context, child) {
-        return Container(
-          // padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          margin: const EdgeInsets.all(6),
-          constraints: const BoxConstraints(minHeight: 70, minWidth: 100),
-          decoration: BoxDecoration(
-            color: widget.isNextPrayer == true
-                ? null
-                : AppColors.deepBackground,
-            gradient: widget.isIqama
-                ? AppColors.errorGradient
-                : widget.isNextPrayer == true
-                ? AppColors.goldenGradient.withOpacity(0.7)
-                : null,
-            borderRadius: BorderRadius.circular(12),
-            // الفريم هنا بياخد قيمة الأنيميشن المتغيرة
-            border: widget.isIqama
-                ? Border.all(
-                    color: AppColors.errorColor,
-                    width: _animation!.value,
-                  )
-                : widget.isNextPrayer == true
-                ? Border.all(
-                    color: AppColors.silverMarble,
-                    width:
-                        _animation!.value /
-                        2, // خففنا السُمك عشان الخلفية أصلاً ذهبي
-                  )
-                : Border.all(color: AppColors.secondaryGold.withAlpha(50)),
-            boxShadow: widget.isNextPrayer == true
-                ? [
-                    BoxShadow(
-                      color: AppColors.secondaryGold.withOpacity(0.5),
-                      blurRadius: _animation!.value * 4, // التوهج بيكبر ويصغر
-                      spreadRadius: 2,
-                    ),
-                  ]
-                : [],
-          ),
-          child: Stack(
-            alignment: Alignment.topLeft,
-            children: [
-              Center(child: child!),
-              if (widget.isNextPrayer == true)
-                Positioned(
-                  top: 6,
-                  left: 8,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: widget.isIqama
-                          ? AppColors.errorColor.withOpacity(
-                              0.8,
-                            ) // أحمر واضح للإقامة
-                          : AppColors.silverMarble.withOpacity(
-                              0.2,
-                            ), // فضي شفاف للصلاة
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: NextPrayerTimer(
-                      targetTime: widget.time,
-                      isIqama: widget.isIqama,
-                      isNextPrayer: widget.isNextPrayer ?? false,
+                      ],
                     ),
                   ),
-                ),
-            ],
-          ),
+
+                  // 👈 كبسولة الوقت الطايرة (Pill Badge)
+                  if (isNextPrayer)
+                    Positioned(
+                      top: 6,
+                      left: 8,
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 800),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: badgeColor,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        // باصينا لون التيكست للعداد عشان يمشي مع المرحلة اللي إحنا فيها
+                        child: NextPrayerTimer(
+                          targetTime: widget.time,
+                          isIqama: isIqama,
+                          textColor: textColor,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            );
+          },
         );
       },
     );
@@ -271,12 +297,12 @@ class NextPrayerTimer extends StatelessWidget {
     super.key,
     this.targetTime,
     this.isIqama = false,
-    this.isNextPrayer = false,
+    required this.textColor, // 👈 استقبلنا اللون من الكارت الأب
   });
 
   final DateTime? targetTime;
   final bool isIqama;
-  final bool isNextPrayer;
+  final Color textColor;
 
   @override
   Widget build(BuildContext context) {
@@ -288,19 +314,13 @@ class NextPrayerTimer extends StatelessWidget {
         if (remaining.isNegative) remaining = Duration.zero;
 
         String prefix = isIqama ? 'إقامة' : '-';
-        Color textColor = isIqama
-            ? Colors.white
-            : isNextPrayer
-            ? AppColors.primaryBlack
-            : AppColors.silverMarble; // أسود عشان الخلفية ذهبي
 
         return Text(
           isIqama
               ? '$prefix ${(remaining.inMinutes % 60).toString().padLeft(2, '0')}:${(remaining.inSeconds % 60).toString().padLeft(2, '0')}'
               : '$prefix ${remaining.inHours.toString().padLeft(2, '0')}:${(remaining.inMinutes % 60).toString().padLeft(2, '0')}:${(remaining.inSeconds % 60).toString().padLeft(2, '0')}',
           style: GoogleFonts.cairo(
-            color: textColor,
-            // fontSize: 12, // 👈 السر هنا: الخط صغر عشان يكفي جوه الكبسولة
+            color: textColor, // اللون بيتأقلم مع المرحلة (أسود أو ذهبي أو أبيض)
             fontWeight: FontWeight.bold,
           ),
         );

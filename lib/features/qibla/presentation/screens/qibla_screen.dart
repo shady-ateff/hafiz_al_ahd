@@ -84,18 +84,22 @@ class _QiblaCompassWidget extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(
-                'قم بتدوير الهاتف حتى يتطابق السهم مع القبلة',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.cairo(
-                  color: AppColors.silverMarble,
-                  fontSize: 16,
+              Expanded(
+                flex: 1,
+                child: Text(
+                  'قم بتدوير الهاتف حتى يتطابق السهم مع القبلة',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.cairo(
+                    color: AppColors.silverMarble,
+                    fontSize: 16,
+                  ),
                 ),
               ),
               const SizedBox(height: 50),
 
               // 👈 سحر الدوران بيحصل هنا
               Expanded(
+                flex: 4,
                 child: Transform.rotate(
                   angle: compassAngle,
                   child: Stack(
@@ -147,19 +151,23 @@ class _QiblaCompassWidget extends StatelessWidget {
 
               const SizedBox(height: 50),
               // عرض الزاوية بالدرجات
-              GradientText(
-                '${qiblahDirection.direction.toInt()}°',
-                style: GoogleFonts.cairo(
-                  fontSize: 48,
-                  fontWeight: FontWeight.bold,
+              Expanded(
+                child: GradientText(
+                  '${qiblahDirection.direction.toInt()}°',
+                  style: GoogleFonts.cairo(
+                    fontSize: 48,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
               const SizedBox(height: 20),
-              Text(
-                'ضع الهاتف بشكل مسطح للحصول على أدق نتيجة',
-                style: GoogleFonts.cairo(
-                  color: AppColors.silverMarble.withOpacity(0.7),
-                  fontSize: 14,
+              Expanded(
+                child: Text(
+                  'ضع الهاتف بشكل مسطح للحصول على أدق نتيجة',
+                  style: GoogleFonts.cairo(
+                    color: AppColors.silverMarble.withOpacity(0.7),
+                    fontSize: 14,
+                  ),
                 ),
               ),
             ],
