@@ -34,12 +34,18 @@ class _MainScreenState extends State<MainScreen> {
 
     // 👈 2. تجهيز الألوان المتغيرة
     final scaffoldBgColor = Theme.of(context).scaffoldBackgroundColor;
-    final navBarBgColor = isDark ? AppColors.amoledBackground : Theme.of(context).cardColor;
-    final shadowColor = isDark ? AppColors.primaryBlack.withOpacity(0.5) : Colors.black.withOpacity(0.05);
-    final unselectedIconColor = isDark ? AppColors.silverMarble.withAlpha(100) : Theme.of(context).hintColor.withOpacity(0.6);
-    
+    final navBarBgColor = isDark
+        ? AppColors.amoledBackground
+        : Theme.of(context).cardColor;
+    final shadowColor = isDark
+        ? AppColors.primaryBlack.withOpacity(0.5)
+        : Colors.black.withOpacity(0.05);
+    final unselectedIconColor = isDark
+        ? AppColors.silverMarble.withAlpha(100)
+        : Theme.of(context).hintColor.withOpacity(0.6);
+
     // اللون النشط هيفضل أسود في الحالتين لأن الخلفية بتاعته ذهبي (والأسود على الذهبي تباينه ممتاز دايماً)
-    const activeColor = AppColors.primaryBlack; 
+    const activeColor = AppColors.primaryBlack;
 
     return Scaffold(
       backgroundColor: scaffoldBgColor, // 👈 التغيير هنا
@@ -66,31 +72,22 @@ class _MainScreenState extends State<MainScreen> {
               haptic: true, // haptic feedback
               tabBorderRadius: 25,
               tabBackgroundGradient: AppColors.goldenGradient,
-              tabActiveBorder: Border.all(
-                color: Colors.transparent,
-                width: 0,
-              ), 
-              tabBorder: Border.all(
-                color: Colors.transparent,
-                width: 0,
-              ), 
+              tabActiveBorder: Border.all(color: Colors.transparent, width: 0),
+              tabBorder: Border.all(color: Colors.transparent, width: 0),
               tabShadow: [
                 BoxShadow(
                   color: AppColors.secondaryGold.withOpacity(0.05),
                   blurRadius: 8,
                 ),
               ],
-              curve: Curves.easeInOut, 
-              duration: const Duration(milliseconds: 300), 
-              gap: 8, 
+              curve: Curves.easeInOut,
+              duration: const Duration(milliseconds: 300),
+              gap: 8,
               color: unselectedIconColor, // 👈 التغيير هنا
-              activeColor: activeColor, 
-              iconSize: 26, 
-              tabBackgroundColor: AppColors.secondaryGold, 
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 12,
-              ), 
+              activeColor: activeColor,
+              iconSize: 26,
+              tabBackgroundColor: AppColors.secondaryGold,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               textStyle: GoogleFonts.cairo(
                 color: activeColor,
                 fontWeight: FontWeight.bold,
@@ -105,15 +102,15 @@ class _MainScreenState extends State<MainScreen> {
               selectedIndex: _currentIndex,
               onTabChange: (index) {
                 setState(() {
-                  if (index == 1) {
+                  if (index == 0) {
+                    SystemChrome.setPreferredOrientations(
+                      DeviceOrientation.values,
+                    );
+                  } else {
                     SystemChrome.setPreferredOrientations([
                       DeviceOrientation.portraitUp,
                       DeviceOrientation.portraitDown,
                     ]);
-                  } else {
-                    SystemChrome.setPreferredOrientations(
-                      DeviceOrientation.values,
-                    );
                   }
                   _currentIndex = index;
                 });
