@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:hafiz_al_ahd/core/utils/app_theme.dart';
+import 'package:hafiz_al_ahd/features/azkar/data/datasources/azkar_local_data_source.dart';
+import 'package:hafiz_al_ahd/features/azkar/data/repositories/azkar_repository_impl.dart';
+import 'package:hafiz_al_ahd/features/azkar/domain/usecases/get_azkar_usecase.dart';
+import 'package:hafiz_al_ahd/features/azkar/presentation/cubit/azkar_cubit.dart';
 import 'package:hafiz_al_ahd/features/home/data/datasources/location_local_data_source.dart';
 import 'package:hafiz_al_ahd/features/home/data/datasources/prayer_times_local_data_source.dart';
 import 'package:hafiz_al_ahd/features/home/data/repositories/location_repository_impl.dart';
@@ -126,6 +130,13 @@ class _AppState extends State<App> with TrayListener, WindowListener {
           },
         ),
         BlocProvider(create: (context) => TimeCubit()),
+        BlocProvider(
+          create: (context) => AzkarCubit(
+            getAzkarUseCase: GetAzkarUseCase(
+              AzkarRepositoryImpl(localDataSource: AzkarLocalDataSourceImpl()),
+            ),
+          )..loadAzkar(),
+        ),
       ],
       child: MaterialApp(
         title: 'Hafiz Al Ahd',
