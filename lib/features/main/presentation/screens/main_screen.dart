@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart'; // 👈 استدعاء الـ Bloc
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
+import 'package:hafiz_al_ahd/core/theme/cubit/theme_cubit.dart'; // 👈 استدعاء الـ ThemeCubit
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/screens/home_screen.dart';
 import 'package:hafiz_al_ahd/features/qibla/presentation/screens/qibla_screen.dart';
@@ -27,16 +29,28 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 👈 1. قراءة حالة الثيم الحالي
+    final isDark = context.watch<ThemeCubit>().state.isDark;
+
+    // 👈 2. تجهيز الألوان المتغيرة
+    final scaffoldBgColor = Theme.of(context).scaffoldBackgroundColor;
+    final navBarBgColor = isDark ? AppColors.amoledBackground : Theme.of(context).cardColor;
+    final shadowColor = isDark ? AppColors.primaryBlack.withOpacity(0.5) : Colors.black.withOpacity(0.05);
+    final unselectedIconColor = isDark ? AppColors.silverMarble.withAlpha(100) : Theme.of(context).hintColor.withOpacity(0.6);
+    
+    // اللون النشط هيفضل أسود في الحالتين لأن الخلفية بتاعته ذهبي (والأسود على الذهبي تباينه ممتاز دايماً)
+    const activeColor = AppColors.primaryBlack; 
+
     return Scaffold(
-      backgroundColor: AppColors.deepBackground,
+      backgroundColor: scaffoldBgColor, // 👈 التغيير هنا
       body: _screens[_currentIndex],
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: AppColors.amoledBackground,
+          color: navBarBgColor, // 👈 التغيير هنا
           boxShadow: [
             BoxShadow(
               blurRadius: 20,
-              color: AppColors.primaryBlack.withOpacity(0.5),
+              color: shadowColor, // 👈 التغيير هنا
             ),
           ],
         ),
@@ -55,37 +69,30 @@ class _MainScreenState extends State<MainScreen> {
               tabActiveBorder: Border.all(
                 color: Colors.transparent,
                 width: 0,
-              ), // tab button border
+              ), 
               tabBorder: Border.all(
                 color: Colors.transparent,
                 width: 0,
-              ), // unselected tab button border
+              ), 
               tabShadow: [
                 BoxShadow(
                   color: AppColors.secondaryGold.withOpacity(0.05),
                   blurRadius: 8,
                 ),
-              ], // tab button shadow
-
-              curve: Curves.easeInOut, // tab animation curves
-              duration: const Duration(
-                milliseconds: 300,
-              ), // tab animation duration
-              gap: 8, // the tab button gap between icon and text
-              color: AppColors.silverMarble.withAlpha(
-                100,
-              ), // unselected icon color
-              activeColor:
-                  AppColors.primaryBlack, // selected icon and text color
-              iconSize: 26, // tab button icon size
-              tabBackgroundColor:
-                  AppColors.secondaryGold, // selected tab background color
+              ],
+              curve: Curves.easeInOut, 
+              duration: const Duration(milliseconds: 300), 
+              gap: 8, 
+              color: unselectedIconColor, // 👈 التغيير هنا
+              activeColor: activeColor, 
+              iconSize: 26, 
+              tabBackgroundColor: AppColors.secondaryGold, 
               padding: const EdgeInsets.symmetric(
                 horizontal: 16,
                 vertical: 12,
-              ), // navigation bar padding
+              ), 
               textStyle: GoogleFonts.cairo(
-                color: AppColors.primaryBlack,
+                color: activeColor,
                 fontWeight: FontWeight.bold,
                 fontSize: 14,
               ),
@@ -99,13 +106,11 @@ class _MainScreenState extends State<MainScreen> {
               onTabChange: (index) {
                 setState(() {
                   if (index == 1) {
-                    // لو رايح لشاشة القبلة (Index 1)، اقفل الدوران بالطول بس
                     SystemChrome.setPreferredOrientations([
                       DeviceOrientation.portraitUp,
                       DeviceOrientation.portraitDown,
                     ]);
                   } else {
-                    // لو أي شاشة تانية، افتح الدوران براحته للـ Fluid Design
                     SystemChrome.setPreferredOrientations(
                       DeviceOrientation.values,
                     );

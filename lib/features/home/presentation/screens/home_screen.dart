@@ -8,8 +8,6 @@ import 'package:hafiz_al_ahd/features/home/presentation/widgets/prayer_times_gri
 import 'package:hafiz_al_ahd/features/home/presentation/widgets/time_date_section.dart';
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
 
-/// A screen that displays the current time and date in a visually appealing,
-/// responsive layout. It adapts to both portrait and landscape orientations.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -27,8 +25,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Use a deep, dark background for a luxurious feel.
-      // backgroundColor: AppColors.deepBackground,
+      // الـ Scaffold بياخد الخلفية أوتوماتيك من الـ Theme
       appBar: AppBar(
         actions: [
           IconButton(
@@ -40,33 +37,29 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
         title: BlocConsumer<PrayerTimesCubit, PrayerTimesStates>(
           listener: (context, state) {
-            // السحر كله هنا: مراقبة حالة اللوكيشن اليدوي
             if (state is PrayerTimesNeedsManualLocation) {
               showDialog(
                 context: context,
-                barrierDismissible:
-                    false, // عشان اليوزر ميقفلش الديالوج من غير ما يختار حاجة
+                barrierDismissible: false, 
                 builder: (context) => const ManualLocationDialog(),
               );
             }
-
-            // ممكن تزود هنا حالة للـ Error لو حابب تظهر SnackBar
             if (state is PrayerTimesError) {
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text(state.message)));
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(state.message)),
+              );
             }
           },
           builder: (context, state) {
             return Row(
               mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
-              spacing: 8,
               children: [
                 const Icon(
                   Icons.location_on_outlined,
                   color: AppColors.secondaryGold,
                 ),
+                const SizedBox(width: 8),
                 Text(
                   state is PrayerTimesLoaded
                       ? state.city ?? "غير معروف"
@@ -85,13 +78,11 @@ class _HomeScreenState extends State<HomeScreen> {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            // Determine if the screen is wide enough for a landscape layout.
             bool isLandscape = constraints.maxWidth > 600;
 
             if (constraints.maxWidth <= 300) {
               return _buildWatchLayout();
-            } else if (constraints.maxWidth >= 301 &&
-                constraints.maxWidth <= 800) {
+            } else if (constraints.maxWidth >= 301 && constraints.maxWidth <= 800) {
               return _buildMobileLayout();
             } else if (constraints.maxWidth >= 801) {
               return _buildTabletDesktopLayout(
@@ -105,32 +96,18 @@ class _HomeScreenState extends State<HomeScreen> {
                   maxWidth: constraints.maxWidth,
                 );
               } else {
-                return SizedBox.shrink();
+                return const SizedBox.shrink();
               }
             }
           },
         ),
       ),
-      // floatingActionButton: FloatingActionButton(
-      //   onPressed: () {
-      //     context.read<PrayerTimesCubit>().testNotification();
-      //   },
-      //   backgroundColor: AppColors.secondaryGold,
-      //   child: const Icon(Icons.refresh, color: AppColors.primaryBlack),
-      // ),
     );
   }
 
-  /// Builds the layout for Tablet and Desktop screens.
-  Widget _buildTabletDesktopLayout({
-    required double maxHeight,
-    required double maxWidth,
-  }) {
+  Widget _buildTabletDesktopLayout({required double maxHeight, required double maxWidth}) {
     double aspectRatio = maxWidth / maxHeight;
-
-    var calculatedCrossAxisCount = aspectRatio.floor() == 0
-        ? 2
-        : aspectRatio.floor();
+    var calculatedCrossAxisCount = aspectRatio.floor() == 0 ? 2 : aspectRatio.floor();
 
     return Center(
       child: Padding(
@@ -144,9 +121,7 @@ class _HomeScreenState extends State<HomeScreen> {
               flex: 4,
               child: TimeDateSection(isLandscape: false, isTabletDesktop: true),
             ),
-
             const SizedBox(width: 40),
-
             Expanded(
               flex: 3,
               child: PrayerTimesGrid(crossAxisCount: calculatedCrossAxisCount),
@@ -157,27 +132,26 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// Builds the layout for Mobile screens.
   Widget _buildMobileLayout() {
-    return Padding(
+    return const Padding(
       padding: EdgeInsets.symmetric(horizontal: 20.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.max,
         children: [
-          // SizedBox(height: MediaQuery.sizeOf(context).height * 0.1),
           Expanded(
             flex: 2,
             child: TimeDateSection(isLandscape: false, isMobile: true),
           ),
-
-          Expanded(flex: 3, child: PrayerTimesGrid(crossAxisCount: 2)),
+          Expanded(
+            flex: 3,
+            child: PrayerTimesGrid(crossAxisCount: 2),
+          ),
         ],
       ),
     );
   }
 
-  /// Builds the layout for Watch/Small screens.
   Widget _buildWatchLayout() {
     return Center(
       child: SingleChildScrollView(
@@ -186,17 +160,17 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             children: [
               SizedBox(height: MediaQuery.sizeOf(context).height * 0.1),
-              SizedBox(
+              const SizedBox(
                 height: 200,
                 child: TimeDateSection(isLandscape: false, isWatch: true),
               ),
               const SizedBox(height: 60),
-              PrayerTimesGrid(
+              const PrayerTimesGrid(
                 crossAxisCount: 1,
                 isScrollable: true,
                 forceVerticalCardLayout: false,
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
             ],
           ),
         ),

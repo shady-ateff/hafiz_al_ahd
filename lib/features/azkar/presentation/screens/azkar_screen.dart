@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hafiz_al_ahd/core/helpers/helper_functions.dart';
+import 'package:hafiz_al_ahd/core/theme/theme_helper.dart'; // 👈 الـ Helper
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
 import 'package:hafiz_al_ahd/core/widgets/gradient_text.dart';
 import 'package:hafiz_al_ahd/features/azkar/domain/entities/azkar_item.dart';
@@ -21,7 +22,6 @@ class AzkarScreen extends StatefulWidget {
 }
 
 class _AzkarScreenState extends State<AzkarScreen> {
-  // 👈 متغير عشان نحفظ فيه كلمة البحث
   String _searchQuery = '';
 
   void _navigateToCategory(
@@ -43,9 +43,10 @@ class _AzkarScreenState extends State<AzkarScreen> {
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
-        backgroundColor: AppColors.amoledBackground,
+        backgroundColor: context.screenBg,
         appBar: AppBar(
-          backgroundColor: AppColors.amoledBackground,
+          backgroundColor: context.screenBg,
+          elevation: 0,
           title: GradientText(
             'الأذكار',
             style: GoogleFonts.cairo(fontSize: 28, fontWeight: FontWeight.bold),
@@ -76,7 +77,9 @@ class _AzkarScreenState extends State<AzkarScreen> {
                       const SizedBox(height: 16),
                       Text(
                         state.message,
-                        style: GoogleFonts.cairo(color: Colors.white),
+                        style: GoogleFonts.cairo(
+                          color: context.primaryText,
+                        ), // 👈 لون دايناميك بدل الأبيض
                       ),
                       const SizedBox(height: 16),
                       ElevatedButton(
@@ -94,7 +97,6 @@ class _AzkarScreenState extends State<AzkarScreen> {
               if (state is AzkarLoaded) {
                 final azkarMap = state.azkarMap;
 
-                // 🔍 لوجيك البحث: تجميع الأذكار اللي بتحتوي على الكلمة
                 List<AzkarItem> searchResults = [];
                 if (_searchQuery.isNotEmpty) {
                   String normalizedQuery = normalizeArabicText(
@@ -104,7 +106,6 @@ class _AzkarScreenState extends State<AzkarScreen> {
                   azkarMap.forEach((category, list) {
                     searchResults.addAll(
                       list.where((item) {
-                        // وبننظف نص الذكر نفسه قبل ما نقارنهم ببعض
                         String normalizedItemText = normalizeArabicText(
                           item.text,
                         );
@@ -115,37 +116,37 @@ class _AzkarScreenState extends State<AzkarScreen> {
                 }
 
                 final categories = [
-                  _CategoryConfig(
+                  const _CategoryConfig(
                     'أذكار بعد السلام من الصلاة المفروضة',
                     'بعد الصلاة',
                     'أدعية ما بعد الفريضة',
                     Icons.brightness_high_rounded,
                   ),
-                  _CategoryConfig(
+                  const _CategoryConfig(
                     'أذكار النوم',
                     'أذكار النوم',
                     'تحصين النفس قبل المنام',
                     CupertinoIcons.moon_fill,
                   ),
-                  _CategoryConfig(
+                  const _CategoryConfig(
                     'أدعية الأنبياء',
                     'أدعية الأنبياء',
                     'من أفضل الأدعية المأثورة',
                     Icons.star_rounded,
                   ),
-                  _CategoryConfig(
+                  const _CategoryConfig(
                     'أدعية قرآنية',
                     'أدعية قرآنية',
                     'مختارات من القرآن الكريم',
                     CupertinoIcons.book_fill,
                   ),
-                  _CategoryConfig(
+                  const _CategoryConfig(
                     'تسابيح',
                     'التسابيح',
                     'كنوز الذكر والتسبيح',
                     CupertinoIcons.infinite,
                   ),
-                  _CategoryConfig(
+                  const _CategoryConfig(
                     'أذكار الاستيقاظ',
                     'أذكار الاستيقاظ',
                     'ابدأ يومك بالذكر',
@@ -155,7 +156,6 @@ class _AzkarScreenState extends State<AzkarScreen> {
 
                 return Column(
                   children: [
-                    // شريط البحث (ثابت فوق)
                     Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 20.0,
@@ -164,21 +164,20 @@ class _AzkarScreenState extends State<AzkarScreen> {
                       child: TextField(
                         onChanged: (value) {
                           setState(() {
-                            _searchQuery =
-                                value; // 👈 تحديث الشاشة مع كل حرف يتكتب
+                            _searchQuery = value;
                           });
                         },
-                        style: const TextStyle(color: Colors.white),
+                        style: TextStyle(color: context.primaryText),
                         decoration: InputDecoration(
                           hintText: 'ابحث عن ذكر محدد...',
                           hintStyle: GoogleFonts.cairo(
-                            color: AppColors.silverMarble.withOpacity(0.5),
+                            color: context.secondaryText,
                           ),
                           filled: true,
-                          fillColor: AppColors.deepBackground,
+                          fillColor: context.cardBg,
                           prefixIcon: const Icon(
                             CupertinoIcons.search,
-                            color: AppColors.lightGold,
+                            color: AppColors.secondaryGold,
                           ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
@@ -191,15 +190,10 @@ class _AzkarScreenState extends State<AzkarScreen> {
                       ),
                     ),
 
-                    // 👈 عرض نتيجة البحث أو عرض الكروت العادية
                     Expanded(
                       child: _searchQuery.isNotEmpty
-                          ? _buildSearchResults(searchResults) // شاشة البحث
-                          : _buildMainLayout(
-                              context,
-                              azkarMap,
-                              categories,
-                            ), // الشاشة الرئيسية
+                          ? _buildSearchResults(searchResults)
+                          : _buildMainLayout(context, azkarMap, categories),
                     ),
                   ],
                 );
@@ -234,13 +228,15 @@ class _AzkarScreenState extends State<AzkarScreen> {
     );
   }
 
-  // ويدجت لعرض نتائج البحث مباشرة
   Widget _buildSearchResults(List<AzkarItem> results) {
     if (results.isEmpty) {
       return Center(
         child: Text(
           'لم يتم العثور على أذكار مطابقة',
-          style: GoogleFonts.cairo(color: AppColors.silverMarble, fontSize: 16),
+          style: GoogleFonts.cairo(
+            color: context.secondaryText,
+            fontSize: 16,
+          ), // 👈 لون دايناميك
         ),
       );
     }
@@ -249,14 +245,11 @@ class _AzkarScreenState extends State<AzkarScreen> {
       itemCount: results.length,
       separatorBuilder: (_, __) => const SizedBox(height: 16),
       itemBuilder: (context, index) {
-        return AzkarItemCard(
-          item: results[index],
-        ); // بنستخدم نفس كارت الذكر اللي عملناه
+        return AzkarItemCard(item: results[index]);
       },
     );
   }
 
-  // التصميم الأساسي للشاشة (الكروت)
   Widget _buildMainLayout(
     BuildContext context,
     Map<String, List<AzkarItem>> azkarMap,
@@ -273,7 +266,7 @@ class _AzkarScreenState extends State<AzkarScreen> {
               Text(
                 'عرض الكل',
                 style: GoogleFonts.cairo(
-                  color: AppColors.lightGold,
+                  color: AppColors.secondaryGold,
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                 ),
@@ -281,7 +274,7 @@ class _AzkarScreenState extends State<AzkarScreen> {
               Text(
                 'الأذكار اليومية',
                 style: GoogleFonts.cairo(
-                  color: Colors.white,
+                  color: context.primaryText, // 👈 لون دايناميك بدل الأبيض
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                 ),
@@ -322,7 +315,7 @@ class _AzkarScreenState extends State<AzkarScreen> {
           Text(
             'كافة التصنيفات',
             style: GoogleFonts.cairo(
-              color: Colors.white,
+              color: context.primaryText, // 👈 لون دايناميك بدل الأبيض
               fontSize: 20,
               fontWeight: FontWeight.bold,
             ),

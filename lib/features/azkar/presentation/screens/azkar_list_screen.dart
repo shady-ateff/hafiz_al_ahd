@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:hafiz_al_ahd/core/theme/theme_helper.dart';
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
 import 'package:hafiz_al_ahd/features/azkar/domain/entities/azkar_item.dart';
 import 'package:hafiz_al_ahd/core/widgets/gradient_text.dart';
@@ -18,18 +19,19 @@ class AzkarListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.amoledBackground,
+      backgroundColor: context.screenBg, // 👈 دايناميك
       appBar: AppBar(
-        backgroundColor: AppColors.amoledBackground,
+        backgroundColor: context.screenBg, // 👈 دايناميك
+        elevation: 0,
         title: GradientText(
           categoryTitle,
           style: GoogleFonts.cairo(fontSize: 24, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(
+          icon: Icon(
             Icons.arrow_back_ios_new_rounded,
-            color: Colors.white,
+            color: context.primaryText, // 👈 دايناميك عشان ميبقاش أبيض ويختفي
           ),
           onPressed: () => Navigator.pop(context),
         ),
@@ -39,7 +41,7 @@ class AzkarListScreen extends StatelessWidget {
               child: Text(
                 'لا توجد أذكار حالياً',
                 style: GoogleFonts.cairo(
-                  color: AppColors.silverMarble,
+                  color: context.secondaryText,
                   fontSize: 18,
                 ),
               ),
@@ -77,7 +79,6 @@ class _AzkarItemCardState extends State<AzkarItemCard>
   @override
   void initState() {
     super.initState();
-    // 👈 لو المودل جاب Count أقل من 1 بالغلط، نخليه 1 كحماية أولية
     _currentCount = widget.item.count > 0 ? widget.item.count : 1;
     _fadeController = AnimationController(
       vsync: this,
@@ -111,29 +112,31 @@ class _AzkarItemCardState extends State<AzkarItemCard>
   Widget build(BuildContext context) {
     super.build(context);
 
-    // 👈 الحماية من القسمة على صفر (Bulletproof Logic)
     final int safeTotalCount = widget.item.count > 0 ? widget.item.count : 1;
     final double progress = (safeTotalCount - _currentCount) / safeTotalCount;
 
     return AnimatedBuilder(
       animation: _fadeController,
       builder: (context, child) {
-        // 👈 حماية إضافية بـ clamp عشان نتأكد إن القيمة مستحيل تعدي 1.0 أو تقل عن 0.0
-        final double borderOpacity = (0.2 + (progress * 0.3)).clamp(0.0, 1.0);
-        final double cardOpacity = (1.0 - (_fadeController.value * 0.4)).clamp(0.0, 1.0);
+        final double cardOpacity = (1.0 - (_fadeController.value * 0.4)).clamp(
+          0.0,
+          1.0,
+        );
 
         return Opacity(
-          opacity: cardOpacity, 
+          opacity: cardOpacity,
           child: Container(
             decoration: BoxDecoration(
               color: _isCompleted
-                  ? AppColors.deepBackground.withOpacity(0.5)
-                  : AppColors.deepBackground,
+                  ? context.cardBg.withOpacity(0.5)
+                  : context.cardBg,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: _isCompleted
-                    ? AppColors.silverMarble.withAlpha(20)
-                    : AppColors.secondaryGold.withOpacity(borderOpacity), // 👈 استخدمنا القيمة الآمنة هنا
+                    ? context.borderSubtle
+                    : AppColors.secondaryGold.withOpacity(
+                        0.2 + (progress * 0.3),
+                      ),
                 width: _isCompleted ? 1 : 1.5,
               ),
               boxShadow: _isCompleted
@@ -162,7 +165,9 @@ class _AzkarItemCardState extends State<AzkarItemCard>
                       Text(
                         widget.item.text,
                         style: GoogleFonts.cairo(
-                          color: _isCompleted ? AppColors.silverMarble : Colors.white,
+                          color: _isCompleted
+                              ? context.secondaryText
+                              : context.primaryText,
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
                           height: 1.6,
@@ -175,7 +180,7 @@ class _AzkarItemCardState extends State<AzkarItemCard>
                           child: Text(
                             widget.item.description,
                             style: GoogleFonts.cairo(
-                              color: AppColors.silverMarble.withOpacity(0.7),
+                              color: context.secondaryText,
                               fontSize: 13,
                             ),
                           ),
@@ -190,7 +195,10 @@ class _AzkarItemCardState extends State<AzkarItemCard>
                                   size: 28,
                                 )
                               : Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 6,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: AppColors.lightGold.withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(20),
@@ -198,7 +206,7 @@ class _AzkarItemCardState extends State<AzkarItemCard>
                                   child: Text(
                                     'المرات: ${widget.item.count > 0 ? widget.item.count : 1}',
                                     style: GoogleFonts.cairo(
-                                      color: AppColors.lightGold,
+                                      color: Theme.of(context).hintColor,
                                       fontSize: 13,
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -210,7 +218,10 @@ class _AzkarItemCardState extends State<AzkarItemCard>
                             height: 50,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: _isCompleted ? AppColors.deepBackground : AppColors.secondaryGold,
+                              color: _isCompleted
+                                  ? context
+                                        .screenBg // 👈 دايناميك عشان الدايرة تفضى وتاخد لون الخلفية المريحة
+                                  : AppColors.secondaryGold,
                               border: Border.all(
                                 color: AppColors.lightGold.withOpacity(0.5),
                                 width: 2,
@@ -220,7 +231,10 @@ class _AzkarItemCardState extends State<AzkarItemCard>
                               child: Text(
                                 '$_currentCount',
                                 style: GoogleFonts.cairo(
-                                  color: _isCompleted ? AppColors.silverMarble : AppColors.primaryBlack,
+                                  color: _isCompleted
+                                      ? context
+                                            .secondaryText // 👈 دايناميك عشان التيكست ميبقاش فضي على خلفية بيضا
+                                      : AppColors.primaryBlack,
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
                                 ),

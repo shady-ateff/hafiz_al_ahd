@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:hafiz_al_ahd/core/theme/theme_helper.dart'; // 👈 استدعاء الـ ThemeHelper
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
 
 class ZikrItem {
@@ -39,10 +40,9 @@ class _MisbahaScreenState extends State<MisbahaScreen>
     super.initState();
     _pulseController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 150), // سرعة الضغطة
+      duration: const Duration(milliseconds: 150), 
     );
 
-    // 👈 كبرنا الـ end شوية عشان الحجم يبان وهو بيكبر (من 1.0 لـ 1.08)
     _pulseAnimation =
         Tween<double>(begin: 1.0, end: 1.08).animate(
           CurvedAnimation(parent: _pulseController, curve: Curves.easeOut),
@@ -66,7 +66,6 @@ class _MisbahaScreenState extends State<MisbahaScreen>
     }
 
     HapticFeedback.lightImpact();
-    // ابدأ الأنيميشن من الصفر مع كل ضغطة عشان النيون ينور فوراً
     _pulseController.forward(from: 0.0);
 
     setState(() {
@@ -99,7 +98,7 @@ class _MisbahaScreenState extends State<MisbahaScreen>
     final progress = _count / currentZikr.defaultTarget;
 
     return Scaffold(
-      backgroundColor: AppColors.amoledBackground,
+      backgroundColor: context.screenBg, // 👈 دايناميك
       body: SafeArea(
         child: Column(
           children: [
@@ -127,7 +126,7 @@ class _MisbahaScreenState extends State<MisbahaScreen>
                     Text(
                       currentZikr.text,
                       style: GoogleFonts.cairo(
-                        color: Colors.white,
+                        color: context.primaryText, // 👈 دايناميك بدل الأبيض
                         fontSize: 32,
                         fontWeight: FontWeight.bold,
                       ),
@@ -136,27 +135,16 @@ class _MisbahaScreenState extends State<MisbahaScreen>
 
                     const Spacer(),
 
-                    // 👈 3. سحر النيون بيحصل هنا بـ AnimatedBuilder
+                    // 3. Central Tappable Zone (Pulse Circle)
                     AnimatedBuilder(
                       animation: _pulseAnimation,
                       builder: (context, child) {
                         final scale = _pulseAnimation.value;
+                        final glowFactor = ((scale - 1.0) / 0.08).clamp(0.0, 1.0);
 
-                        // بنحسب نسبة التوهج بناءً على حجم الدايرة (من 0 لـ 1)
-                        // ده هيخلي النيون يزيد وينقص بنعومة مع الحجم
-                        final glowFactor = ((scale - 1.0) / 0.08).clamp(
-                          0.0,
-                          1.0,
-                        );
-
-                        // معادلات النيون: لما تضغط الأوباسيتي والانتشار بيزيدوا جداً
-                        final currentOpacity =
-                            0.15 +
-                            (glowFactor * 0.65); // بتوصل لـ 0.8 وقت الضغطة
-                        final currentBlur =
-                            40.0 + (glowFactor * 40.0); // التمويه بيوسع
-                        final currentSpread =
-                            5.0 + (glowFactor * 15.0); // الانتشار بيزيد
+                        final currentOpacity = 0.15 + (glowFactor * 0.65); 
+                        final currentBlur = 40.0 + (glowFactor * 40.0); 
+                        final currentSpread = 5.0 + (glowFactor * 15.0); 
 
                         return Transform.scale(
                           scale: scale,
@@ -165,15 +153,15 @@ class _MisbahaScreenState extends State<MisbahaScreen>
                             height: 280,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: AppColors.deepBackground,
+                              color: context.cardBg, // 👈 دايناميك
                               border: Border.all(
                                 color: AppColors.secondaryGold.withOpacity(
                                   0.3 + (glowFactor * 0.5),
-                                ), // الإطار نفسه بينور
+                                ),
                                 width: 2,
                               ),
                               boxShadow: [
-                                // 🌟 النيون الخارجي الديناميكي
+                                // النيون الخارجي
                                 BoxShadow(
                                   color: AppColors.secondaryGold.withOpacity(
                                     currentOpacity.clamp(0.0, 1.0),
@@ -181,9 +169,9 @@ class _MisbahaScreenState extends State<MisbahaScreen>
                                   blurRadius: currentBlur,
                                   spreadRadius: currentSpread,
                                 ),
-                                // الظل الداخلي عشان يدي عمق (3D effect)
-                                const BoxShadow(
-                                  color: AppColors.amoledBackground,
+                                // 👈 الظل الداخلي بياخد لون الـ screenBg عشان يدي تأثير الحفرة في الوضعين
+                                BoxShadow(
+                                  color: context.screenBg,
                                   blurRadius: 30,
                                   spreadRadius: -10,
                                   blurStyle: BlurStyle.inner,
@@ -193,8 +181,8 @@ class _MisbahaScreenState extends State<MisbahaScreen>
                                 colors: [
                                   AppColors.secondaryGold.withOpacity(
                                     0.05 + (glowFactor * 0.15),
-                                  ), // قلب الدايرة بينور شوية
-                                  AppColors.deepBackground,
+                                  ),
+                                  context.cardBg, // 👈 دايناميك
                                 ],
                                 radius: 0.8,
                               ),
@@ -208,10 +196,9 @@ class _MisbahaScreenState extends State<MisbahaScreen>
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
                                     border: Border.all(
-                                      color: AppColors.secondaryGold
-                                          .withOpacity(
-                                            0.1 + (glowFactor * 0.3),
-                                          ),
+                                      color: AppColors.secondaryGold.withOpacity(
+                                        0.1 + (glowFactor * 0.3),
+                                      ),
                                       width: 1,
                                     ),
                                   ),
@@ -228,10 +215,9 @@ class _MisbahaScreenState extends State<MisbahaScreen>
                                         height: 1.1,
                                         shadows: [
                                           Shadow(
-                                            color: AppColors.lightGold
-                                                .withOpacity(
-                                                  0.5 + (glowFactor * 0.5),
-                                                ), // ظل الرقم نفسه بينور
+                                            color: AppColors.lightGold.withOpacity(
+                                              0.5 + (glowFactor * 0.5),
+                                            ),
                                             blurRadius: 20 + (glowFactor * 20),
                                           ),
                                         ],
@@ -240,8 +226,7 @@ class _MisbahaScreenState extends State<MisbahaScreen>
                                     Text(
                                       'إضغط للتسبيح',
                                       style: GoogleFonts.cairo(
-                                        color: AppColors.secondaryGold
-                                            .withOpacity(0.8),
+                                        color: AppColors.secondaryGold.withOpacity(0.8),
                                         fontSize: 16,
                                         fontWeight: FontWeight.w600,
                                       ),
@@ -268,18 +253,14 @@ class _MisbahaScreenState extends State<MisbahaScreen>
                               Text(
                                 '${currentZikr.defaultTarget}',
                                 style: GoogleFonts.cairo(
-                                  color: AppColors.silverMarble.withOpacity(
-                                    0.6,
-                                  ),
+                                  color: context.secondaryText, // 👈 دايناميك
                                   fontSize: 14,
                                 ),
                               ),
                               Text(
                                 '$_count',
                                 style: GoogleFonts.cairo(
-                                  color: AppColors.silverMarble.withOpacity(
-                                    0.6,
-                                  ),
+                                  color: context.secondaryText, // 👈 دايناميك
                                   fontSize: 14,
                                 ),
                               ),
@@ -291,7 +272,7 @@ class _MisbahaScreenState extends State<MisbahaScreen>
                             child: LinearProgressIndicator(
                               value: progress,
                               minHeight: 6,
-                              backgroundColor: AppColors.deepBackground,
+                              backgroundColor: context.cardBg, // 👈 دايناميك
                               valueColor: const AlwaysStoppedAnimation<Color>(
                                 AppColors.secondaryGold,
                               ),
@@ -301,7 +282,7 @@ class _MisbahaScreenState extends State<MisbahaScreen>
                           Text(
                             'المتبقي: $remaining',
                             style: GoogleFonts.cairo(
-                              color: AppColors.silverMarble.withOpacity(0.6),
+                              color: context.secondaryText, // 👈 دايناميك
                               fontSize: 14,
                             ),
                           ),
@@ -334,12 +315,12 @@ class _MisbahaScreenState extends State<MisbahaScreen>
                       decoration: BoxDecoration(
                         color: isSelected
                             ? AppColors.lightGold
-                            : AppColors.deepBackground,
+                            : context.cardBg, // 👈 دايناميك
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
                           color: isSelected
                               ? AppColors.lightGold
-                              : AppColors.silverMarble.withOpacity(0.1),
+                              : context.borderSubtle, // 👈 دايناميك
                           width: 1,
                         ),
                       ),
@@ -348,7 +329,7 @@ class _MisbahaScreenState extends State<MisbahaScreen>
                         style: GoogleFonts.cairo(
                           color: isSelected
                               ? AppColors.primaryBlack
-                              : AppColors.silverMarble,
+                              : context.secondaryText, // 👈 دايناميك
                           fontSize: 14,
                           fontWeight: isSelected
                               ? FontWeight.bold
@@ -373,24 +354,33 @@ class _MisbahaScreenState extends State<MisbahaScreen>
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           _buildIconBtn(
+            context: context,
             icon: Icons.arrow_back_ios_new_rounded,
             onTap: () => Navigator.pop(context),
           ),
           Text(
             'المسبحة',
             style: GoogleFonts.cairo(
-              color: Colors.white,
+              color: context.primaryText, // 👈 دايناميك بدل الأبيض
               fontSize: 20,
               fontWeight: FontWeight.bold,
             ),
           ),
-          _buildIconBtn(icon: Icons.refresh_rounded, onTap: _resetCounter),
+          _buildIconBtn(
+            context: context,
+            icon: Icons.refresh_rounded, 
+            onTap: _resetCounter,
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildIconBtn({required IconData icon, required VoidCallback onTap}) {
+  Widget _buildIconBtn({
+    required BuildContext context, // بصينا الـ context عشان نقرأ اللون
+    required IconData icon, 
+    required VoidCallback onTap
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -402,7 +392,8 @@ class _MisbahaScreenState extends State<MisbahaScreen>
             width: 1.5,
           ),
         ),
-        child: Icon(icon, color: AppColors.lightGold, size: 20),
+        // 👈 خليت الأيقونة تاخد لون النص الأساسي عشان تبان واضحة في الفاتح
+        child: Icon(icon, color: context.primaryText, size: 20),
       ),
     );
   }

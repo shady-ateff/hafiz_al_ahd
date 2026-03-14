@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:hafiz_al_ahd/core/utils/app_theme.dart';
+import 'package:hafiz_al_ahd/core/theme/cubit/theme_cubit.dart';
 import 'package:hafiz_al_ahd/features/azkar/data/datasources/azkar_local_data_source.dart';
 import 'package:hafiz_al_ahd/features/azkar/data/repositories/azkar_repository_impl.dart';
 import 'package:hafiz_al_ahd/features/azkar/domain/usecases/get_azkar_usecase.dart';
@@ -137,21 +138,26 @@ class _AppState extends State<App> with TrayListener, WindowListener {
             ),
           )..loadAzkar(),
         ),
+        BlocProvider(create: (context) => ThemeCubit()..loadSavedTheme()),
       ],
-      child: MaterialApp(
-        title: 'Hafiz Al Ahd',
-        theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
-        themeMode: ThemeMode.dark,
-        home: const MainScreen(),
-        debugShowCheckedModeBanner: false,
-        localizationsDelegates: const [
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: const [Locale('ar', 'EG')],
-        locale: const Locale('ar', 'EG'),
+      child: BlocBuilder<ThemeCubit, ThemeState>(
+        builder: (context, themeState) {
+          return MaterialApp(
+            title: 'Hafiz Al Ahd',
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: themeState.themeMode,
+            home: const MainScreen(),
+            debugShowCheckedModeBanner: false,
+            localizationsDelegates: const [
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: const [Locale('ar', 'EG')],
+            locale: const Locale('ar', 'EG'),
+          );
+        },
       ),
     );
   }

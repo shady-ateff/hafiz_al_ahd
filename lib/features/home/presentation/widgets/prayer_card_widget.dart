@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:hafiz_al_ahd/core/theme/theme_helper.dart';
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
 import 'package:hafiz_al_ahd/core/widgets/gradient_icon.dart';
 import 'package:hafiz_al_ahd/core/widgets/gradient_text.dart';
@@ -82,7 +83,9 @@ class _PrayerCardState extends State<PrayerCard>
 
   @override
   Widget build(BuildContext context) {
-    // 👈 لفّينا الكارت بـ BlocBuilder عشان يحس بالوقت كل ثانية وينقل بين الـ 3 مراحل
+    // 👈 1. قراءة حالة الثيم
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+
     return BlocBuilder<TimeCubit, DateTime>(
       builder: (context, currentTime) {
         Duration remaining =
@@ -105,46 +108,44 @@ class _PrayerCardState extends State<PrayerCard>
         Color badgeColor;
 
         if (isIqama) {
-          // 🔴 المرحلة 3: الإقامة (البرتقالي المحروق الشيك)
-          cardColor = AppColors.iqamaWarning;
+          // 🔴 Phase 3: Iqama
+          cardColor =
+              AppColors.iqamaWarning; // لون برتقالي محروق (بيليق في الوضعين)
           borderColor = Colors.deepOrange.shade400;
           textColor = Colors.white;
           badgeColor = Colors.white24;
         } else if (isWithinHalfHour) {
-          // 🟡 المرحلة 2: قبل الصلاة بنص ساعة (تعبئة ذهبي دافئ)
-          cardColor = AppColors.lightGold; // لون ذهبي مريح للعين
+          // 🟡 Phase 2: Within 30 min
+          cardColor = AppColors.lightGold; // لون ذهبي (بيليق في الوضعين)
           borderColor = Colors.amber.shade200;
           textColor = AppColors.primaryBlack;
           badgeColor = Colors.black12;
         } else if (isNextPrayer) {
-          // ⚫ المرحلة 1: الوضع العادي للصلاة القادمة (أسود مع نبض ذهبي)
-          cardColor = AppColors.deepBackground;
-          borderColor = Colors.amber; // هيتم دمجه مع الأنيميشن تحت
-          textColor = Colors.white;
+          // ⚫ Phase 1: Next prayer normal
+          cardColor = context.cardBg;
+          borderColor = Colors.amber;
+          textColor = context.primaryText; // 👈 بيقلب أسود أو أبيض أوتوماتيك
           badgeColor = Colors.amber.withOpacity(0.15);
         } else {
-          // ⚪ كارت عادي مش نشط
-          cardColor = AppColors.deepBackground;
-          borderColor = AppColors.secondaryGold.withAlpha(50);
-          textColor = AppColors.silverMarble;
+          // ⚪ Normal inactive card
+          cardColor = context.cardBg; // 👈 بيقلب كريمي أو أسود أوتوماتيك
+          borderColor = context.borderSubtle;
+          textColor = context.secondaryText;
           badgeColor = Colors.transparent;
         }
 
         return AnimatedBuilder(
           animation: _animation!,
           builder: (context, child) {
-            // استخدمنا AnimatedContainer عشان لو اتنقل بين المراحل يغير لونه بنعومة
             return AnimatedContainer(
               duration: const Duration(milliseconds: 800),
               margin: const EdgeInsets.all(6),
               constraints: const BoxConstraints(minHeight: 70, minWidth: 100),
               decoration: BoxDecoration(
-                // color: cardColor,
                 gradient: LinearGradient(
                   colors: [cardColor, cardColor.withOpacity(0.9)],
                 ),
                 borderRadius: BorderRadius.circular(12),
-                // النبض يشتغل بس في المرحلة الأولى، غير كده الإطار ثابت
                 border: (isNextPrayer && !isWithinHalfHour && !isIqama)
                     ? Border.all(
                         color: borderColor,
@@ -154,7 +155,9 @@ class _PrayerCardState extends State<PrayerCard>
                 boxShadow: (isNextPrayer && !isWithinHalfHour && !isIqama)
                     ? [
                         BoxShadow(
-                          color: Colors.amber.withOpacity(0.3),
+                          color: Colors.amber.withOpacity(
+                            isDark ? 0.3 : 0.15,
+                          ), // 👈 خففنا الوهج شوية في النهاري عشان يبان شيك
                           blurRadius: _animation!.value * 3,
                           spreadRadius: 1,
                         ),
@@ -164,7 +167,6 @@ class _PrayerCardState extends State<PrayerCard>
               child: Stack(
                 alignment: Alignment.topLeft,
                 children: [
-                  // محتوى الكارت (الـ Flex)
                   Center(
                     child: Flex(
                       direction: widget.isWideLayout
@@ -192,7 +194,16 @@ class _PrayerCardState extends State<PrayerCard>
                                         color: textColor,
                                         size: 28,
                                       )
-                                    : GradientIcon(icon: widget.icon, size: 28),
+                                    // 👈 أيقونة الكارت غير النشط
+                                    : isDark
+                                    ? GradientIcon(icon: widget.icon, size: 28)
+                                    : Icon(
+                                        widget.icon,
+                                        color: AppColors.secondaryGold,
+                                        size: 28,
+                                      ),
+
+                                // 👈 2. التعديل الجوهري للتباين
                                 isNextPrayer
                                     ? Text(
                                         widget.name,
@@ -202,10 +213,19 @@ class _PrayerCardState extends State<PrayerCard>
                                           fontWeight: FontWeight.bold,
                                         ),
                                       )
-                                    : GradientText(
+                                    : isDark
+                                    ? GradientText(
                                         widget.name,
                                         gradient: AppColors.silverGradient,
                                         style: GoogleFonts.cairo(
+                                          fontSize: 21,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      )
+                                    : Text(
+                                        widget.name,
+                                        style: GoogleFonts.cairo(
+                                          color: context.secondaryText,
                                           fontSize: 21,
                                           fontWeight: FontWeight.bold,
                                         ),
@@ -239,7 +259,21 @@ class _PrayerCardState extends State<PrayerCard>
                                           fontWeight: FontWeight.bold,
                                         ),
                                       )
-                                    : GradientText(
+                                    : isDark
+                                    ? GradientText(
+                                        widget.displayTime != null
+                                            ? DateFormat(
+                                                'hh:mm a',
+                                                'ar',
+                                              ).format(widget.displayTime!)
+                                            : '--:--',
+                                        gradient: AppColors.silverGradient,
+                                        style: GoogleFonts.cairo(
+                                          fontSize: 21,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      )
+                                    : Text(
                                         widget.displayTime != null
                                             ? DateFormat(
                                                 'hh:mm a',
@@ -247,6 +281,7 @@ class _PrayerCardState extends State<PrayerCard>
                                               ).format(widget.displayTime!)
                                             : '--:--',
                                         style: GoogleFonts.cairo(
+                                          color: context.secondaryText,
                                           fontSize: 21,
                                           fontWeight: FontWeight.bold,
                                         ),
@@ -259,7 +294,7 @@ class _PrayerCardState extends State<PrayerCard>
                     ),
                   ),
 
-                  // 👈 كبسولة الوقت الطايرة (Pill Badge)
+                  // كبسولة الوقت الطايرة
                   if (isNextPrayer)
                     Positioned(
                       top: 6,
@@ -274,7 +309,6 @@ class _PrayerCardState extends State<PrayerCard>
                           color: badgeColor,
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        // باصينا لون التيكست للعداد عشان يمشي مع المرحلة اللي إحنا فيها
                         child: NextPrayerTimer(
                           targetTime: widget.time,
                           isIqama: isIqama,
@@ -297,7 +331,7 @@ class NextPrayerTimer extends StatelessWidget {
     super.key,
     this.targetTime,
     this.isIqama = false,
-    required this.textColor, // 👈 استقبلنا اللون من الكارت الأب
+    required this.textColor,
   });
 
   final DateTime? targetTime;
@@ -310,9 +344,7 @@ class NextPrayerTimer extends StatelessWidget {
       builder: (context, currentTime) {
         Duration remaining =
             targetTime?.difference(currentTime) ?? Duration.zero;
-
         if (remaining.isNegative) remaining = Duration.zero;
-
         String prefix = isIqama ? 'إقامة' : '-';
 
         return Text(
@@ -320,7 +352,7 @@ class NextPrayerTimer extends StatelessWidget {
               ? '$prefix ${(remaining.inMinutes % 60).toString().padLeft(2, '0')}:${(remaining.inSeconds % 60).toString().padLeft(2, '0')}'
               : '$prefix ${remaining.inHours.toString().padLeft(2, '0')}:${(remaining.inMinutes % 60).toString().padLeft(2, '0')}:${(remaining.inSeconds % 60).toString().padLeft(2, '0')}',
           style: GoogleFonts.cairo(
-            color: textColor, // اللون بيتأقلم مع المرحلة (أسود أو ذهبي أو أبيض)
+            color: textColor,
             fontWeight: FontWeight.bold,
           ),
         );

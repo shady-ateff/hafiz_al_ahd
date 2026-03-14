@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:hafiz_al_ahd/core/theme/theme_helper.dart';
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
 import 'package:hafiz_al_ahd/core/widgets/gradient_text.dart';
-
 import 'package:hafiz_al_ahd/features/home/presentation/cubit/time_cubit.dart';
 import 'package:hijri/hijri_calendar.dart';
 import 'package:intl/intl.dart';
+import 'package:hafiz_al_ahd/core/theme/cubit/theme_cubit.dart'; // 👈 استدعاء حالة الثيم
 
 class TimeDateSection extends StatelessWidget {
   const TimeDateSection({
@@ -24,8 +25,10 @@ class TimeDateSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // معامل تصغير: لو موبايل (مش لاندسكيب) صغر العناصر بنسبة 60%
     double scale = (isMobile && !isLandscape) ? 0.4 : 1.0;
+    // 👈 قراءة حالة الثيم
+    final isDark = context.watch<ThemeCubit>().state.isDark;
+
     return BlocBuilder<TimeCubit, DateTime>(
       builder: (context, state) {
         DateTime currentTime = state;
@@ -35,16 +38,14 @@ class TimeDateSection extends StatelessWidget {
         String amPm = DateFormat('a', 'ar').format(currentTime);
         String dayName = DateFormat('EEEE', 'ar').format(currentTime);
         String date = DateFormat('d MMMM y', 'ar').format(currentTime);
-        String hijriDate = HijriCalendar.fromDate(
-          currentTime,
-        ).toFormat("dd MMMM yyyy هـ ");
+        String hijriDate = HijriCalendar.fromDate(currentTime).toFormat("dd MMMM yyyy هـ ");
 
         return Padding(
           padding: isMobile
               ? const EdgeInsets.only(left: 20, right: 20, bottom: 20)
               : isTabletDesktop
-              ? const EdgeInsets.symmetric(horizontal: 40, vertical: 10)
-              : const EdgeInsets.all(1),
+                  ? const EdgeInsets.symmetric(horizontal: 40, vertical: 10)
+                  : const EdgeInsets.all(1),
           child: FittedBox(
             fit: BoxFit.scaleDown,
             clipBehavior: Clip.antiAlias,
@@ -53,7 +54,6 @@ class TimeDateSection extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               mainAxisSize: MainAxisSize.max,
               children: [
-                // SizedBox(height: 50),
                 // === 1. قسم الساعة ===
                 ClockSectionBuilder(
                   scale: scale,
@@ -70,15 +70,25 @@ class TimeDateSection extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   spacing: 10,
                   children: [
-                    GradientText(
-                      dayName,
-                      gradient: AppColors.silverGradient,
-                      style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                        fontSize: isLandscape ? 60 : 35,
-                        color: Colors.white,
-                        fontFamily: 'Thuluth',
-                      ),
-                    ),
+                    // 👈 التعديل هنا: استخدام لون صريح أو جريديانت حسب الثيم عشان التباين
+                    isDark
+                        ? GradientText(
+                            dayName,
+                            gradient: AppColors.silverGradient,
+                            style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                                  fontSize: isLandscape ? 60 : 35,
+                                  color: Colors.white,
+                                  fontFamily: 'Thuluth',
+                                ),
+                          )
+                        : Text(
+                            dayName,
+                            style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                                  fontSize: isLandscape ? 60 : 35,
+                                  color: AppColors.secondaryGold, // 👈 لون من الثيم
+                                  fontFamily: 'Thuluth',
+                                ),
+                          ),
 
                     Flex(
                       direction: isWatch ? Axis.vertical : Axis.horizontal,
@@ -86,17 +96,15 @@ class TimeDateSection extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.center,
                       spacing: isLandscape ? 30.0 : 15.0,
                       mainAxisSize: MainAxisSize.max,
-
                       children: [
                         Text(
                           "$date م",
                           style: GoogleFonts.cairo(
                             fontSize: isLandscape ? 30 : 16,
-                            color: Colors.grey[400],
+                            color: context.secondaryText,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
-
                         if (isLandscape) ...[
                           Container(
                             height: 30,
@@ -113,9 +121,7 @@ class TimeDateSection extends StatelessWidget {
                                   height: 2,
                                   width: 15,
                                   decoration: BoxDecoration(
-                                    color: AppColors.secondaryGold.withOpacity(
-                                      0.5,
-                                    ),
+                                    color: AppColors.secondaryGold.withOpacity(0.5),
                                     borderRadius: BorderRadius.circular(2),
                                   ),
                                 ),
@@ -123,7 +129,7 @@ class TimeDateSection extends StatelessWidget {
                           hijriDate,
                           style: GoogleFonts.cairo(
                             fontSize: isLandscape ? 30 : 16,
-                            color: Colors.grey[400],
+                            color: context.secondaryText,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -161,7 +167,7 @@ class ClockSectionBuilder extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.baseline,
         textBaseline: TextBaseline.alphabetic,
-        mainAxisAlignment: MainAxisAlignment.center, // سنترناها
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           FittedBox(
             fit: BoxFit.scaleDown,

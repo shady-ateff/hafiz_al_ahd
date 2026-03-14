@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:hafiz_al_ahd/core/theme/theme_helper.dart';
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
 
 class CategoryCard extends StatelessWidget {
@@ -7,7 +8,7 @@ class CategoryCard extends StatelessWidget {
   final String subtitle;
   final String countBadge;
   final IconData icon;
-  final VoidCallback? onTap; // 👈 1. ضفنا الـ Callback عشان الكارت يشتغل كزرار
+  final VoidCallback? onTap;
 
   const CategoryCard({
     super.key,
@@ -22,41 +23,37 @@ class CategoryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      // 👈 2. الـ Container الخارجي بيمسك الشكل العام والحدود
       decoration: BoxDecoration(
-        color: AppColors.deepBackground,
+        color: context.cardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppColors.secondaryGold.withOpacity(0.05),
-          width: 1,
-        ),
+        border: Border.all(color: context.borderGold, width: 1),
       ),
-      // 👈 3. ضفنا Material بخلفية شفافة عشان الـ InkWell يشتغل صح جوه الـ Container
       child: Material(
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(16),
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(16),
-          // 👈 4. لون الضغطة (Ripple Effect) هيبقى ذهبي خفيف جداً يدي إحساس Premium
           splashColor: AppColors.secondaryGold.withOpacity(0.1),
           highlightColor: AppColors.secondaryGold.withOpacity(0.05),
           child: Padding(
-            padding: const EdgeInsets.all(16), // الـ Padding اتنقل هنا
+            padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                // 1. Icon Container
+                // Icon
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.3),
+                    color: AppColors.secondaryGold.withOpacity(
+                      context.isDarkMode ? 0.12 : 0.15,
+                    ),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(icon, color: AppColors.lightGold, size: 24),
+                  child: Icon(icon, color: AppColors.secondaryGold, size: 24),
                 ),
                 const SizedBox(width: 16),
 
-                // 2. Titles (Middle)
+                // Titles
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -64,7 +61,7 @@ class CategoryCard extends StatelessWidget {
                       Text(
                         title,
                         style: GoogleFonts.cairo(
-                          color: Colors.white,
+                          color: context.primaryText,
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
@@ -72,7 +69,7 @@ class CategoryCard extends StatelessWidget {
                       Text(
                         subtitle,
                         style: GoogleFonts.cairo(
-                          color: AppColors.silverMarble.withOpacity(0.6),
+                          color: context.secondaryText,
                           fontSize: 13,
                         ),
                       ),
@@ -80,20 +77,20 @@ class CategoryCard extends StatelessWidget {
                   ),
                 ),
 
-                // 3. Badge & Arrow
+                // Badge
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 10,
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.lightGold.withOpacity(0.1),
+                    color: AppColors.secondaryGold.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     countBadge,
                     style: GoogleFonts.cairo(
-                      color: AppColors.lightGold,
+                      color: AppColors.secondaryGold,
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                     ),
@@ -102,7 +99,7 @@ class CategoryCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Icon(
                   Icons.arrow_forward_ios,
-                  color: AppColors.silverMarble.withAlpha(50),
+                  color: context.secondaryText.withOpacity(0.5),
                   size: 14,
                 ),
               ],

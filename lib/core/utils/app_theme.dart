@@ -3,15 +3,17 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
 
 class AppTheme {
+  // ─────────────── DARK THEME ───────────────
   static ThemeData get darkTheme {
     return ThemeData(
+      brightness: Brightness.dark,
       iconButtonTheme: IconButtonThemeData(
         style: ButtonStyle(
           backgroundColor: WidgetStateProperty.all(AppColors.primaryBlack),
           foregroundColor: WidgetStateProperty.all(AppColors.secondaryGold),
           shape: WidgetStateProperty.all(
-            CircleBorder(
-              side: const BorderSide(color: AppColors.secondaryGold, width: .3),
+            const CircleBorder(
+              side: BorderSide(color: AppColors.secondaryGold, width: .3),
             ),
           ),
         ),
@@ -21,13 +23,11 @@ class AppTheme {
       cardColor: AppColors.primaryBlack,
       hintColor: AppColors.silverMarble,
       colorScheme: const ColorScheme.dark(
-        primary: AppColors.primaryBlack,
-        secondary: AppColors.secondaryGold,
-        onPrimary: AppColors.silverMarble,
+        primary: AppColors.secondaryGold,
+        secondary: AppColors.lightGold,
+        onPrimary: AppColors.primaryBlack,
         onSecondary: AppColors.primaryBlack,
-        background: AppColors.amoledBackground,
         surface: AppColors.primaryBlack,
-        onBackground: AppColors.silverMarble,
         onSurface: AppColors.silverMarble,
       ),
       iconTheme: const IconThemeData(color: AppColors.silverMarble),
@@ -42,13 +42,11 @@ class AppTheme {
         ),
       ),
       textTheme: TextTheme(
-        // bodyLarge: TextStyle(color: AppColors.silverMarble),
-        // bodyMedium: TextStyle(color: AppColors.silverMarble),
-        titleLarge: TextStyle(
+        titleLarge: const TextStyle(
           color: AppColors.secondaryGold,
           fontWeight: FontWeight.bold,
         ),
-        displayLarge: TextStyle(
+        displayLarge: const TextStyle(
           fontFamily: 'Thuluth',
           fontSize: 45,
           color: AppColors.secondaryGold,
@@ -60,13 +58,12 @@ class AppTheme {
           color: AppColors.silverMarble,
           fontWeight: FontWeight.bold,
         ),
-
         bodyMedium: GoogleFonts.cairo(
           fontSize: 14,
-          color: AppColors.silverMarble.withOpacity(0.7),
+          color: AppColors.silverMarble,
         ),
       ),
-
+      dividerColor: AppColors.primaryBlack,
       buttonTheme: ButtonThemeData(
         buttonColor: AppColors.secondaryGold,
         textTheme: ButtonTextTheme.primary,
@@ -75,40 +72,75 @@ class AppTheme {
     );
   }
 
+  // ─────────────── LIGHT THEME (same gold palette) ───────────────
+  // Background: warm off-white  |  Surfaces: white  |  Gold accents preserved
+  static const Color _lightBackground = Color(0xFFF7F3EC); // warm cream
+  static const Color _lightSurface = Color(0xFFFFFFFF);
+  static const Color _lightCardBg = Color(0xFFFFF8EC); // very light gold tint
+  static const Color _lightText = Color(0xFF1A1208); // almost black warm
+  static const Color _lightSubtext = Color(0xFF7A6840); // warm brown-gold
+
   static ThemeData get lightTheme {
     return ThemeData(
-      primaryColor: Colors.white,
-      scaffoldBackgroundColor: const Color(0xFFF5F5F5),
-      cardColor: Colors.white,
-      hintColor: Colors.grey[600],
+      brightness: Brightness.light,
+      primaryColor: AppColors.secondaryGold,
+      scaffoldBackgroundColor: _lightBackground,
+      cardColor: _lightCardBg,
+      hintColor: _lightSubtext,
       colorScheme: const ColorScheme.light(
-        primary: Colors.white,
-        secondary: AppColors.secondaryGold,
-        onPrimary: Colors.black,
-        onSecondary: Colors.white,
-        background: Color(0xFFF5F5F5),
-        surface: Colors.white,
-        onBackground: Colors.black,
-        onSurface: Colors.black,
+        primary: AppColors.secondaryGold,
+        secondary: AppColors.lightGold,
+        onPrimary: _lightText,
+        onSecondary: _lightText,
+        surface: _lightSurface,
+        onSurface: _lightText,
       ),
-      iconTheme: IconThemeData(color: Colors.grey[800]),
-      appBarTheme: AppBarTheme(
-        backgroundColor: const Color(0xFFF5F5F5),
+      iconTheme: const IconThemeData(color: AppColors.secondaryGold),
+      iconButtonTheme: IconButtonThemeData(
+        style: ButtonStyle(
+          backgroundColor: WidgetStateProperty.all(_lightSurface),
+          foregroundColor: WidgetStateProperty.all(AppColors.secondaryGold),
+          shape: WidgetStateProperty.all(
+            const CircleBorder(
+              side: BorderSide(color: AppColors.secondaryGold, width: .3),
+            ),
+          ),
+        ),
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: _lightBackground,
         elevation: 0,
-        iconTheme: IconThemeData(color: Colors.grey[800]),
+        iconTheme: IconThemeData(color: AppColors.secondaryGold),
         titleTextStyle: TextStyle(
-          color: Colors.grey[800],
+          color: _lightText,
           fontSize: 20,
           fontWeight: FontWeight.bold,
         ),
       ),
       textTheme: TextTheme(
-        bodyLarge: TextStyle(color: Colors.grey[800]),
-        bodyMedium: TextStyle(color: Colors.grey[800]),
         titleLarge: const TextStyle(
           color: AppColors.secondaryGold,
           fontWeight: FontWeight.bold,
         ),
+        displayLarge: const TextStyle(
+          fontFamily: 'Thuluth',
+          fontSize: 45,
+          color: AppColors.secondaryGold,
+          fontWeight: FontWeight.bold,
+          height: 1.2,
+        ),
+        bodyLarge: GoogleFonts.amiri(
+          fontSize: 20,
+          color: _lightText,
+          fontWeight: FontWeight.bold,
+        ),
+        bodyMedium: GoogleFonts.cairo(fontSize: 14, color: _lightSubtext),
+      ),
+      dividerColor: const Color(0xFFE8D9B5),
+      listTileTheme: const ListTileThemeData(
+        tileColor: _lightCardBg,
+        textColor: _lightText,
+        iconColor: AppColors.secondaryGold,
       ),
       buttonTheme: ButtonThemeData(
         buttonColor: AppColors.secondaryGold,
