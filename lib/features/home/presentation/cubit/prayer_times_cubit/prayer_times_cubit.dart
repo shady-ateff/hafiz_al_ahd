@@ -206,7 +206,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
             title: 'حان الآن موعد صلاة الفجر',
             body: 'الصلاة خير من النوم',
             scheduledTime: prayerTimes.fajr!,
-            soundName: 'adhan',
+            soundName: 'fajr_azan',
           );
 
           // ب. إشعار الإقامة (بالرنة العادية)
@@ -217,6 +217,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
               title: 'إقامة صلاة الفجر',
               body: 'تجهز للصلاة، ستقام الصلاة الآن',
               scheduledTime: prayerTimes.fajr!.add(Duration(minutes: delay)),
+              soundName: 'iqama_sound',
             );
           }
         }
@@ -238,6 +239,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
               title: 'إقامة صلاة الظهر',
               body: 'تجهز للصلاة، ستقام الصلاة الآن',
               scheduledTime: prayerTimes.dhuhr!.add(Duration(minutes: delay)),
+              soundName: 'iqama_sound',
             );
           }
         }
@@ -259,6 +261,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
               title: 'إقامة صلاة العصر',
               body: 'تجهز للصلاة، ستقام الصلاة الآن',
               scheduledTime: prayerTimes.asr!.add(Duration(minutes: delay)),
+              soundName: 'iqama_sound',
             );
           }
         }
@@ -280,6 +283,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
               title: 'إقامة صلاة المغرب',
               body: 'تجهز للصلاة، ستقام الصلاة الآن',
               scheduledTime: prayerTimes.maghrib!.add(Duration(minutes: delay)),
+              soundName: 'iqama_sound',
             );
           }
         }
@@ -301,6 +305,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
               title: 'إقامة صلاة العشاء',
               body: 'تجهز للصلاة، ستقام الصلاة الآن',
               scheduledTime: prayerTimes.isha!.add(Duration(minutes: delay)),
+              soundName: 'iqama_sound',
             );
           }
         }
@@ -310,7 +315,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
 
   // -------------------------------------------------------------------
   // دالة مؤقتة لاختبار الإشعارات فوراً
-  Future<void> testNotification() async {
+  Future<void> testNotification(int sound) async {
     print("⏳ جاري جدولة إشعار تجريبي بعد 5 ثواني...");
 
     await schedulePrayerUseCase.execute(
@@ -318,6 +323,11 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
       title: 'إشعار تجريبي 🚀',
       body: 'عاش يا هندسة! الإشعارات شغالة في الخلفية زي الفل.',
       scheduledTime: DateTime.now().add(const Duration(seconds: 5)),
+      soundName: sound == 2
+          ? 'fajr_azan'
+          : sound == 1
+          ? 'adhan'
+          : 'iqama_sound',
     );
   }
 }

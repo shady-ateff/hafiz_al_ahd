@@ -15,12 +15,12 @@ class SchedulePrayerUseCase {
     // هنا ممكن نضيف أي Logic مستقبلاً (مثلاً: لو وقت الصلاة في الماضي متعملش جدولة)
     if (scheduledTime.isBefore(DateTime.now())) return;
 
-    return await repository.schedulePrayerNotification(
+    return await repository.execute(
       id: id,
       title: title,
       body: body,
       scheduledTime: scheduledTime,
+      soundName: soundName,
     );
   }
-
 }

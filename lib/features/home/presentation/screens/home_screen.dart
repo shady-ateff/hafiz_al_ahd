@@ -40,14 +40,14 @@ class _HomeScreenState extends State<HomeScreen> {
             if (state is PrayerTimesNeedsManualLocation) {
               showDialog(
                 context: context,
-                barrierDismissible: false, 
+                barrierDismissible: false,
                 builder: (context) => const ManualLocationDialog(),
               );
             }
             if (state is PrayerTimesError) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(state.message)),
-              );
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text(state.message)));
             }
           },
           builder: (context, state) {
@@ -82,7 +82,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
             if (constraints.maxWidth <= 300) {
               return _buildWatchLayout();
-            } else if (constraints.maxWidth >= 301 && constraints.maxWidth <= 800) {
+            } else if (constraints.maxWidth >= 301 &&
+                constraints.maxWidth <= 800) {
               return _buildMobileLayout();
             } else if (constraints.maxWidth >= 801) {
               return _buildTabletDesktopLayout(
@@ -102,12 +103,27 @@ class _HomeScreenState extends State<HomeScreen> {
           },
         ),
       ),
+      // floatingActionButton: BlocBuilder<PrayerTimesCubit, PrayerTimesStates>(
+      //   builder: (context, state) {
+      //     return FloatingActionButton(
+      //       onPressed: () {
+      //         context.read<PrayerTimesCubit>().testNotification(2);
+      //       },
+      //       child: const Icon(Icons.refresh),
+      //     );
+      //   },
+      // ),
     );
   }
 
-  Widget _buildTabletDesktopLayout({required double maxHeight, required double maxWidth}) {
+  Widget _buildTabletDesktopLayout({
+    required double maxHeight,
+    required double maxWidth,
+  }) {
     double aspectRatio = maxWidth / maxHeight;
-    var calculatedCrossAxisCount = aspectRatio.floor() == 0 ? 2 : aspectRatio.floor();
+    var calculatedCrossAxisCount = aspectRatio.floor() == 0
+        ? 2
+        : aspectRatio.floor();
 
     return Center(
       child: Padding(
@@ -143,10 +159,7 @@ class _HomeScreenState extends State<HomeScreen> {
             flex: 2,
             child: TimeDateSection(isLandscape: false, isMobile: true),
           ),
-          Expanded(
-            flex: 3,
-            child: PrayerTimesGrid(crossAxisCount: 2),
-          ),
+          Expanded(flex: 3, child: PrayerTimesGrid(crossAxisCount: 2)),
         ],
       ),
     );
