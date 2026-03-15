@@ -64,7 +64,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       );
       context.read<PrayerTimesCubit>().fetchPrayerTimesByLocation();
-      Navigator.of(context).pop();
     }
   }
 

@@ -1,0 +1,2 @@
+-keep class com.dexterous.flutterlocalnotifications.** { *; }
+-keep class id.flutter.flutter_background_service.** { *; }

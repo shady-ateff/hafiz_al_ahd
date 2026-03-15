@@ -112,12 +112,13 @@ class _AppState extends State<App> with TrayListener, WindowListener {
             final getCachedLocationUseCase = GetCachedLocationUseCase(
               baseLocationRepo,
             );
+            final notificationRepo = NotificationRepositoryImpl();
 
             final cancelAllNotificationsUseCase = CancelAllNotificationsUseCase(
-              NotificationRepositoryImpl(),
+              notificationRepo,
             );
             final schedulePrayerUseCase = SchedulePrayerUseCase(
-              NotificationRepositoryImpl(),
+              notificationRepo,
             );
 
             return PrayerTimesCubit(
