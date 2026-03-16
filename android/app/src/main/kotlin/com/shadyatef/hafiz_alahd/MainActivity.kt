@@ -1,4 +1,4 @@
-package com.example.hafiz_al_ahd
+package com.shadyatef.hafiz_alahd
 
 import io.flutter.embedding.android.FlutterActivity
 
