@@ -5,6 +5,7 @@ import 'package:hafiz_al_ahd/core/theme/theme_helper.dart';
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
 import 'package:hafiz_al_ahd/features/azkar/domain/entities/azkar_item.dart';
 import 'package:hafiz_al_ahd/core/widgets/gradient_text.dart';
+import 'package:hafiz_al_ahd/features/azkar/presentation/screens/misbaha_screen.dart';
 
 class AzkarListScreen extends StatelessWidget {
   final String categoryTitle;
@@ -54,6 +55,38 @@ class AzkarListScreen extends StatelessWidget {
                 return AzkarItemCard(item: azkarList[index]);
               },
             ),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: ElevatedButton(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => MisbahaScreen(
+                  dynamicAzkarList: azkarList
+                ),
+              ),
+            );
+          },
+          style: ElevatedButton.styleFrom(
+            minimumSize: const Size(double.infinity, 50),
+            backgroundColor: AppColors.secondaryGold,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            overlayColor: Theme.of(context).primaryColor.withOpacity(0.1),
+          ),
+          child: Text(
+            'الفتح في المسبحة',
+            style: GoogleFonts.cairo(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: context.screenBg,
+            ),
+          ),
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 }

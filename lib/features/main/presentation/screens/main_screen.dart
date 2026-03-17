@@ -20,6 +20,9 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
 
+  // 👈 1. تعريف الـ PageController
+  late PageController _pageController;
+
   final List<Widget> _screens = const [
     HomeScreen(),
     QiblaScreen(),
@@ -28,11 +31,34 @@ class _MainScreenState extends State<MainScreen> {
   ];
 
   @override
-  Widget build(BuildContext context) {
-    // 👈 1. قراءة حالة الثيم الحالي
-    final isDark = context.watch<ThemeCubit>().state.isDark;
+  void initState() {
+    super.initState();
+    // 👈 2. تهيئة الـ Controller وإعطاؤه الصفحة الافتراضية
+    _pageController = PageController(initialPage: _currentIndex);
+  }
 
-    // 👈 2. تجهيز الألوان المتغيرة
+  @override
+  void dispose() {
+    // 👈 3. تنظيف الـ الميموري لما نخرج من الشاشة
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  // 👈 دالة عشان نغير اتجاه الشاشة حسب إحنا في أنهي صفحة
+  void _updateOrientation(int index) {
+    if (index == 0) {
+      SystemChrome.setPreferredOrientations(DeviceOrientation.values);
+    } else {
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
+        DeviceOrientation.portraitDown,
+      ]);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = context.watch<ThemeCubit>().state.isDark;
     final scaffoldBgColor = Theme.of(context).scaffoldBackgroundColor;
     final navBarBgColor = isDark
         ? AppColors.amoledBackground
@@ -43,78 +69,101 @@ class _MainScreenState extends State<MainScreen> {
     final unselectedIconColor = isDark
         ? AppColors.silverMarble.withAlpha(100)
         : Theme.of(context).hintColor.withOpacity(0.6);
-
-    // اللون النشط هيفضل أسود في الحالتين لأن الخلفية بتاعته ذهبي (والأسود على الذهبي تباينه ممتاز دايماً)
     const activeColor = AppColors.primaryBlack;
+    final screenWidth = MediaQuery.sizeOf(context).width;
 
     return Scaffold(
-      backgroundColor: scaffoldBgColor, // 👈 التغيير هنا
-      body: _screens[_currentIndex],
+      backgroundColor: scaffoldBgColor,
+
+      // 👈 4. استخدام PageView بدل استدعاء الشاشة مباشرة
+      body: PageView(
+        controller: _pageController,
+        physics:
+            const BouncingScrollPhysics(), // 👈 بتدي تأثير ارتداد ناعم زي الـ iOS
+        onPageChanged: (index) {
+          // 👈 لما اليوزر يعمل Swipe، نحدث الـ GNav واتجاه الشاشة
+          setState(() {
+            _currentIndex = index;
+            _updateOrientation(index);
+          });
+        },
+        children: _screens,
+      ),
+
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: navBarBgColor, // 👈 التغيير هنا
-          boxShadow: [
-            BoxShadow(
-              blurRadius: 20,
-              color: shadowColor, // 👈 التغيير هنا
-            ),
-          ],
+          color: navBarBgColor,
+          boxShadow: [BoxShadow(blurRadius: 20, color: shadowColor)],
         ),
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(
-              horizontal: 15.0,
+              horizontal:
+                  15.0, // رجعنا البادينج عشان ميبقاش لازق في حافة الموبايل أوي
               vertical: 12.0,
             ),
-            child: GNav(
-              rippleColor: AppColors.secondaryGold.withOpacity(0.1),
-              hoverColor: AppColors.secondaryGold.withOpacity(0.1),
-              haptic: true, // haptic feedback
-              tabBorderRadius: 25,
-              tabBackgroundGradient: AppColors.goldenGradient,
-              tabActiveBorder: Border.all(color: Colors.transparent, width: 0),
-              tabBorder: Border.all(color: Colors.transparent, width: 0),
-              tabShadow: [
-                BoxShadow(
-                  color: AppColors.secondaryGold.withOpacity(0.05),
-                  blurRadius: 8,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.center,
+              // 👈 1. التغليفة دي بتجبر الـ NavBar ياخد عرض الشاشة كله
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minWidth:
+                      screenWidth - 30, // خصمنا 30 بتوع البادينج اليمين والشمال
                 ),
-              ],
-              curve: Curves.easeInOut,
-              duration: const Duration(milliseconds: 300),
-              gap: 8,
-              color: unselectedIconColor, // 👈 التغيير هنا
-              activeColor: activeColor,
-              iconSize: 26,
-              tabBackgroundColor: AppColors.secondaryGold,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              textStyle: GoogleFonts.cairo(
-                color: activeColor,
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
+                // 👈 2. لو الشاشة صغرت أوي، دي بتسمح للـ FittedBox إنه يصغرهم بأمان
+                child: IntrinsicWidth(
+                  child: GNav(
+                    mainAxisAlignment: MainAxisAlignment
+                        .spaceBetween, // 👈 3. السر هنا: هيوزع الزراير على الأطراف بالظبط
+                    rippleColor: AppColors.secondaryGold.withOpacity(0.1),
+                    hoverColor: AppColors.secondaryGold.withOpacity(0.1),
+                    haptic: true,
+                    tabBorderRadius: 25,
+                    tabBackgroundGradient: AppColors.goldenGradient,
+                    tabActiveBorder: Border.all(
+                      color: Colors.transparent,
+                      width: 0,
+                    ),
+                    tabBorder: Border.all(color: Colors.transparent, width: 0),
+                    tabShadow: [
+                      BoxShadow(
+                        color: AppColors.secondaryGold.withOpacity(0.05),
+                        blurRadius: 8,
+                      ),
+                    ],
+                    curve: Curves.easeInOut,
+                    duration: const Duration(milliseconds: 300),
+                    gap: 8,
+                    color: unselectedIconColor,
+                    activeColor: activeColor,
+                    iconSize: 24,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    textStyle: GoogleFonts.cairo(
+                      color: activeColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                    tabs: const [
+                      GButton(icon: Icons.home_filled, text: 'الرئيسية'),
+                      GButton(icon: Icons.explore, text: 'القبلة'),
+                      GButton(icon: Icons.book, text: 'الأذكار'),
+                      GButton(icon: Icons.settings, text: 'الإعدادات'),
+                    ],
+                    selectedIndex: _currentIndex,
+                    onTabChange: (index) {
+                      _pageController.animateToPage(
+                        index,
+                        duration: const Duration(milliseconds: 400),
+                        curve: Curves.easeOutQuad,
+                      );
+                    },
+                  ),
+                ),
               ),
-              tabs: const [
-                GButton(icon: Icons.home_filled, text: 'الرئيسية'),
-                GButton(icon: Icons.explore, text: 'القبلة'),
-                GButton(icon: Icons.book, text: 'الأذكار'),
-                GButton(icon: Icons.settings, text: 'الإعدادات'),
-              ],
-              selectedIndex: _currentIndex,
-              onTabChange: (index) {
-                setState(() {
-                  if (index == 0) {
-                    SystemChrome.setPreferredOrientations(
-                      DeviceOrientation.values,
-                    );
-                  } else {
-                    SystemChrome.setPreferredOrientations([
-                      DeviceOrientation.portraitUp,
-                      DeviceOrientation.portraitDown,
-                    ]);
-                  }
-                  _currentIndex = index;
-                });
-              },
             ),
           ),
         ),

@@ -1,18 +1,19 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:hafiz_al_ahd/core/theme/theme_helper.dart'; // 👈 استدعاء الـ ThemeHelper
+import 'package:hafiz_al_ahd/core/theme/theme_helper.dart'; 
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
-
-class ZikrItem {
-  final String text;
-  final int defaultTarget;
-
-  ZikrItem(this.text, this.defaultTarget);
-}
+import 'package:hafiz_al_ahd/features/azkar/domain/entities/azkar_item.dart';
+// 🚨 تأكد من عمل استدعاء لملف AzkarItem هنا
+// import 'مسار_ملف_AzkarItem_بتاعك'; 
 
 class MisbahaScreen extends StatefulWidget {
-  const MisbahaScreen({super.key});
+  // 👈 1. المسبحة بقت بتستقبل AzkarItem مباشرة
+  final List<AzkarItem>? dynamicAzkarList; 
+
+  const MisbahaScreen({super.key, this.dynamicAzkarList});
 
   @override
   State<MisbahaScreen> createState() => _MisbahaScreenState();
@@ -22,45 +23,61 @@ class _MisbahaScreenState extends State<MisbahaScreen>
     with SingleTickerProviderStateMixin {
   int _count = 0;
   int _selectedIndex = 0;
+  bool _isTransitioning = false; 
 
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
+  late ScrollController _scrollController; 
 
-  final List<ZikrItem> _azkarList = [
-    ZikrItem('سبحان الله', 33),
-    ZikrItem('الحمد لله', 33),
-    ZikrItem('الله أكبر', 33),
-    ZikrItem('أستغفر الله', 100),
-    ZikrItem('لا إله إلّا الله', 100),
-    ZikrItem('اللهم صلِّ على محمد', 10),
+  late List<AzkarItem> _currentAzkarList;
+
+  // 👈 2. حولنا الأذكار الافتراضية لـ AzkarItem عشان تتوافق مع الموديل بتاعك
+  final List<AzkarItem> _defaultAzkarList = const [
+    AzkarItem(category: 'عام', text: 'سبحان الله', description: '', reference: '', count: 33),
+    AzkarItem(category: 'عام', text: 'الحمد لله', description: '', reference: '', count: 33),
+    AzkarItem(category: 'عام', text: 'الله أكبر', description: '', reference: '', count: 33),
+    AzkarItem(category: 'عام', text: 'أستغفر الله', description: '', reference: '', count: 100),
+    AzkarItem(category: 'عام', text: 'لا إله إلّا الله', description: '', reference: '', count: 100),
+    AzkarItem(category: 'عام', text: 'اللهم صلِّ على محمد', description: '', reference: '', count: 10),
   ];
 
   @override
   void initState() {
     super.initState();
+    _currentAzkarList = (widget.dynamicAzkarList != null && widget.dynamicAzkarList!.isNotEmpty)
+        ? widget.dynamicAzkarList!
+        : _defaultAzkarList;
+
+    _scrollController = ScrollController();
+
     _pulseController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 150), 
+      duration: const Duration(milliseconds: 150),
     );
 
-    _pulseAnimation =
-        Tween<double>(begin: 1.0, end: 1.08).animate(
-          CurvedAnimation(parent: _pulseController, curve: Curves.easeOut),
-        )..addStatusListener((status) {
-          if (status == AnimationStatus.completed) {
-            _pulseController.reverse();
-          }
-        });
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.08).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeOut),
+    )..addStatusListener((status) {
+        if (status == AnimationStatus.completed) {
+          _pulseController.reverse();
+        }
+      });
   }
 
   @override
   void dispose() {
     _pulseController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
-  void _incrementCounter() {
-    if (_count >= _azkarList[_selectedIndex].defaultTarget) {
+  void _incrementCounter() async {
+    if (_isTransitioning) return; 
+
+    // 👈 3. بقينا بنقرا من .count بدل defaultTarget
+    final target = _currentAzkarList[_selectedIndex].count;
+
+    if (_count >= target) {
       HapticFeedback.heavyImpact();
       return;
     }
@@ -70,10 +87,35 @@ class _MisbahaScreenState extends State<MisbahaScreen>
 
     setState(() {
       _count++;
-      if (_count == _azkarList[_selectedIndex].defaultTarget) {
-        HapticFeedback.heavyImpact();
-      }
     });
+
+    if (_count == target) {
+      HapticFeedback.heavyImpact();
+
+      if (_selectedIndex < _currentAzkarList.length - 1) {
+        _isTransitioning = true; 
+        
+        await Future.delayed(const Duration(milliseconds: 600));
+
+        if (mounted) {
+          _changeZikr(_selectedIndex + 1, auto: true);
+          _isTransitioning = false; 
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(
+            content: Text(
+              'تقبل الله! أتممت جميع الأذكار 🕋',
+              style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            backgroundColor: AppColors.secondaryGold,
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 
   void _resetCounter() {
@@ -83,22 +125,34 @@ class _MisbahaScreenState extends State<MisbahaScreen>
     });
   }
 
-  void _changeZikr(int index) {
-    HapticFeedback.selectionClick();
+  void _changeZikr(int index, {bool auto = false}) {
+    if (!auto) HapticFeedback.selectionClick();
+    
     setState(() {
       _selectedIndex = index;
       _count = 0;
     });
+
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        index * 110.0, 
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOutCubic,
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final currentZikr = _azkarList[_selectedIndex];
-    final remaining = currentZikr.defaultTarget - _count;
-    final progress = _count / currentZikr.defaultTarget;
+    final currentZikr = _currentAzkarList[_selectedIndex];
+    // 👈 4. بقينا بنتعامل مع .count في كل المعادلات
+    final remaining = currentZikr.count - _count;
+    final progress = _count / currentZikr.count;
+
+    final screenWidth = MediaQuery.sizeOf(context).width;
 
     return Scaffold(
-      backgroundColor: context.screenBg, // 👈 دايناميك
+      backgroundColor: context.screenBg,
       body: SafeArea(
         child: Column(
           children: [
@@ -110,198 +164,241 @@ class _MisbahaScreenState extends State<MisbahaScreen>
               child: GestureDetector(
                 onTap: _incrementCounter,
                 behavior: HitTestBehavior.translucent,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const SizedBox(height: 10),
-                    Text(
-                      'الذكر الحالي',
-                      style: GoogleFonts.cairo(
-                        color: AppColors.secondaryGold,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      currentZikr.text,
-                      style: GoogleFonts.cairo(
-                        color: context.primaryText, // 👈 دايناميك بدل الأبيض
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final availableHeight = constraints.maxHeight;
+                    final availableWidth = constraints.maxWidth;
 
-                    const Spacer(),
+                    final double calculatedSize = math.min(
+                      availableWidth * 0.75,
+                      availableHeight * 0.55,
+                    );
+                    final double outerCircleSize = calculatedSize.clamp(140.0, 350.0);
+                    final double innerCircleSize = outerCircleSize - 20.0;
+                    final double counterFontSize = outerCircleSize * 0.25;
 
-                    // 3. Central Tappable Zone (Pulse Circle)
-                    AnimatedBuilder(
-                      animation: _pulseAnimation,
-                      builder: (context, child) {
-                        final scale = _pulseAnimation.value;
-                        final glowFactor = ((scale - 1.0) / 0.08).clamp(0.0, 1.0);
-
-                        final currentOpacity = 0.15 + (glowFactor * 0.65); 
-                        final currentBlur = 40.0 + (glowFactor * 40.0); 
-                        final currentSpread = 5.0 + (glowFactor * 15.0); 
-
-                        return Transform.scale(
-                          scale: scale,
-                          child: Container(
-                            width: 280,
-                            height: 280,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: context.cardBg, // 👈 دايناميك
-                              border: Border.all(
-                                color: AppColors.secondaryGold.withOpacity(
-                                  0.3 + (glowFactor * 0.5),
-                                ),
-                                width: 2,
-                              ),
-                              boxShadow: [
-                                // النيون الخارجي
-                                BoxShadow(
-                                  color: AppColors.secondaryGold.withOpacity(
-                                    currentOpacity.clamp(0.0, 1.0),
-                                  ),
-                                  blurRadius: currentBlur,
-                                  spreadRadius: currentSpread,
-                                ),
-                                // 👈 الظل الداخلي بياخد لون الـ screenBg عشان يدي تأثير الحفرة في الوضعين
-                                BoxShadow(
-                                  color: context.screenBg,
-                                  blurRadius: 30,
-                                  spreadRadius: -10,
-                                  blurStyle: BlurStyle.inner,
-                                ),
-                              ],
-                              gradient: RadialGradient(
-                                colors: [
-                                  AppColors.secondaryGold.withOpacity(
-                                    0.05 + (glowFactor * 0.15),
-                                  ),
-                                  context.cardBg, // 👈 دايناميك
-                                ],
-                                radius: 0.8,
-                              ),
-                            ),
-                            child: Stack(
-                              alignment: Alignment.center,
+                    return SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(minHeight: availableHeight),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            Column(
                               children: [
-                                Container(
-                                  width: 260,
-                                  height: 260,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: AppColors.secondaryGold.withOpacity(
-                                        0.1 + (glowFactor * 0.3),
-                                      ),
-                                      width: 1,
-                                    ),
+                                Text(
+                                  'الذكر الحالي',
+                                  style: GoogleFonts.cairo(
+                                    color: AppColors.secondaryGold,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                                Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      '$_count',
+                                const SizedBox(height: 8),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                                  child:AnimatedSwitcher(
+                                    duration: const Duration(milliseconds: 400),
+                                    transitionBuilder: (child, animation) {
+                                      return FadeTransition(
+                                        opacity: animation,
+                                        child: SlideTransition(
+                                          position: Tween<Offset>(
+                                            begin: const Offset(0.0, 0.2), 
+                                            end: Offset.zero,
+                                          ).animate(animation),
+                                          child: child,
+                                        ),
+                                      );
+                                    },
+                                    // 👈 التعديل هنا: شيلنا الـ FittedBox وسمحنا بتعدد السطور
+                                    child: Text(
+                                      currentZikr.text,
+                                      key: ValueKey<int>(_selectedIndex), 
                                       style: GoogleFonts.cairo(
-                                        color: AppColors.lightGold,
-                                        fontSize: 72,
+                                        color: context.primaryText,
+                                        // 👈 حجم خط ذكي: لو النص أطول من 50 حرف يصغر الخط شوية عشان يتقري براحته
+                                        fontSize: currentZikr.text.length > 50 ? 18 : 32,
                                         fontWeight: FontWeight.bold,
-                                        height: 1.1,
-                                        shadows: [
-                                          Shadow(
-                                            color: AppColors.lightGold.withOpacity(
-                                              0.5 + (glowFactor * 0.5),
-                                            ),
-                                            blurRadius: 20 + (glowFactor * 20),
-                                          ),
-                                        ],
+                                        height: 1.5, // 👈 مسافة مريحة بين السطور
                                       ),
+                                      textAlign: TextAlign.center,
                                     ),
-                                    Text(
-                                      'إضغط للتسبيح',
-                                      style: GoogleFonts.cairo(
-                                        color: AppColors.secondaryGold.withOpacity(0.8),
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                                  ),),
                               ],
                             ),
-                          ),
-                        );
-                      },
-                    ),
 
-                    const Spacer(),
+                            // Central Tappable Zone (Pulse Circle)
+                            AnimatedBuilder(
+                              animation: _pulseAnimation,
+                              builder: (context, child) {
+                                final scale = _pulseAnimation.value;
+                                final glowFactor = ((scale - 1.0) / 0.08).clamp(0.0, 1.0);
+                                final currentOpacity = 0.15 + (glowFactor * 0.65);
+                                final currentBlur = 40.0 + (glowFactor * 40.0);
+                                final currentSpread = 5.0 + (glowFactor * 15.0);
 
-                    // Progress Section
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 40.0),
-                      child: Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                '${currentZikr.defaultTarget}',
-                                style: GoogleFonts.cairo(
-                                  color: context.secondaryText, // 👈 دايناميك
-                                  fontSize: 14,
-                                ),
-                              ),
-                              Text(
-                                '$_count',
-                                style: GoogleFonts.cairo(
-                                  color: context.secondaryText, // 👈 دايناميك
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: LinearProgressIndicator(
-                              value: progress,
-                              minHeight: 6,
-                              backgroundColor: context.cardBg, // 👈 دايناميك
-                              valueColor: const AlwaysStoppedAnimation<Color>(
-                                AppColors.secondaryGold,
+                                return Transform.scale(
+                                  scale: scale,
+                                  child: Container(
+                                    width: outerCircleSize,
+                                    height: outerCircleSize,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: context.cardBg,
+                                      border: Border.all(
+                                        color: AppColors.secondaryGold.withOpacity(
+                                          0.3 + (glowFactor * 0.5),
+                                        ),
+                                        width: 2,
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: AppColors.secondaryGold.withOpacity(
+                                            currentOpacity.clamp(0.0, 1.0),
+                                          ),
+                                          blurRadius: currentBlur,
+                                          spreadRadius: currentSpread,
+                                        ),
+                                        BoxShadow(
+                                          color: context.screenBg,
+                                          blurRadius: 30,
+                                          spreadRadius: -10,
+                                          blurStyle: BlurStyle.inner,
+                                        ),
+                                      ],
+                                      gradient: RadialGradient(
+                                        colors: [
+                                          AppColors.secondaryGold.withOpacity(
+                                            0.05 + (glowFactor * 0.15),
+                                          ),
+                                          context.cardBg,
+                                        ],
+                                        radius: 0.8,
+                                      ),
+                                    ),
+                                    child: Stack(
+                                      alignment: Alignment.center,
+                                      children: [
+                                        Container(
+                                          width: innerCircleSize,
+                                          height: innerCircleSize,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            border: Border.all(
+                                              color: AppColors.secondaryGold.withOpacity(
+                                                0.1 + (glowFactor * 0.3),
+                                              ),
+                                              width: 1,
+                                            ),
+                                          ),
+                                        ),
+                                        Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            FittedBox(
+                                              fit: BoxFit.scaleDown,
+                                              child: Text(
+                                                '$_count',
+                                                style: GoogleFonts.cairo(
+                                                  color: AppColors.lightGold,
+                                                  fontSize: counterFontSize,
+                                                  fontWeight: FontWeight.bold,
+                                                  height: 1.1,
+                                                  shadows: [
+                                                    Shadow(
+                                                      color: AppColors.lightGold.withOpacity(
+                                                        0.5 + (glowFactor * 0.5),
+                                                      ),
+                                                      blurRadius: 20 + (glowFactor * 20),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                            Text(
+                                              'إضغط للتسبيح',
+                                              style: GoogleFonts.cairo(
+                                                color: AppColors.secondaryGold.withOpacity(0.8),
+                                                fontSize: outerCircleSize * 0.055,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+
+                            // Progress Section
+                            Padding(
+                              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.1),
+                              child: Column(
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        '${currentZikr.count}', // 👈 التعديل هنا
+                                        style: GoogleFonts.cairo(
+                                          color: context.secondaryText,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      Text(
+                                        '$_count',
+                                        style: GoogleFonts.cairo(
+                                          color: context.secondaryText,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: LinearProgressIndicator(
+                                      value: progress,
+                                      minHeight: 6,
+                                      backgroundColor: context.cardBg,
+                                      valueColor: const AlwaysStoppedAnimation<Color>(AppColors.secondaryGold),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    'المتبقي: $remaining',
+                                    style: GoogleFonts.cairo(
+                                      color: context.secondaryText,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            'المتبقي: $remaining',
-                            style: GoogleFonts.cairo(
-                              color: context.secondaryText, // 👈 دايناميك
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    );
+                  },
                 ),
               ),
             ),
 
-            const SizedBox(height: 30),
+            const SizedBox(height: 10),
 
             // Bottom Navigation Categories
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-              child: Row(
-                children: List.generate(_azkarList.length, (index) {
+            SizedBox(
+              height: 55, 
+              child: ListView.builder(
+                controller: _scrollController,
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                itemCount: _currentAzkarList.length,
+                itemBuilder: (context, index) {
                   final isSelected = index == _selectedIndex;
                   return GestureDetector(
                     onTap: () => _changeZikr(index),
@@ -310,37 +407,31 @@ class _MisbahaScreenState extends State<MisbahaScreen>
                       margin: const EdgeInsets.only(left: 12),
                       padding: const EdgeInsets.symmetric(
                         horizontal: 24,
-                        vertical: 12,
                       ),
+                      alignment: Alignment.center,
                       decoration: BoxDecoration(
-                        color: isSelected
-                            ? AppColors.lightGold
-                            : context.cardBg, // 👈 دايناميك
+                        color: isSelected ? AppColors.lightGold : context.cardBg,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: isSelected
-                              ? AppColors.lightGold
-                              : context.borderSubtle, // 👈 دايناميك
+                          color: isSelected ? AppColors.lightGold : context.borderSubtle,
                           width: 1,
                         ),
                       ),
                       child: Text(
-                        _azkarList[index].text,
+                        _currentAzkarList[index].text,
                         style: GoogleFonts.cairo(
-                          color: isSelected
-                              ? AppColors.primaryBlack
-                              : context.secondaryText, // 👈 دايناميك
+                          color: isSelected ? AppColors.primaryBlack : context.secondaryText,
                           fontSize: 14,
-                          fontWeight: isSelected
-                              ? FontWeight.bold
-                              : FontWeight.w600,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
                         ),
                       ),
                     ),
                   );
-                }),
+                },
               ),
             ),
+            
+            const SizedBox(height: 15),
           ],
         ),
       ),
@@ -349,26 +440,33 @@ class _MisbahaScreenState extends State<MisbahaScreen>
 
   Widget _buildAppBar(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 10),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           _buildIconBtn(
             context: context,
             icon: Icons.arrow_back_ios_new_rounded,
             onTap: () => Navigator.pop(context),
           ),
-          Text(
-            'المسبحة',
-            style: GoogleFonts.cairo(
-              color: context.primaryText, // 👈 دايناميك بدل الأبيض
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  'المسبحة',
+                  style: GoogleFonts.cairo(
+                    color: context.primaryText,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
             ),
           ),
           _buildIconBtn(
             context: context,
-            icon: Icons.refresh_rounded, 
+            icon: Icons.refresh_rounded,
             onTap: _resetCounter,
           ),
         ],
@@ -377,9 +475,9 @@ class _MisbahaScreenState extends State<MisbahaScreen>
   }
 
   Widget _buildIconBtn({
-    required BuildContext context, // بصينا الـ context عشان نقرأ اللون
-    required IconData icon, 
-    required VoidCallback onTap
+    required BuildContext context,
+    required IconData icon,
+    required VoidCallback onTap,
   }) {
     return GestureDetector(
       onTap: onTap,
@@ -392,7 +490,6 @@ class _MisbahaScreenState extends State<MisbahaScreen>
             width: 1.5,
           ),
         ),
-        // 👈 خليت الأيقونة تاخد لون النص الأساسي عشان تبان واضحة في الفاتح
         child: Icon(icon, color: context.primaryText, size: 20),
       ),
     );

@@ -39,8 +39,27 @@ class QiblaScreen extends StatelessWidget {
             );
           }
           if (snapshot.hasError || (snapshot.data == false)) {
-            // Only for testing on desktop/devices without compass
-            return const _QiblaCompassWidget();
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.error_outline,
+                    size: 80,
+                    color: Colors.redAccent,
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'عذراً، جهازك لا يدعم مستشعر البوصلة.',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.cairo(
+                      color: context.primaryText, // 👈 لون دايناميك
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+            );
           }
 
           return const _QiblaCompassWidget();
@@ -126,7 +145,8 @@ class _QiblaCompassWidget extends StatelessWidget {
                               'assets/icons/kaaba_haram.png',
                               width: 30,
                               height: 30,
-                              color: context.cardBg, // 👈 بيبقى كريمي في النهاري وأسود في الليلي
+                              color: context
+                                  .cardBg, // 👈 بيبقى كريمي في النهاري وأسود في الليلي
                             ),
                           ],
                         ),
@@ -152,7 +172,9 @@ class _QiblaCompassWidget extends StatelessWidget {
                 child: Text(
                   'ضع الهاتف بشكل مسطح للحصول على أدق نتيجة',
                   style: GoogleFonts.cairo(
-                    color: context.secondaryText.withOpacity(0.7), // 👈 لون دايناميك
+                    color: context.secondaryText.withOpacity(
+                      0.7,
+                    ), // 👈 لون دايناميك
                     fontSize: 14,
                   ),
                 ),
@@ -200,7 +222,11 @@ void _showCalibrationDialog(BuildContext context) {
               ),
             ),
             const SizedBox(height: 20),
-            _buildInstructionRow(context, '1', 'ابتعد عن أي أجهزة إلكترونية أو معادن.'),
+            _buildInstructionRow(
+              context,
+              '1',
+              'ابتعد عن أي أجهزة إلكترونية أو معادن.',
+            ),
             const SizedBox(height: 12),
             _buildInstructionRow(
               context,
@@ -217,7 +243,11 @@ void _showCalibrationDialog(BuildContext context) {
               ),
             ),
             const SizedBox(height: 12),
-            _buildInstructionRow(context, '3', 'ضع الهاتف بشكل مسطح (أفقي) مرة أخرى.'),
+            _buildInstructionRow(
+              context,
+              '3',
+              'ضع الهاتف بشكل مسطح (أفقي) مرة أخرى.',
+            ),
           ],
         ),
         actions: [
@@ -264,7 +294,10 @@ Widget _buildInstructionRow(BuildContext context, String number, String text) {
           padding: const EdgeInsets.only(top: 4.0),
           child: Text(
             text,
-            style: GoogleFonts.cairo(color: context.primaryText, fontSize: 15), // 👈 لون دايناميك
+            style: GoogleFonts.cairo(
+              color: context.primaryText,
+              fontSize: 15,
+            ), // 👈 لون دايناميك
           ),
         ),
       ),
