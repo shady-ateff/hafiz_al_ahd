@@ -103,16 +103,16 @@ class _HomeScreenState extends State<HomeScreen> {
           },
         ),
       ),
-      // floatingActionButton: BlocBuilder<PrayerTimesCubit, PrayerTimesStates>(
-      //   builder: (context, state) {
-      //     return FloatingActionButton(
-      //       onPressed: () {
-      //         context.read<PrayerTimesCubit>().testNotification(2);
-      //       },
-      //       child: const Icon(Icons.refresh),
-      //     );
-      //   },
-      // ),
+      floatingActionButton: BlocBuilder<PrayerTimesCubit, PrayerTimesStates>(
+        builder: (context, state) {
+          return FloatingActionButton(
+            onPressed: () {
+              context.read<PrayerTimesCubit>().testNotification(2);
+            },
+            child: const Icon(Icons.refresh),
+          );
+        },
+      ),
     );
   }
 

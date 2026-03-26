@@ -15,8 +15,17 @@ abstract class BaseNotificationRepository {
     required DateTime scheduledTime, // وقت الصلاة بالظبط
   });
 
+  Future<void> showStickyNotification({
+    required int id,
+    required String title,
+    required String body,
+    required DateTime nextPrayerTime,
+  });
+
   /// إلغاء كل الإشعارات (مفيدة لو اليوزر غير مكانه فبنمسح القديم ونجدول من جديد)
   Future<void> cancelAllNotifications();
+  Future<void> cancelNotification(int id);
+  Future<void> cancelActivePrayerNotification();
   // في الملفين (الـ Repo والـ UseCase) ضيف المتغير ده:
   Future<void> execute({
     // أو schedulePrayerNotification في الـ Repo
@@ -26,4 +35,5 @@ abstract class BaseNotificationRepository {
     required DateTime scheduledTime,
     String? soundName, // 👈 المتغير الجديد (اختياري)
   });
+
 }

@@ -1,7 +1,6 @@
 import 'package:dartz/dartz.dart';
 import 'package:hafiz_al_ahd/core/errors/faluire.dart';
 import 'package:hafiz_al_ahd/features/home/data/datasources/prayer_times_local_data_source.dart';
-import 'package:hafiz_al_ahd/features/home/data/models/prayer_time_model.dart';
 import 'package:adhan/adhan.dart'; // مكتبة الحسابات الفلكية
 import 'package:hafiz_al_ahd/features/home/domain/entities/prayer_times_entity.dart';
 import 'package:hafiz_al_ahd/features/home/domain/repositories/prayer_times_repo.dart';

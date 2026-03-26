@@ -5,9 +5,35 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/repos/base_notification_repository.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
+import 'package:hafiz_al_ahd/main.dart';
+import 'package:flutter/material.dart';
+import 'package:hafiz_al_ahd/features/notifications/presentation/screens/adhan_screen.dart';
+
+@pragma('vm:entry-point')
+void notificationTapBackground(NotificationResponse notificationResponse) {
+  // يشتغل والتطبيق مقفول تماماً
+  print('🔔 Background Notification Tapped: \${notificationResponse.payload}');
+}
+
+void onDidReceiveNotificationResponse(
+  NotificationResponse notificationResponse,
+) {
+  // يشتغل والتطبيق شغال أو في الخلفية وندوس على الإشعار
+  if (notificationResponse.payload != null) {
+    navigatorKey.currentState?.push(
+      MaterialPageRoute(
+        builder: (_) => AdhanScreen(payload: notificationResponse.payload),
+      ),
+    );
+  } else {
+    navigatorKey.currentState?.push(
+      MaterialPageRoute(builder: (_) => const AdhanScreen()),
+    );
+  }
+}
 
 class NotificationRepositoryImpl implements BaseNotificationRepository {
-  final FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin =
+  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
   @override
@@ -38,15 +64,17 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
           windows: initializationSettingsWindows,
         );
 
-    await _flutterLocalNotificationsPlugin.initialize(
+    await flutterLocalNotificationsPlugin.initialize(
       settings: initializationSettings,
+      onDidReceiveNotificationResponse: onDidReceiveNotificationResponse,
+      onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
     );
   }
 
   @override
   Future<void> requestPermissions() async {
     final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
-        _flutterLocalNotificationsPlugin
+        flutterLocalNotificationsPlugin
             .resolvePlatformSpecificImplementation<
               AndroidFlutterLocalNotificationsPlugin
             >();
@@ -55,7 +83,7 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
     await androidImplementation?.requestExactAlarmsPermission();
 
     final IOSFlutterLocalNotificationsPlugin? iosImplementation =
-        _flutterLocalNotificationsPlugin
+        flutterLocalNotificationsPlugin
             .resolvePlatformSpecificImplementation<
               IOSFlutterLocalNotificationsPlugin
             >();
@@ -75,12 +103,10 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
     required DateTime scheduledTime,
     String? soundName,
   }) async {
-    // 👈 1. غيرنا الـ ID لـ v3 عشان أندرويد يعمل قناة جديدة إجبارياً
-    // غير السطر ده:
-    // غيرنا v4 لـ v5 عشان نكريت قناة زيرو بصوت جديد
+    bool isAdhan = (soundName == 'adhan' || soundName == 'fajr_azan');
     String channelId = soundName != null
-        ? 'prayer_channel_v5_$soundName'
-        : 'prayer_channel_v5_default';
+        ? 'prayer_channel_v7_$soundName'
+        : 'prayer_channel_v7_default';
     AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
       channelId,
       'مواقيت الصلاة',
@@ -88,15 +114,26 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
       importance: Importance.max,
       priority: Priority.high,
       playSound: true,
-      // 👈 2. تمرير الصوت من غير .mp3
       sound: soundName != null
           ? RawResourceAndroidNotificationSound(soundName)
           : null,
-      // 👈 3. السطر السحري اللي كان ناقص عندك:
-      audioAttributesUsage: AudioAttributesUsage.notification,
+      audioAttributesUsage: isAdhan
+          ? AudioAttributesUsage.alarm
+          : AudioAttributesUsage.notification,
+      category: isAdhan
+          ? AndroidNotificationCategory.alarm
+          : AndroidNotificationCategory.reminder,
+      fullScreenIntent:
+          isAdhan, // لو الأذان، نخليها fullScreen عشان تفتح الشاشة حتى لو التليفون مقفول
+      ticker: 'مواقيت الصلاة',
+      largeIcon: DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
+      timeoutAfter: 30 * 60 * 1000, // 30 دقيقة عشان لو ما انضغطش يختفي
+      visibility: NotificationVisibility.public,
+      enableVibration: true,
+      enableLights: true,
+      groupKey: 'prayer_notifications',
     );
 
-    // 👈 4. ضفنا إعدادات iOS بالمرة عشان لما تيجي ترفع على أبل ميعملش مشكلة
     DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
       presentSound: true,
       sound: soundName != null ? '$soundName.mp3' : null,
@@ -107,7 +144,7 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
 
     NotificationDetails platformSpecifics = NotificationDetails(
       android: androidDetails,
-      iOS: iosDetails, // 👈 بصيناها هنا
+      iOS: iosDetails,
       windows: windowsDetails,
     );
 
@@ -115,35 +152,58 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
       final delay = scheduledTime.difference(DateTime.now());
       if (!delay.isNegative) {
         Timer(delay, () async {
-          await _flutterLocalNotificationsPlugin.show(
+          await flutterLocalNotificationsPlugin.show(
             id: id,
             title: title,
             body: body,
             notificationDetails: platformSpecifics,
+            payload: 'adhan_screen',
           );
         });
       }
       return;
     }
 
+    String payloadData = isAdhan ? 'adhan_${id}_$title' : 'iqama_${id}_$title';
     final tz.TZDateTime tzScheduledTime = tz.TZDateTime.from(
       scheduledTime,
       tz.local,
     );
 
-    await _flutterLocalNotificationsPlugin.zonedSchedule(
+    await flutterLocalNotificationsPlugin.zonedSchedule(
       id: id,
       title: title,
       body: body,
       scheduledDate: tzScheduledTime,
       notificationDetails: platformSpecifics,
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      payload: payloadData, // 👈 بنبعته هنا
     );
   }
 
   @override
   Future<void> cancelAllNotifications() async {
-    await _flutterLocalNotificationsPlugin.cancelAll();
+    await flutterLocalNotificationsPlugin.cancelAll();
+  }
+
+  @override
+  Future<void> cancelNotification(int id) async {
+    await flutterLocalNotificationsPlugin.cancel(id: id);
+  }
+
+  @override
+  Future<void> cancelActivePrayerNotification() async {
+    // 1. نجيب كل الإشعارات اللي ظاهرة في الشاشة دلوقتي
+    final List<ActiveNotification> activeNotifications =
+        await flutterLocalNotificationsPlugin.getActiveNotifications();
+
+    for (var active in activeNotifications) {
+      // 2. نمسح الإشعار لو هو تبع قناة الأذان (ونسيب العداد الثابت لأنه في قناة تانية)
+      if (active.channelId != null &&
+          active.channelId!.contains('prayer_channel_v7')) {
+        await flutterLocalNotificationsPlugin.cancel(id: active.id ?? -1);
+      }
+    }
   }
 
   @override
@@ -162,6 +222,41 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
       body: body,
       scheduledTime: scheduledTime,
       soundName: soundName,
+    );
+  }
+
+  @override
+  Future<void> showStickyNotification({
+    required int id,
+    required String title,
+    required String body,
+    required DateTime nextPrayerTime,
+  }) async {
+    AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+      'sticky_countdown_channel_v1',
+      'العد التنازلي للصلاة',
+      channelDescription: 'يعرض الوقت المتبقي للصلاة القادمة',
+      importance: Importance.low, // واطي عشان ميعملش صوت كل شوية
+      priority: Priority.low,
+      ongoing: true, // يمنع اليوزر إنه يمسحه
+      autoCancel: false,
+      showWhen: true,
+      when: nextPrayerTime
+          .millisecondsSinceEpoch, // بنديله وقت الصلاة الجاية بالملي ثانية
+      usesChronometer: true, // بيشغل العداد
+      chronometerCountDown: true, // بيخلي العداد ينزل لتحت
+    );
+
+    NotificationDetails platformSpecifics = NotificationDetails(
+      android: androidDetails,
+      iOS: const DarwinNotificationDetails(), // الـ iOS ليه حسبة تانية للويدجت
+    );
+
+    await flutterLocalNotificationsPlugin.show(
+      id: id,
+      title: title,
+      body: body,
+      notificationDetails: platformSpecifics,
     );
   }
 }

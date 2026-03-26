@@ -19,9 +19,12 @@ import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit
 import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit/prayer_times_states.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/cubit/time_cubit.dart';
 import 'package:hafiz_al_ahd/features/main/presentation/screens/main_screen.dart';
+import 'package:hafiz_al_ahd/main.dart'; // For navigatorKey
 import 'package:hafiz_al_ahd/features/notifications/data/repos/notification_repository_impl.dart';
+import 'package:hafiz_al_ahd/features/notifications/presentation/screens/adhan_screen.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/usecases/cancel_all_notfication_usecase.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/usecases/schedule_prayer_usecase.dart';
+import 'package:hafiz_al_ahd/features/notifications/domain/usecases/show_sticky_notification_usecase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:tray_manager/tray_manager.dart';
@@ -29,7 +32,8 @@ import 'package:tray_manager/tray_manager.dart';
 // 1. 👈 حولناها لـ StatefulWidget
 class App extends StatefulWidget {
   final SharedPreferences sharedPreferences;
-  const App({super.key, required this.sharedPreferences});
+  final String? initialRoute;
+  const App({super.key, required this.sharedPreferences, this.initialRoute});
 
   @override
   State<App> createState() => _AppState();
@@ -44,6 +48,14 @@ class _AppState extends State<App> with TrayListener, WindowListener {
       trayManager.addListener(this);
       windowManager.addListener(this);
       _preventClose();
+    }
+
+    if (widget.initialRoute == 'adhan_screen') {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        navigatorKey.currentState?.push(
+          MaterialPageRoute(builder: (_) => const AdhanScreen()),
+        );
+      });
     }
   }
 
@@ -121,6 +133,10 @@ class _AppState extends State<App> with TrayListener, WindowListener {
               notificationRepo,
             );
 
+            final showStickyNotificationUseCase = ShowStickyNotificationUseCase(
+              notificationRepo,
+            );
+
             return PrayerTimesCubit(
               initialState: PrayerTimesInitial(),
               getPrayerTimesUseCase: getPrayerTimesUseCase,
@@ -128,6 +144,7 @@ class _AppState extends State<App> with TrayListener, WindowListener {
               getCachedLocationUseCase: getCachedLocationUseCase,
               cancelAllNotificationsUseCase: cancelAllNotificationsUseCase,
               schedulePrayerUseCase: schedulePrayerUseCase,
+              showStickyNotificationUseCase: showStickyNotificationUseCase,
             )..fetchPrayerTimesByLocation();
           },
         ),
@@ -144,12 +161,13 @@ class _AppState extends State<App> with TrayListener, WindowListener {
       child: BlocBuilder<ThemeCubit, ThemeState>(
         builder: (context, themeState) {
           return MaterialApp(
+            navigatorKey: navigatorKey,
             title: 'Hafiz Al Ahd',
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
             themeMode: themeState.themeMode,
             home: const MainScreen(),
-            debugShowCheckedModeBanner: false,
+            debugShowCheckedModeBanner: true,
             localizationsDelegates: const [
               GlobalMaterialLocalizations.delegate,
               GlobalWidgetsLocalizations.delegate,
