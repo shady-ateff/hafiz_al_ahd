@@ -6,3 +6,6 @@ class CacheException implements Exception {}
 
 // خطأ اللوكيشن (لو الـ GPS مقفول مثلاً)
 class LocationException implements Exception {}
+
+
+class NetworkException implements Exception {}

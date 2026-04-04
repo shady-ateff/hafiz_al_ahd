@@ -1,6 +1,6 @@
 import 'package:dartz/dartz.dart';
 import 'package:hafiz_al_ahd/core/errors/exception.dart';
-import 'package:hafiz_al_ahd/core/errors/faluire.dart';
+import 'package:hafiz_al_ahd/core/errors/failure.dart';
 
 import '../../domain/entities/location_entity.dart';
 import '../../domain/repositories/base_location_repository.dart';

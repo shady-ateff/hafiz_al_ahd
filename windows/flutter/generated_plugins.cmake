@@ -4,6 +4,7 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   auto_start_flutter
+  flutter_timezone
   geolocator_windows
   permission_handler_windows
   screen_retriever_windows

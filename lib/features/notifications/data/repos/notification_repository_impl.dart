@@ -9,6 +9,9 @@ import 'package:hafiz_al_ahd/main.dart';
 import 'package:flutter/material.dart';
 import 'package:hafiz_al_ahd/features/notifications/presentation/screens/adhan_screen.dart';
 
+StreamController<String> selectNotificationStream =
+    StreamController<String>.broadcast();
+
 @pragma('vm:entry-point')
 void notificationTapBackground(NotificationResponse notificationResponse) {
   // يشتغل والتطبيق مقفول تماماً
@@ -18,18 +21,12 @@ void notificationTapBackground(NotificationResponse notificationResponse) {
 void onDidReceiveNotificationResponse(
   NotificationResponse notificationResponse,
 ) {
-  // يشتغل والتطبيق شغال أو في الخلفية وندوس على الإشعار
-  if (notificationResponse.payload != null) {
-    navigatorKey.currentState?.push(
-      MaterialPageRoute(
-        builder: (_) => AdhanScreen(payload: notificationResponse.payload),
-      ),
-    );
-  } else {
-    navigatorKey.currentState?.push(
-      MaterialPageRoute(builder: (_) => const AdhanScreen()),
-    );
-  }
+  print('🔔 Notification Tapped: \${notificationResponse.payload}');
+
+  if (notificationResponse.id != null &&
+      notificationResponse.payload != null) {
+    selectNotificationStream.add(notificationResponse.payload!);
+  } 
 }
 
 class NotificationRepositoryImpl implements BaseNotificationRepository {
@@ -132,6 +129,8 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
       enableVibration: true,
       enableLights: true,
       groupKey: 'prayer_notifications',
+      ongoing: isAdhan, // 👈 بتخليه زي إشعار المكالمة مبيتمسحش بالسحب
+      autoCancel: !isAdhan, // 👈 تمنع مسحه بمجرد اللمس
     );
 
     DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
@@ -179,6 +178,13 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       payload: payloadData, // 👈 بنبعته هنا
     );
+  }
+
+  @override
+  Future<int> getPendingNotificationsCount() async {
+    final pendingRequests = await flutterLocalNotificationsPlugin
+        .pendingNotificationRequests();
+    return pendingRequests.length;
   }
 
   @override

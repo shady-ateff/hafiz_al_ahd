@@ -2,38 +2,26 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:hafiz_al_ahd/core/DI/service_locator.dart';
 import 'package:hafiz_al_ahd/core/utils/app_theme.dart';
 import 'package:hafiz_al_ahd/core/theme/cubit/theme_cubit.dart';
 import 'package:hafiz_al_ahd/features/azkar/data/datasources/azkar_local_data_source.dart';
 import 'package:hafiz_al_ahd/features/azkar/data/repositories/azkar_repository_impl.dart';
 import 'package:hafiz_al_ahd/features/azkar/domain/usecases/get_azkar_usecase.dart';
 import 'package:hafiz_al_ahd/features/azkar/presentation/cubit/azkar_cubit.dart';
-import 'package:hafiz_al_ahd/features/home/data/datasources/location_local_data_source.dart';
-import 'package:hafiz_al_ahd/features/home/data/datasources/prayer_times_local_data_source.dart';
-import 'package:hafiz_al_ahd/features/home/data/repositories/location_repository_impl.dart';
-import 'package:hafiz_al_ahd/features/home/data/repositories/prayer_times_repo_impl.dart';
-import 'package:hafiz_al_ahd/features/home/domain/usecases/get_cached_location_usecase.dart';
-import 'package:hafiz_al_ahd/features/home/domain/usecases/get_prayer_times_use_case.dart';
-import 'package:hafiz_al_ahd/features/home/domain/usecases/save_location_usecase.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit/prayer_times_cubit.dart';
-import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit/prayer_times_states.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/cubit/time_cubit.dart';
 import 'package:hafiz_al_ahd/features/main/presentation/screens/main_screen.dart';
 import 'package:hafiz_al_ahd/main.dart'; // For navigatorKey
-import 'package:hafiz_al_ahd/features/notifications/data/repos/notification_repository_impl.dart';
 import 'package:hafiz_al_ahd/features/notifications/presentation/screens/adhan_screen.dart';
-import 'package:hafiz_al_ahd/features/notifications/domain/usecases/cancel_all_notfication_usecase.dart';
-import 'package:hafiz_al_ahd/features/notifications/domain/usecases/schedule_prayer_usecase.dart';
-import 'package:hafiz_al_ahd/features/notifications/domain/usecases/show_sticky_notification_usecase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:tray_manager/tray_manager.dart';
 
 // 1. 👈 حولناها لـ StatefulWidget
 class App extends StatefulWidget {
-  final SharedPreferences sharedPreferences;
   final String? initialRoute;
-  const App({super.key, required this.sharedPreferences, this.initialRoute});
+  const App({super.key, this.initialRoute});
 
   @override
   State<App> createState() => _AppState();
@@ -105,48 +93,8 @@ class _AppState extends State<App> with TrayListener, WindowListener {
     return MultiBlocProvider(
       providers: [
         BlocProvider(
-          create: (context) {
-            final localDataSource = PrayerTimesLocalDataSource();
-            final prayerTimesRepo = PrayerTimesRepoImpl(localDataSource);
-            final getPrayerTimesUseCase = GetPrayerTimesUseCase(
-              prayerTimesRepo,
-            );
-
-            final locationDataSource = LocationLocalDataSourceImpl(
-              // 👈 استخدمنا widget.sharedPreferences عشان إحنا جوه State
-              sharedPreferences: widget.sharedPreferences,
-            );
-            final baseLocationRepo = LocationRepositoryImpl(
-              localDataSource: locationDataSource,
-            );
-            final saveLocationUseCase = SaveLocationUseCase(baseLocationRepo);
-
-            final getCachedLocationUseCase = GetCachedLocationUseCase(
-              baseLocationRepo,
-            );
-            final notificationRepo = NotificationRepositoryImpl();
-
-            final cancelAllNotificationsUseCase = CancelAllNotificationsUseCase(
-              notificationRepo,
-            );
-            final schedulePrayerUseCase = SchedulePrayerUseCase(
-              notificationRepo,
-            );
-
-            final showStickyNotificationUseCase = ShowStickyNotificationUseCase(
-              notificationRepo,
-            );
-
-            return PrayerTimesCubit(
-              initialState: PrayerTimesInitial(),
-              getPrayerTimesUseCase: getPrayerTimesUseCase,
-              saveLocationUseCase: saveLocationUseCase,
-              getCachedLocationUseCase: getCachedLocationUseCase,
-              cancelAllNotificationsUseCase: cancelAllNotificationsUseCase,
-              schedulePrayerUseCase: schedulePrayerUseCase,
-              showStickyNotificationUseCase: showStickyNotificationUseCase,
-            )..fetchPrayerTimesByLocation();
-          },
+          create: (context) =>
+              sl<PrayerTimesCubit>()..fetchPrayerTimesByLocation(),
         ),
         BlocProvider(create: (context) => TimeCubit()),
         BlocProvider(

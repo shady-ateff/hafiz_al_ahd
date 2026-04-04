@@ -21,6 +21,7 @@ abstract class BaseNotificationRepository {
     required String body,
     required DateTime nextPrayerTime,
   });
+  Future<int> getPendingNotificationsCount();
 
   /// إلغاء كل الإشعارات (مفيدة لو اليوزر غير مكانه فبنمسح القديم ونجدول من جديد)
   Future<void> cancelAllNotifications();
@@ -35,5 +36,4 @@ abstract class BaseNotificationRepository {
     required DateTime scheduledTime,
     String? soundName, // 👈 المتغير الجديد (اختياري)
   });
-
 }

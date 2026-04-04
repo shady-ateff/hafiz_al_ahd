@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -10,21 +12,37 @@ class AdhanScreen extends StatefulWidget {
   final String? payload;
   final int? notificationId;
 
-  const AdhanScreen({
-    super.key,
-    this.payload,
-    this.notificationId,
-  });
+  const AdhanScreen({super.key, this.payload, this.notificationId});
 
   @override
   State<AdhanScreen> createState() => _AdhanScreenState();
 }
 
 class _AdhanScreenState extends State<AdhanScreen> {
+  Timer? _autoCloseTimer; // 👈 التايمر اللي هيقفل الشاشة
+  void _closeScreen() async {
+    if (mounted) {
+      _autoCloseTimer?.cancel(); // تأمين إلغاء التايمر
+      final repo = NotificationRepositoryImpl();
+      await repo.cancelActivePrayerNotification();
+      SystemNavigator.pop(); // اقفل الـ Activity بالكامل
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     _fetchRingingPrayerTitle();
+
+    _autoCloseTimer = Timer(const Duration(minutes: 4, seconds: 48), () {
+      _closeScreen();
+    });
+  }
+
+  @override
+  void dispose() {
+    _autoCloseTimer?.cancel();
+    super.dispose();
   }
 
   String? prayerTitle;
@@ -55,113 +73,110 @@ class _AdhanScreenState extends State<AdhanScreen> {
     }
   }
 
-  @override
+ @override
   Widget build(BuildContext context) {
-    // تحديد الألوان هنا لسهولة التعديل مستقبلاً
-    const Color goldColor = AppColors.lightGold; // افترضت إن اسم اللون كده عندك
-    const Color darkBgColor =
-        AppColors.deepBackground; // افترضت إن اسم اللون كده عندك
+    // 👈 1. سحب أبعاد الشاشة
+    final size = MediaQuery.of(context).size;
+    
+    // 👈 2. تحديد نقطة كسر (Breakpoint) للشاشات الصغيرة جداً
+    final bool isSmallScreen = size.height < 700; 
+
+    const Color goldColor = AppColors.lightGold; 
+    const Color darkBgColor = AppColors.deepBackground; 
 
     return Scaffold(
-      backgroundColor: darkBgColor, // 👈 1. الخلفية سوداء سادة
+      backgroundColor: darkBgColor, 
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 50),
+          // 👈 3. حواف متجاوبة (8% من العرض و 3% من الطول)
+          padding: EdgeInsets.symmetric(
+            horizontal: size.width * 0.08, 
+            vertical: size.height * 0.03,
+          ),
           child: Column(
             children: [
-              // 👈 2. لوجو التطبيق في الأعلى
+              // 4. اللوجو: ارتفاعه 15% من الشاشة
               Image.asset(
-                'assets/images/app_icon_transparent.png', // 👈 تأكد من مسار اللوجو عندك
-                height: 130,
-                // لو اللوجو مش شفاف، ممكن تستخدم colorBlendMode لدمجه
+                'assets/images/app_icon_transparent.png', 
+                height: size.height * 0.15, 
               ),
 
-              const Spacer(), // توزيع مسافة مرنة
-              // 👈 3. أيقونة المسجد باللون الذهبي
-              const Icon(
-                Icons.mosque_outlined, // شكل أجمل وأرق
-                size: 120,
-                color: goldColor, // 👈 ذهبي
+              const Spacer(flex: 2), // مسافة مرنة علوية
+
+              // 5. أيقونة المسجد: حجمها 12% من طول الشاشة
+              Icon(
+                Icons.mosque_outlined, 
+                size: size.height * 0.12, 
+                color: goldColor, 
               ),
 
-              const SizedBox(height: 40),
+              SizedBox(height: size.height * 0.03),
 
-              // 👈 4. النصوص باللون الذهبي
+              // 6. النصوص: أحجام خطوط متجاوبة
               Text(
-                prayerTitle ??
-                    'حان وقت الصلاة', // 👈 نص افتراضي لو ماجاش من الباي لود
+                prayerTitle ?? 'حان وقت الصلاة', 
                 style: GoogleFonts.cairo(
-                  fontSize: 36,
+                  fontSize: isSmallScreen ? 28 : 36, // يصغر شوية لو الشاشة قصيرة
                   fontWeight: FontWeight.bold,
-                  color: goldColor, // 👈 ذهبي
+                  color: goldColor, 
                   letterSpacing: 1.2,
                 ),
               ),
 
-              const SizedBox(height: 15),
+              SizedBox(height: size.height * 0.01),
 
               Text(
                 'جاري رفع الأذان...',
                 style: GoogleFonts.cairo(
-                  fontSize: 22,
-                  color: goldColor.withOpacity(0.7), // 👈 ذهبي شفاف قليلاً
+                  fontSize: isSmallScreen ? 18 : 22,
+                  // 👈 استخدام withValues بدلاً من withOpacity (تحديث فلاتر الجديد)
+                  color: goldColor.withValues(alpha: 0.7), 
                   fontWeight: FontWeight.w500,
                 ),
               ),
 
-              const Spacer(flex: 2), // مسافة مرنة أكبر قبل السلايدر
-              // 👈 5. الـ Swipe Slider (سحب لإيقاف الأذان)
-              Center(
-                child: Directionality(
-                  textDirection:
-                      TextDirection.ltr, // عشان السحب من اليمين للشمال
-                  child: SliderButton(
-                    action: () async {
-                      // نفس اللوجيك البرمجي بتاعك بدون تغيير
-                      final repo = NotificationRepositoryImpl();
-                      await repo.cancelActivePrayerNotification();
-                      await Future.delayed(const Duration(milliseconds: 1000));
-                      SystemNavigator.pop();
-                      return null; // ضروري للباكيدج
-                    },
+              const Spacer(flex: 3), // مسافة مرنة سفلية (أكبر شوية عشان تزق الزرار لتحت)
 
-                    /// تحسينات الشكل للـ Slider
-                    label: Text(
-                      "اسحب لإيقاف الأذان",
-                      style: GoogleFonts.cairo(
-                        color: darkBgColor, // لون النص داخل الزرار الذهبي
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
+              // 7. الـ Slider Button
+              Directionality(
+                textDirection: TextDirection.ltr, 
+                child: SliderButton(
+                  action: () async {
+                    _closeScreen();
+                    return null; 
+                  },
+                  label: Text(
+                    "اسحب لإيقاف الأذان",
+                    style: GoogleFonts.cairo(
+                      color: darkBgColor, 
+                      fontWeight: FontWeight.bold,
+                      fontSize: isSmallScreen ? 16 : 18,
                     ),
-                    icon: const Icon(
-                      Icons.stop_rounded,
-                      color: goldColor, // لون الأيقونة جوه الدائرة
-                      size: 35,
-                    ),
-                    // ألوان السلايدر
-                    baseColor: Colors.black, // لون النص المتحرك
-                    buttonColor: darkBgColor, // لون الدائرة التي يتم سحبها
-                    backgroundColor: goldColor, // لون الخلفية الـ Track
-                    highlightedColor: Colors.black87.withAlpha(30),
-
-                    // تأثيرات إضافية
-                    shimmer: true, // تأثير لمعان النص
-                    vibrationFlag: true, // اهتزاز بسيط عند السحب
-                    alignLabel: Alignment.center, // توسيط النص داخل الزرار
-                    width: double.infinity, // يأخذ عرض الشاشة المتاح
-                    height: 65,
-                    radius: 50,
-                    // dismissible: false, // لا يختفي بعد السحب
                   ),
+                  icon: const Icon(
+                    Icons.arrow_forward_ios,
+                    color: goldColor, 
+                    size: 30,
+                  ),
+                  baseColor: Colors.black, 
+                  buttonColor: darkBgColor, 
+                  backgroundColor: goldColor, 
+                  highlightedColor: Colors.black87.withAlpha(30),
+                  shimmer: true, 
+                  vibrationFlag: true, 
+                  alignLabel: Alignment.center, 
+                  width: double.infinity, 
+                  // 👈 أبعاد الزرار تتجاوب مع الشاشة
+                  height: isSmallScreen ? 55 : 65,
+                  buttonSize: isSmallScreen ? 45 : 55,
+                  radius: 50,
                 ),
               ),
 
-              const SizedBox(height: 20), // مسافة أمان سفلية
+              SizedBox(height: size.height * 0.02), // مسافة أمان سفلية
             ],
           ),
         ),
       ),
     );
-  }
-}
+  }}

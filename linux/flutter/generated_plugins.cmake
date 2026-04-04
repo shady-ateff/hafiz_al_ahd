@@ -4,6 +4,7 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   auto_start_flutter
+  flutter_timezone
   screen_retriever_linux
   tray_manager
   window_manager

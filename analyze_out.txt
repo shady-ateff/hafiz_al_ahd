@@ -1,0 +1,71 @@
+Analyzing hafiz_al_ahd...                                       
+
+warning - Unused import: 'package:shared_preferences/shared_preferences.dart' - lib\app\view\app.dart:17:8 - unused_import
+warning - Unused import: 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit/prayer_times_states.dart' - lib\core\DI\service_locator.dart:13:8 - unused_import
+  error - The named parameter 'fetchOrchestrator' is required, but there's no corresponding argument - lib\core\DI\service_locator.dart:95:11 - missing_required_argument
+   info - 'timeLimit' is deprecated and shouldn't be used. use settings parameter with AndroidSettings, AppleSettings, WebSettings, or LocationSettings - lib\core\services\location_service.dart:44:7 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\theme\theme_helper.dart:33:33 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\theme\theme_helper.dart:37:33 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\theme\theme_helper.dart:38:33 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\core\utils\app_colors.dart:36:37 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\azkar\presentation\screens\azkar_list_screen.dart:77:58 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\azkar\presentation\screens\azkar_list_screen.dart:164:36 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\azkar\presentation\screens\azkar_list_screen.dart:170:47 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\azkar\presentation\screens\azkar_list_screen.dart:179:56 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\azkar\presentation\screens\azkar_list_screen.dart:191:54 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\azkar\presentation\screens\azkar_list_screen.dart:192:57 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\azkar\presentation\screens\azkar_list_screen.dart:236:64 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\azkar\presentation\screens\azkar_list_screen.dart:259:60 - deprecated_member_use
+   info - Unnecessary use of multiple underscores - lib\features\azkar\presentation\screens\azkar_screen.dart:246:29 - unnecessary_underscores
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\azkar\presentation\screens\misbaha_screen.dart:250:72 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\azkar\presentation\screens\misbaha_screen.dart:257:74 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\azkar\presentation\screens\misbaha_screen.dart:272:67 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\azkar\presentation\screens\misbaha_screen.dart:289:78 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\azkar\presentation\screens\misbaha_screen.dart:310:82 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\azkar\presentation\screens\misbaha_screen.dart:322:80 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\azkar\presentation\screens\misbaha_screen.dart:489:44 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\azkar\presentation\widgets\category_card.dart:37:48 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\azkar\presentation\widgets\category_card.dart:38:51 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\azkar\presentation\widgets\category_card.dart:47:52 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\azkar\presentation\widgets\category_card.dart:87:52 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\azkar\presentation\widgets\category_card.dart:102:48 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\azkar\presentation\widgets\daily_azkar_card.dart:34:48 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\azkar\presentation\widgets\daily_azkar_card.dart:35:51 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\azkar\presentation\widgets\daily_azkar_card.dart:44:52 - deprecated_member_use
+warning - Unused import: 'dart:developer' - lib\features\home\presentation\cubit\prayer_times_cubit\prayer_times_cubit.dart:1:8 - unused_import
+warning - Unused import: 'package:geolocator/geolocator.dart' - lib\features\home\presentation\cubit\prayer_times_cubit\prayer_times_cubit.dart:3:8 - unused_import
+warning - Unused import: 'package:hafiz_al_ahd/features/home/domain/entities/location_entity.dart' - lib\features\home\presentation\cubit\prayer_times_cubit\prayer_times_cubit.dart:5:8 - unused_import
+warning - Unused import: 'package:hafiz_al_ahd/core/utils/calculation_method_helper.dart' - lib\features\home\presentation\cubit\prayer_times_cubit\prayer_times_cubit.dart:17:8 - unused_import
+   info - Missing type annotation - lib\features\home\presentation\cubit\prayer_times_cubit\prayer_times_cubit.dart:168:43 - strict_top_level_inference
+   info - Don't invoke 'print' in production code - lib\features\home\presentation\cubit\prayer_times_cubit\prayer_times_cubit.dart:313:5 - avoid_print
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\home\presentation\widgets\manual_location_dialog.dart:104:42 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\home\presentation\widgets\prayer_card_widget.dart:128:37 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\home\presentation\widgets\prayer_card_widget.dart:146:49 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\home\presentation\widgets\prayer_card_widget.dart:158:47 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\home\presentation\widgets\time_date_section.dart:113:62 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\home\presentation\widgets\time_date_section.dart:124:68 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\main\presentation\screens\main_screen.dart:67:34 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\main\presentation\screens\main_screen.dart:68:24 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\main\presentation\screens\main_screen.dart:71:39 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\main\presentation\screens\main_screen.dart:119:58 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\main\presentation\screens\main_screen.dart:120:57 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\main\presentation\screens\main_screen.dart:131:56 - deprecated_member_use
+warning - Unused import: 'package:hafiz_al_ahd/main.dart' - lib\features\notifications\data\repos\notification_repository_impl.dart:8:8 - unused_import
+warning - Unused import: 'package:flutter/material.dart' - lib\features\notifications\data\repos\notification_repository_impl.dart:9:8 - unused_import
+warning - Unused import: 'package:hafiz_al_ahd/features/notifications/presentation/screens/adhan_screen.dart' - lib\features\notifications\data\repos\notification_repository_impl.dart:10:8 - unused_import
+   info - Don't invoke 'print' in production code - lib\features\notifications\data\repos\notification_repository_impl.dart:18:3 - avoid_print
+   info - Don't invoke 'print' in production code - lib\features\notifications\data\repos\notification_repository_impl.dart:24:3 - avoid_print
+   info - Missing type annotation - lib\features\notifications\domain\usecases\schedule_weekly_prayers_usecase.dart:50:42 - strict_top_level_inference
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\notifications\presentation\screens\adhan_screen.dart:107:36 - deprecated_member_use
+warning - Unused import: 'package:hafiz_al_ahd/core/utils/app_colors.dart' - lib\features\qibla\presentation\screens\qibla_screen.dart:6:8 - unused_import
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\qibla\presentation\screens\qibla_screen.dart:175:50 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\qibla\presentation\screens\qibla_screen.dart:198:48 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\qibla\presentation\screens\qibla_screen.dart:279:31 - deprecated_member_use
+   info - Parameter 'key' could be a super parameter - lib\features\settings\presentation\screens\settings_screen.dart:12:9 - use_super_parameters
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\settings\presentation\screens\settings_screen.dart:105:56 - deprecated_member_use
+   info - 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre - lib\features\settings\presentation\screens\settings_screen.dart:138:31 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\settings\presentation\screens\settings_screen.dart:140:36 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\settings\presentation\screens\settings_screen.dart:154:58 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\features\settings\presentation\screens\settings_screen.dart:173:58 - deprecated_member_use
+   info - Unnecessary use of multiple underscores - lib\features\settings\presentation\screens\settings_screen.dart:180:47 - unnecessary_underscores
+

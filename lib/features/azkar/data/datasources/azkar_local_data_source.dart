@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/services.dart';
+import 'package:hafiz_al_ahd/core/errors/exception.dart';
 import 'package:hafiz_al_ahd/features/azkar/data/models/azkar_item_model.dart';
-import 'package:hafiz_al_ahd/core/error/exceptions.dart'; // assuming exists, otherwise create or use just Exception
 
 abstract class AzkarLocalDataSource {
   Future<Map<String, List<AzkarItemModel>>> getAzkar();
@@ -28,7 +28,7 @@ class AzkarLocalDataSourceImpl implements AzkarLocalDataSource {
 
       return parsedData;
     } catch (e) {
-      throw ServerException(); // Or CacheException depending on your core exceptions
+      throw NetworkException(); // Or CacheException depending on your core exceptions
     }
   }
 }

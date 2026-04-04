@@ -1,5 +1,5 @@
 import 'package:dartz/dartz.dart';
-import 'package:hafiz_al_ahd/core/errors/faluire.dart';
+import 'package:hafiz_al_ahd/core/errors/failure.dart';
 import 'package:hafiz_al_ahd/features/home/domain/entities/prayer_times_entity.dart';
 import 'package:hafiz_al_ahd/features/home/domain/repositories/prayer_times_repo.dart';
 

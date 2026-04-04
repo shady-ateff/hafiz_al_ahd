@@ -19,3 +19,7 @@ class PrayerTimesError extends PrayerTimesStates {
 class PrayerTimesNeedsManualLocation extends PrayerTimesStates {
   PrayerTimesNeedsManualLocation();
 }
+class PrayerTimesLocationChanged extends PrayerTimesStates {
+  
+  PrayerTimesLocationChanged();
+}
