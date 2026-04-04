@@ -1,5 +1,19 @@
 # Hafiz Al-Ahd - Release Notes
 
+## Version 1.1.0 (Major Update & Enhancements)
+
+In this update, the app has been completely overhauled to deliver a faster and more stable experience:
+
+🕌 **New Adhan Experience:** A beautifully redesigned, interactive Adhan screen featuring a smooth swipe-to-stop gesture.
+
+⚡ **Optimized Performance:** Significant improvements in overall speed along with noticeably reduced battery consumption.
+
+⚙️ **Smart Notifications:** Resolved overlapping notification issues using an intelligent background scheduling system.
+
+⏱️ **Auto-Close Timer:** Introduced a smart auto-close feature for the Adhan screen to conserve battery and screen life.
+
+---
+
 ## Version 1.0.0 (Initial Beta Release)
 
 Welcome to the beta release of **Hafiz Al-Ahd**! This update brings essential features for prayer times, notifications, Azkar, and cross-platform usability. 
