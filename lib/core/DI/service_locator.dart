@@ -20,6 +20,7 @@ import 'package:hafiz_al_ahd/features/notifications/domain/usecases/schedule_pra
 import 'package:hafiz_al_ahd/features/notifications/domain/usecases/schedule_weekly_prayers_usecase.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/usecases/show_sticky_notification_usecase.dart';
 import 'package:hafiz_al_ahd/features/settings/domain/usecases/get_iqama_delays_usecase.dart';
+import 'package:hafiz_al_ahd/features/settings/domain/usecases/save_iqama_delays_usecase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // سميناه sl اختصاراً لـ Service Locator
@@ -82,6 +83,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => GetCachedLocationUseCase(sl()));
   sl.registerLazySingleton(() => ShowStickyNotificationUseCase(sl()));
   sl.registerLazySingleton(() => GetIqamaDelaysUseCase());
+  sl.registerLazySingleton(() => SaveIqamaDelaysUseCase());
   sl.registerLazySingleton(
     () => FetchPrayerTimesOrchestrator(
       getPrayerTimesUseCase: sl(),

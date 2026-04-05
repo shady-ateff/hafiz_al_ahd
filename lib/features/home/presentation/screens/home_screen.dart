@@ -15,13 +15,16 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen>
+    with AutomaticKeepAliveClientMixin {
   @override
   void initState() {
     super.initState();
     context.read<PrayerTimesCubit>().fetchPrayerTimesByLocation();
   }
 
+  @override
+  bool get wantKeepAlive => true;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -103,16 +106,16 @@ class _HomeScreenState extends State<HomeScreen> {
           },
         ),
       ),
-      // floatingActionButton: BlocBuilder<PrayerTimesCubit, PrayerTimesStates>(
-      //   builder: (context, state) {
-      //     return FloatingActionButton(
-      //       onPressed: () {
-      //         context.read<PrayerTimesCubit>().testNotification(1);
-      //       },
-      //       child: const Icon(Icons.refresh),
-      //     );
-        // },
-      // ),
+      floatingActionButton: BlocBuilder<PrayerTimesCubit, PrayerTimesStates>(
+        builder: (context, state) {
+          return FloatingActionButton(
+            onPressed: () {
+              context.read<PrayerTimesCubit>().testNotification(1);
+            },
+            child: const Icon(Icons.refresh),
+          );
+        },
+      ),
     );
   }
 

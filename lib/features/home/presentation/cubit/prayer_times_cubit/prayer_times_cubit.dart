@@ -53,6 +53,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
       scheduleWeeklyPrayersUseCase.execute(lat, lng, city);
     }
   }
+
   Future<void> _handleFetchResult(
     double lat,
     double lng,
@@ -74,19 +75,30 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
       _checkBackgroundScheduling(lat, lng, city);
     });
   }
-Future<void> fetchPrayerTimesByLocation() async {
+
+  Future<void> fetchPrayerTimesByLocation() async {
     try {
       emit(PrayerTimesLoading());
       final position = await LocationService.determinePosition();
       final details = await LocationService.getLocationDetails(position);
-      
-      await _handleFetchResult(position.latitude, position.longitude, details.city, details.country);
+
+      await _handleFetchResult(
+        position.latitude,
+        position.longitude,
+        details.city,
+        details.country,
+      );
     } catch (e) {
       await loadPrayerTimesFromCache();
     }
   }
 
-  Future<void> fetchPrayerTimesManually(double lat, double lng, String city, [String? country]) async {
+  Future<void> fetchPrayerTimesManually(
+    double lat,
+    double lng,
+    String city, [
+    String? country,
+  ]) async {
     emit(PrayerTimesLoading());
     await _handleFetchResult(lat, lng, city, country);
   }
@@ -94,10 +106,15 @@ Future<void> fetchPrayerTimesByLocation() async {
   Future<void> loadPrayerTimesFromCache() async {
     emit(PrayerTimesLoading());
     final result = await getCachedLocationUseCase();
-    
+
     result.fold(
       (failure) => emit(PrayerTimesNeedsManualLocation()),
-      (loc) => _handleFetchResult(loc.latitude, loc.longitude, loc.city, loc.country),
+      (loc) => _handleFetchResult(
+        loc.latitude,
+        loc.longitude,
+        loc.city,
+        loc.country,
+      ),
     );
   }
 
@@ -308,6 +325,60 @@ Future<void> fetchPrayerTimesByLocation() async {
   //     );
   //   });
   // }
+
+  // -------------------------------------------------------------------
+  // عملية الجدولة الفورية (تستخدم عند تغيير إعدادات الإقامة أو الإشعارات)
+  // -------------------------------------------------------------------
+  Future<void> forceReschedule() async {
+    final locationResult = await getCachedLocationUseCase();
+    locationResult.fold(
+      (failure) => log("No cached location found to reschedule!"),
+      (location) async {
+        log("🔄 إجبار مسح وإعادة الجدولة لجميع الإشعارات...");
+        await cancelAllNotificationsUseCase.execute();
+        await scheduleWeeklyPrayersUseCase.execute(
+          location.latitude,
+          location.longitude,
+          location.city,
+        );
+        restoreStickyNotificationIfNeeded();
+      },
+    );
+  }
+
+  // داخل PrayerTimesCubit
+  Future<void> restoreStickyNotificationIfNeeded() async {
+    // 1. هل المواقيت موجودة أصلاً في الشاشة؟ (التطبيق كان في الخلفية ورجع)
+    if (state is PrayerTimesLoaded) {
+      final currentPrayerTimes = (state as PrayerTimesLoaded).prayerTimes;
+      await _updateStickyCountdown(currentPrayerTimes);
+      return; // 👈 اخرج فوراً، مفيش داعي نكلم الداتا بيز تاني!
+    }
+
+    // 2. لو المواقيت مش موجودة (التطبيق كان مقتول من الميموري ولسة بيقوم)
+    final locationResult = await getCachedLocationUseCase();
+
+    locationResult.fold(
+      (failure) => null, // مفيش لوكيشن؟ خلاص متعملش حاجة
+      (location) async {
+        // نستخدم الـ Orchestrator اللي عملناه عشان نجيب المواقيت "في صمت"
+        final result = await fetchOrchestrator.execute(
+          lat: location.latitude,
+          lng: location.longitude,
+          city: location.city,
+          country: location.country,
+        );
+
+        result.fold(
+          (failure) => null, // لو حصل خطأ في جلب المواقيت نسكت ومفيش كراش
+          (prayerTimes) async {
+            // لو المواقيت جت سليمة، نحدث الإشعار
+            await _updateStickyCountdown(prayerTimes);
+          },
+        );
+      },
+    );
+  }
 
   Future<void> testNotification(int sound) async {
     print("⏳ جاري جدولة إشعار تجريبي بعد 5 ثواني...");

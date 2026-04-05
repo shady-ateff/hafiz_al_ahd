@@ -4,9 +4,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hafiz_al_ahd/core/theme/cubit/theme_cubit.dart';
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
 import 'package:hafiz_al_ahd/core/widgets/gradient_text.dart';
+import 'package:hafiz_al_ahd/core/DI/service_locator.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit/prayer_times_cubit.dart';
 import 'package:hafiz_al_ahd/features/settings/domain/usecases/get_iqama_delays_usecase.dart';
 import 'package:hafiz_al_ahd/features/settings/domain/usecases/save_iqama_delays_usecase.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -33,6 +35,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   };
 
   bool _isLoading = true;
+  bool _isIqamaEnabled = true;
 
   @override
   void initState() {
@@ -41,17 +44,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _loadSettings() async {
-    final getUseCase = GetIqamaDelaysUseCase();
+    final getUseCase = sl<GetIqamaDelaysUseCase>();
+    final prefs = sl<SharedPreferences>();
     final savedDelays = await getUseCase.execute();
+
     setState(() {
       _delays.addAll(savedDelays);
+      _isIqamaEnabled = prefs.getBool('isIqamaEnabled') ?? true;
       _isLoading = false;
     });
   }
 
   Future<void> _saveSettings() async {
-    final saveUseCase = SaveIqamaDelaysUseCase();
+    final saveUseCase = sl<SaveIqamaDelaysUseCase>();
+    final prefs = sl<SharedPreferences>();
+    
     await saveUseCase.execute(_delays);
+    await prefs.setBool('isIqamaEnabled', _isIqamaEnabled);
+
+    // مسح الكاش ده هيخلي الـ Cubit يعتبر إنه مفيش إشعارات متجدولة، فيمسح القديم ويـ schedule من الأول
+    await prefs.remove('scheduled_until_date');
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -63,7 +75,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           backgroundColor: AppColors.secondaryGold,
         ),
       );
-      context.read<PrayerTimesCubit>().fetchPrayerTimesByLocation();
+      // نستدعي الدالة الصريحة اللي بتمسح وتجدول من الكاش فوراً بذكاء
+      context.read<PrayerTimesCubit>().forceReschedule();
     }
   }
 
@@ -154,6 +167,62 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 ? AppColors.silverMarble.withOpacity(0.4)
                                 : AppColors.secondaryGold,
                             size: 22,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+
+                  // ── Iqama Toggle ──────────────────────────────────────────
+                  _buildSectionTitle('تفعيل الإقامة', textColor),
+                  const SizedBox(height: 12),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: cardColor,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: AppColors.secondaryGold.withOpacity(0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 4,
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.notifications_active_rounded,
+                            color: AppColors.secondaryGold,
+                            size: 22,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'تنبيهات الإقامة',
+                              style: GoogleFonts.cairo(
+                                color: textColor,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          Transform.scale(
+                            scale: 0.85,
+                            child: Switch(
+                              value: _isIqamaEnabled,
+                              activeColor: AppColors.secondaryGold,
+                              activeTrackColor: AppColors.secondaryGold
+                                  .withOpacity(0.3),
+                              inactiveThumbColor: const Color(0xFF7A6840),
+                              inactiveTrackColor: const Color(0xFFE8D9B5),
+                              onChanged: (val) {
+                                setState(() => _isIqamaEnabled = val);
+                                _saveSettings(); // حفظ وإعادة جدولة فوراً
+                              },
+                            ),
                           ),
                         ],
                       ),

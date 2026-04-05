@@ -23,10 +23,9 @@ void onDidReceiveNotificationResponse(
 ) {
   print('🔔 Notification Tapped: \${notificationResponse.payload}');
 
-  if (notificationResponse.id != null &&
-      notificationResponse.payload != null) {
+  if (notificationResponse.id != null && notificationResponse.payload != null) {
     selectNotificationStream.add(notificationResponse.payload!);
-  } 
+  }
 }
 
 class NotificationRepositoryImpl implements BaseNotificationRepository {
@@ -38,7 +37,7 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
     tz.initializeTimeZones();
 
     const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+        AndroidInitializationSettings('@drawable/ic_stat_icon');
 
     const DarwinInitializationSettings initializationSettingsIOS =
         DarwinInitializationSettings(
@@ -101,6 +100,18 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
     String? soundName,
   }) async {
     bool isAdhan = (soundName == 'adhan' || soundName == 'fajr_azan');
+    List<AndroidNotificationAction>? actions;
+    if (isAdhan) {
+      actions = [
+        const AndroidNotificationAction(
+          'stop_adhan_action', // ID الخاص بالأكشن
+          'إيقاف الأذان',
+          showsUserInterface:
+              false, // لا يفتح التطبيق، فقط ينفذ الكود في الخلفية
+          cancelNotification: true,
+        ),
+      ];
+    }
     String channelId = soundName != null
         ? 'prayer_channel_v7_$soundName'
         : 'prayer_channel_v7_default';
@@ -128,7 +139,7 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
       visibility: NotificationVisibility.public,
       enableVibration: true,
       enableLights: true,
-      groupKey: 'prayer_notifications',
+      groupKey: 'adhan_group',
       ongoing: isAdhan, // 👈 بتخليه زي إشعار المكالمة مبيتمسحش بالسحب
       autoCancel: !isAdhan, // 👈 تمنع مسحه بمجرد اللمس
     );
@@ -251,6 +262,8 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
           .millisecondsSinceEpoch, // بنديله وقت الصلاة الجاية بالملي ثانية
       usesChronometer: true, // بيشغل العداد
       chronometerCountDown: true, // بيخلي العداد ينزل لتحت
+      visibility: NotificationVisibility.public,
+      groupKey: 'countdown_group',
     );
 
     NotificationDetails platformSpecifics = NotificationDetails(

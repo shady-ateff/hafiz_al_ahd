@@ -73,53 +73,55 @@ class _AdhanScreenState extends State<AdhanScreen> {
     }
   }
 
- @override
+  @override
   Widget build(BuildContext context) {
     // 👈 1. سحب أبعاد الشاشة
     final size = MediaQuery.of(context).size;
-    
-    // 👈 2. تحديد نقطة كسر (Breakpoint) للشاشات الصغيرة جداً
-    final bool isSmallScreen = size.height < 700; 
 
-    const Color goldColor = AppColors.lightGold; 
-    const Color darkBgColor = AppColors.deepBackground; 
+    // 👈 2. تحديد نقطة كسر (Breakpoint) للشاشات الصغيرة جداً
+    final bool isSmallScreen = size.height < 700;
+
+    const Color goldColor = AppColors.lightGold;
+    const Color darkBgColor = AppColors.deepBackground;
 
     return Scaffold(
-      backgroundColor: darkBgColor, 
+      backgroundColor: darkBgColor,
       body: SafeArea(
         child: Padding(
           // 👈 3. حواف متجاوبة (8% من العرض و 3% من الطول)
           padding: EdgeInsets.symmetric(
-            horizontal: size.width * 0.08, 
+            horizontal: size.width * 0.08,
             vertical: size.height * 0.03,
           ),
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // 4. اللوجو: ارتفاعه 15% من الشاشة
               Image.asset(
-                'assets/images/app_icon_transparent.png', 
-                height: size.height * 0.15, 
+                'assets/images/app_icon_transparent.png',
+                height: size.height * 0.15,
               ),
 
               const Spacer(flex: 2), // مسافة مرنة علوية
-
               // 5. أيقونة المسجد: حجمها 12% من طول الشاشة
               Icon(
-                Icons.mosque_outlined, 
-                size: size.height * 0.12, 
-                color: goldColor, 
+                Icons.mosque_outlined,
+                size: size.height * 0.12,
+                color: goldColor,
               ),
 
               SizedBox(height: size.height * 0.03),
 
               // 6. النصوص: أحجام خطوط متجاوبة
               Text(
-                prayerTitle ?? 'حان وقت الصلاة', 
+                prayerTitle ?? 'حان وقت الصلاة',
                 style: GoogleFonts.cairo(
-                  fontSize: isSmallScreen ? 28 : 36, // يصغر شوية لو الشاشة قصيرة
+                  fontSize: isSmallScreen
+                      ? 28
+                      : 36, // يصغر شوية لو الشاشة قصيرة
                   fontWeight: FontWeight.bold,
-                  color: goldColor, 
-                  letterSpacing: 1.2,
+                  color: goldColor,
                 ),
               ),
 
@@ -130,42 +132,43 @@ class _AdhanScreenState extends State<AdhanScreen> {
                 style: GoogleFonts.cairo(
                   fontSize: isSmallScreen ? 18 : 22,
                   // 👈 استخدام withValues بدلاً من withOpacity (تحديث فلاتر الجديد)
-                  color: goldColor.withValues(alpha: 0.7), 
+                  color: goldColor.withValues(alpha: 0.7),
                   fontWeight: FontWeight.w500,
                 ),
               ),
 
-              const Spacer(flex: 3), // مسافة مرنة سفلية (أكبر شوية عشان تزق الزرار لتحت)
-
+              const Spacer(
+                flex: 3,
+              ), // مسافة مرنة سفلية (أكبر شوية عشان تزق الزرار لتحت)
               // 7. الـ Slider Button
               Directionality(
-                textDirection: TextDirection.ltr, 
+                textDirection: TextDirection.ltr,
                 child: SliderButton(
                   action: () async {
                     _closeScreen();
-                    return null; 
+                    return null;
                   },
                   label: Text(
                     "اسحب لإيقاف الأذان",
                     style: GoogleFonts.cairo(
-                      color: darkBgColor, 
+                      color: darkBgColor,
                       fontWeight: FontWeight.bold,
                       fontSize: isSmallScreen ? 16 : 18,
                     ),
                   ),
                   icon: const Icon(
                     Icons.arrow_forward_ios,
-                    color: goldColor, 
+                    color: goldColor,
                     size: 30,
                   ),
-                  baseColor: Colors.black, 
-                  buttonColor: darkBgColor, 
-                  backgroundColor: goldColor, 
+                  baseColor: Colors.black,
+                  buttonColor: darkBgColor,
+                  backgroundColor: goldColor,
                   highlightedColor: Colors.black87.withAlpha(30),
-                  shimmer: true, 
-                  vibrationFlag: true, 
-                  alignLabel: Alignment.center, 
-                  width: double.infinity, 
+                  shimmer: true,
+                  vibrationFlag: true,
+                  alignLabel: Alignment.center,
+                  width: double.infinity,
                   // 👈 أبعاد الزرار تتجاوب مع الشاشة
                   height: isSmallScreen ? 55 : 65,
                   buttonSize: isSmallScreen ? 45 : 55,
@@ -179,4 +182,5 @@ class _AdhanScreenState extends State<AdhanScreen> {
         ),
       ),
     );
-  }}
+  }
+}

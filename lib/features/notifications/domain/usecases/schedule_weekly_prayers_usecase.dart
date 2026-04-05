@@ -74,7 +74,9 @@ class ScheduleWeeklyPrayersUseCase {
           soundName: prayer.name == 'الفجر' ? 'fajr_azan' : 'adhan',
         );
 
-        if ((iqamaDelays[prayer.key] ?? -1) > 0) {
+        final bool isIqamaEnabled = pref.getBool('isIqamaEnabled') ?? true;
+        
+        if (isIqamaEnabled && (iqamaDelays[prayer.key] ?? -1) > 0) {
           await schedulePrayerUseCase.execute(
             id: currentId++, 
             title: 'إقامة صلاة ${prayer.name}',

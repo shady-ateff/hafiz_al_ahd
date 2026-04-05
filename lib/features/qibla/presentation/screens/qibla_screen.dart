@@ -2,19 +2,34 @@ import 'dart:math' show pi;
 import 'package:flutter/material.dart';
 import 'package:flutter_qiblah/flutter_qiblah.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:hafiz_al_ahd/core/theme/theme_helper.dart'; // 👈 الـ Helper بتاعنا
+import 'package:hafiz_al_ahd/core/theme/theme_helper.dart';
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
 import 'package:hafiz_al_ahd/core/widgets/gradient_icon.dart';
 import 'package:hafiz_al_ahd/core/widgets/gradient_text.dart';
 import 'package:lottie/lottie.dart';
 
-class QiblaScreen extends StatelessWidget {
+// 👈 1. حولناها لـ StatefulWidget عشان نحافظ على الـ Future
+class QiblaScreen extends StatefulWidget {
   const QiblaScreen({super.key});
+
+  @override
+  State<QiblaScreen> createState() => _QiblaScreenState();
+}
+class _QiblaScreenState extends State<QiblaScreen> {
+  // 1. المتغير ده static عشان نسأل الأندرويد مرة واحدة بس في عمر التطبيق
+  static Future<bool?>? _deviceSupportFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    // لو سألناه قبل كده، مش هنسأله تاني!
+    _deviceSupportFuture ??= FlutterQiblah.androidDeviceSensorSupport();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: context.screenBg, // 👈 الخلفية بتتغير حسب الثيم
+      backgroundColor: context.screenBg,
       appBar: AppBar(
         title: GradientText(
           'القبلة',
@@ -27,35 +42,27 @@ class QiblaScreen extends StatelessWidget {
           ),
         ],
         centerTitle: true,
-        backgroundColor: Colors.transparent, // عشان يندمج مع الخلفية
+        backgroundColor: Colors.transparent,
         elevation: 0,
       ),
       body: FutureBuilder(
-        future: FlutterQiblah.androidDeviceSensorSupport(),
+        future: _deviceSupportFuture,
         builder: (context, AsyncSnapshot<bool?> snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(color: Colors.amber),
-            );
+            return const Center(child: CircularProgressIndicator(color: Colors.amber));
           }
           if (snapshot.hasError || (snapshot.data == false)) {
+            // ... (نفس كود الإيرور بتاعك بالظبط مفيش تغيير)
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(
-                    Icons.error_outline,
-                    size: 80,
-                    color: Colors.redAccent,
-                  ),
+                  const Icon(Icons.error_outline, size: 80, color: Colors.redAccent),
                   const SizedBox(height: 20),
                   Text(
                     'عذراً، جهازك لا يدعم مستشعر البوصلة.',
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.cairo(
-                      color: context.primaryText, // 👈 لون دايناميك
-                      fontSize: 16,
-                    ),
+                    style: GoogleFonts.cairo(color: context.primaryText, fontSize: 16),
                   ),
                 ],
               ),
@@ -72,18 +79,27 @@ class QiblaScreen extends StatelessWidget {
 class _QiblaCompassWidget extends StatelessWidget {
   const _QiblaCompassWidget();
 
+  // 2. المتغير ده static هيحفظ آخر زاوية البوصلة وقفت عليها
+  static QiblahDirection? _lastDirection;
+
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder(
+    return StreamBuilder<QiblahDirection>(
       stream: FlutterQiblah.qiblahStream,
+      initialData: _lastDirection, // 3. السر هنا! ابدأ بآخر قراءة مخزنة فوراً
       builder: (_, AsyncSnapshot<QiblahDirection> snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(color: Colors.amber),
-          );
+        
+        // 4. تحديث الكاش أول ما داتا جديدة توصل
+        if (snapshot.hasData) {
+          _lastDirection = snapshot.data;
         }
 
-        final qiblahDirection = snapshot.data;
+        // لو مفيش كاش ومفيش داتا لسة (أول فتحة خالص للتطبيق)
+        if (snapshot.connectionState == ConnectionState.waiting && _lastDirection == null) {
+          return const Center(child: CircularProgressIndicator(color: Colors.amber));
+        }
+
+        final qiblahDirection = snapshot.data ?? _lastDirection;
         if (qiblahDirection == null) return const SizedBox();
 
         final compassAngle = (qiblahDirection.qiblah * (pi / 180) * -1);
@@ -97,10 +113,7 @@ class _QiblaCompassWidget extends StatelessWidget {
                 child: Text(
                   'قم بتدوير الهاتف حتى يتطابق السهم مع القبلة',
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.cairo(
-                    color: context.secondaryText, // 👈 لون دايناميك
-                    fontSize: 16,
-                  ),
+                  style: GoogleFonts.cairo(color: context.secondaryText, fontSize: 16),
                 ),
               ),
               const SizedBox(height: 50),
@@ -112,41 +125,28 @@ class _QiblaCompassWidget extends StatelessWidget {
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      // إطار البوصلة الخارجي
                       Container(
                         width: 280,
                         height: 280,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          border: Border.all(
-                            color: context.borderGold, // 👈 لون دايناميك
-                            width: 2,
-                          ),
+                          border: Border.all(color: context.borderGold, width: 2),
                         ),
                         child: Center(
-                          child: Icon(
-                            Icons.explore_outlined,
-                            size: 270,
-                            color: context.divider, // 👈 لون دايناميك خفيف جداً
-                          ),
+                          child: Icon(Icons.explore_outlined, size: 270, color: context.divider),
                         ),
                       ),
-                      // سهم القبلة
                       Transform.translate(
                         offset: const Offset(0, -100),
                         child: Stack(
                           alignment: Alignment.center,
                           children: [
-                            const GradientIcon(
-                              icon: Icons.navigation,
-                              size: 90,
-                            ),
+                            const GradientIcon(icon: Icons.navigation, size: 90),
                             Image.asset(
                               'assets/icons/kaaba_haram.png',
                               width: 30,
                               height: 30,
-                              color: context
-                                  .cardBg, // 👈 بيبقى كريمي في النهاري وأسود في الليلي
+                              color: context.cardBg,
                             ),
                           ],
                         ),
@@ -157,14 +157,10 @@ class _QiblaCompassWidget extends StatelessWidget {
               ),
 
               const SizedBox(height: 50),
-              // عرض الزاوية
               Expanded(
                 child: GradientText(
                   '${qiblahDirection.direction.toInt()}°',
-                  style: GoogleFonts.cairo(
-                    fontSize: 48,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: GoogleFonts.cairo(fontSize: 48, fontWeight: FontWeight.bold),
                 ),
               ),
               const SizedBox(height: 20),
@@ -172,9 +168,7 @@ class _QiblaCompassWidget extends StatelessWidget {
                 child: Text(
                   'ضع الهاتف بشكل مسطح للحصول على أدق نتيجة',
                   style: GoogleFonts.cairo(
-                    color: context.secondaryText.withOpacity(
-                      0.7,
-                    ), // 👈 لون دايناميك
+                    color: context.secondaryText.withValues(alpha: 0.7),
                     fontSize: 14,
                   ),
                 ),
@@ -186,7 +180,7 @@ class _QiblaCompassWidget extends StatelessWidget {
     );
   }
 }
-
+// ... دالة _showCalibrationDialog ودالة _buildInstructionRow زي ما هما مفيش فيهم تغيير
 void _showCalibrationDialog(BuildContext context) {
   showDialog(
     context: context,

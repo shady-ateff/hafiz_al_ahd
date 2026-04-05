@@ -55,6 +55,7 @@ class _AppState extends State<App> with TrayListener, WindowListener {
     }
     super.dispose();
   }
+  
 
   void _preventClose() async {
     await windowManager.setPreventClose(true);

@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
 import 'package:hafiz_al_ahd/core/theme/cubit/theme_cubit.dart'; // 👈 استدعاء الـ ThemeCubit
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
+import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit/prayer_times_cubit.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/screens/home_screen.dart';
 import 'package:hafiz_al_ahd/features/qibla/presentation/screens/qibla_screen.dart';
 import 'package:hafiz_al_ahd/features/azkar/presentation/screens/azkar_screen.dart';
@@ -17,7 +18,7 @@ class MainScreen extends StatefulWidget {
   State<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
+class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   int _currentIndex = 0;
 
   // 👈 1. تعريف الـ PageController
@@ -35,12 +36,14 @@ class _MainScreenState extends State<MainScreen> {
     super.initState();
     // 👈 2. تهيئة الـ Controller وإعطاؤه الصفحة الافتراضية
     _pageController = PageController(initialPage: _currentIndex);
+    WidgetsBinding.instance.addObserver(this);
   }
 
   @override
   void dispose() {
     // 👈 3. تنظيف الـ الميموري لما نخرج من الشاشة
     _pageController.dispose();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
@@ -53,6 +56,14 @@ class _MainScreenState extends State<MainScreen> {
         DeviceOrientation.portraitUp,
         DeviceOrientation.portraitDown,
       ]);
+    }
+  }
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // اليوزر فتح التطبيق أو رجعله من الخلفية! 
+      // اضرب الـ Sticky Notification عافية فوراً
+      context.read<PrayerTimesCubit>().restoreStickyNotificationIfNeeded();
     }
   }
 

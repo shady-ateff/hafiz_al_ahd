@@ -4,11 +4,11 @@
 
 In this update, the app has been completely overhauled to deliver a faster and more stable experience:
 
-🕌 **New Adhan Experience:** A beautifully redesigned, interactive Adhan screen featuring a smooth swipe-to-stop gesture.
+**New Adhan Experience:** A beautifully redesigned, interactive Adhan screen featuring a smooth swipe-to-stop gesture.
 
-⚡ **Optimized Performance:** Significant improvements in overall speed along with noticeably reduced battery consumption.
+**Optimized Performance:** Significant improvements in overall speed along with noticeably reduced battery consumption.
 
-⚙️ **Smart Notifications:** Resolved overlapping notification issues using an intelligent background scheduling system.
+**Smart Notifications:** Resolved overlapping notification issues using an intelligent background scheduling system.
 
 ⏱️ **Auto-Close Timer:** Introduced a smart auto-close feature for the Adhan screen to conserve battery and screen life.
 
