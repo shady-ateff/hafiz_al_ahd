@@ -20,6 +20,7 @@ import 'package:hafiz_al_ahd/features/notifications/domain/usecases/show_sticky_
 import 'package:hafiz_al_ahd/core/utils/calculation_method_helper.dart';
 import 'package:hafiz_al_ahd/features/settings/domain/usecases/get_iqama_delays_usecase.dart';
 import 'package:home_widget/home_widget.dart';
+import 'package:hijri/hijri_calendar.dart';
 import 'package:intl/intl.dart';
 
 class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
@@ -155,9 +156,17 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
     }
 
     // 4. 👈 السطر السحري: تحديث الويدجت الخارجية (App Widget)
-    await updateNativeWidgets(nextPrayer, prayerTimes);
+    String locationName = "غير محدد";
+    final locResult = await getCachedLocationUseCase();
+    locResult.fold((l) => null, (loc) {
+      locationName = '${loc.city}، ${loc.country}';
+    });
+    final hijriDate = HijriCalendar.now().toFormat("dd MMMM yyyy");
+
+    await updateNativeWidgets(nextPrayer, prayerTimes, locationName, hijriDate);
+    
     if (nextPrayer.time != null) {
-      await scheduleNextAlarm(nextPrayer.time!);
+      await scheduleNextAlarm(nextPrayer.time!, prayerTimes, iqamaDelays);
     }
   }
   

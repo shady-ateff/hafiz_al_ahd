@@ -24,9 +24,14 @@ class PrayerWidgetProvider : HomeWidgetProvider() {
         val prayerName = widgetData.getString("next_prayer_name", "غير محدد")
         val prayerTime = widgetData.getString("next_prayer_time", "--:--")
         val targetTimeMillis = widgetData.getLong("next_prayer_millis", 0)
+        
+        val locationName = widgetData.getString("location_name", "")
+        val hijriDate = widgetData.getString("hijri_date", "")
 
         views.setTextViewText(R.id.tv_prayer_name, prayerName)
         views.setTextViewText(R.id.tv_prayer_time, prayerTime)
+        views.setTextViewText(R.id.tv_location, locationName)
+        views.setTextViewText(R.id.tv_hijri_date, hijriDate)
 
         // تشغيل العداد التنازلي
         if (targetTimeMillis > 0) {
@@ -48,6 +53,40 @@ class PrayerWidgetProvider : HomeWidgetProvider() {
             views.setTextViewText(R.id.tv_asr_time, asr)
             views.setTextViewText(R.id.tv_maghrib_time, maghrib)
             views.setTextViewText(R.id.tv_isha_time, isha)
+
+            // --- المعالجة الديناميكية: تعليم الصلاة القادمة فقط ---
+            val defaultBg = 0 
+            val activeBgColor = android.graphics.Color.parseColor("#33B89B5E")
+            val defaultTitleColor = android.graphics.Color.parseColor("#888888")
+            val defaultTimeColor = android.graphics.Color.parseColor("#FFFFFF")
+            val activeColor = android.graphics.Color.parseColor("#B89B5E")
+
+            val prayerLayouts = listOf(R.id.ll_fajr, R.id.ll_dhuhr, R.id.ll_asr, R.id.ll_maghrib, R.id.ll_isha)
+            val titleViews = listOf(R.id.tv_fajr_title, R.id.tv_dhuhr_title, R.id.tv_asr_title, R.id.tv_maghrib_title, R.id.tv_isha_title)
+            val timeViews = listOf(R.id.tv_fajr_time, R.id.tv_dhuhr_time, R.id.tv_asr_time, R.id.tv_maghrib_time, R.id.tv_isha_time)
+
+            // إعادة كل الصلوات للحالة الافتراضية
+            for (i in prayerLayouts.indices) {
+                views.setInt(prayerLayouts[i], "setBackgroundColor", defaultBg)
+                views.setTextColor(titleViews[i], defaultTitleColor)
+                views.setTextColor(timeViews[i], defaultTimeColor)
+            }
+
+            // تفعيل الصلاة القادمة فقط
+            var activeIndex = -1
+            when (prayerName) {
+                "الفجر" -> activeIndex = 0
+                "الظهر" -> activeIndex = 1
+                "العصر" -> activeIndex = 2
+                "المغرب" -> activeIndex = 3
+                "العشاء" -> activeIndex = 4
+            }
+
+            if (activeIndex != -1) {
+                views.setInt(prayerLayouts[activeIndex], "setBackgroundColor", activeBgColor)
+                views.setTextColor(titleViews[activeIndex], activeColor)
+                views.setTextColor(timeViews[activeIndex], activeColor)
+            }
         }
 
         return views
