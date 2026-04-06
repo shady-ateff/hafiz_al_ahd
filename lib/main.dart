@@ -1,4 +1,3 @@
-import 'dart:developer';
 import 'dart:io';
 
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
@@ -6,14 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:hafiz_al_ahd/app/view/app.dart';
 import 'package:hafiz_al_ahd/core/DI/service_locator.dart' as di;
 import 'package:hafiz_al_ahd/core/services/desktop_window_service.dart';
-import 'package:hafiz_al_ahd/core/utils/app_permission.dart';
-import 'package:hafiz_al_ahd/core/utils/home_widget_helper.dart';
-import 'package:hafiz_al_ahd/features/home/domain/usecases/get_cached_location_usecase.dart';
-import 'package:hafiz_al_ahd/features/home/domain/usecases/get_prayer_times_use_case.dart';
 // 👈 استدعي الـ Base بدلاً من الـ Impl
 import 'package:hafiz_al_ahd/features/notifications/domain/repos/base_notification_repository.dart';
 import 'package:hafiz_al_ahd/features/notifications/presentation/screens/adhan_screen.dart';
-import 'package:hafiz_al_ahd/features/settings/domain/usecases/get_iqama_delays_usecase.dart';
 import 'package:hijri/hijri_calendar.dart';
 import 'package:launch_at_startup/launch_at_startup.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -69,8 +63,7 @@ void main(List<String> args) async {
   // ---------------------------------------------------------
   final notificationRepository = di.sl<BaseNotificationRepository>();
   await notificationRepository.initialize();
-  await AppPermissions.requestProductionPermissions(); // نقلتها هنا عشان تكون قبل طلب صلاحيات الإشعارات المخصصة
-  await notificationRepository.requestPermissions();
+  // الصلاحيات الآن بتتطلب من شاشة الـ Onboarding خطوة بخطوة
 
   HijriCalendar.setLocal("ar"); // Set Hijri calendar locale to Arabic
 
