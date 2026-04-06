@@ -20,6 +20,20 @@ class PrayerWidgetProvider : HomeWidgetProvider() {
         val layoutId = if (isSmall) R.layout.widget_prayer_small else R.layout.widget_prayer_responsive
         val views = RemoteViews(context.packageName, layoutId)
 
+        // --- إضافة رابط فتح التطبيق ---
+        val launchIntent = android.content.Intent(context, MainActivity::class.java).apply {
+            flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+        val pendingIntentFlags = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+        } else {
+            android.app.PendingIntent.FLAG_UPDATE_CURRENT
+        }
+        val pendingTapIntent = android.app.PendingIntent.getActivity(
+            context, 0, launchIntent, pendingIntentFlags
+        )
+        views.setOnClickPendingIntent(R.id.widget_root, pendingTapIntent)
+
         // --- تعبئة البيانات المشتركة بين التصميمين ---
         val prayerName = widgetData.getString("next_prayer_name", "غير محدد")
         val prayerTime = widgetData.getString("next_prayer_time", "--:--")

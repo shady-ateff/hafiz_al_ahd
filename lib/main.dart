@@ -78,6 +78,11 @@ void main(List<String> args) async {
   // 5. الاستماع لـ Stream الإشعارات (التصنت على الدوسات)
   // ---------------------------------------------------------
   selectNotificationStream.stream.listen((String? payload) {
+    if (payload == 'sticky') {
+      // Stay on the main screen, do not open AdhanScreen mistakenly.
+      return;
+    }
+
     if (payload != null) {
       navigatorKey.currentState?.push(
         MaterialPageRoute(builder: (_) => AdhanScreen(payload: payload)),

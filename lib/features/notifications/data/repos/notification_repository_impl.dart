@@ -276,6 +276,7 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
       title: title,
       body: body,
       notificationDetails: platformSpecifics,
+      payload: 'sticky',
     );
   }
 }
