@@ -45,6 +45,7 @@ class ScheduleWeeklyPrayersUseCase {
     // بعد ما نخلص، نسجل في الكاش إننا أمنّا الـ 6 أيام الجايين
     final newTargetDate = DateTime.now().add(const Duration(days: 6));
     await pref.setString('scheduled_until_date', newTargetDate.toIso8601String());
+    
   }
 
   Future<int> _schedulePrayersForDay(var prayerTimes, int currentId) async {
