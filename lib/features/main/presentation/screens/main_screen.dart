@@ -58,10 +58,11 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       ]);
     }
   }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      // اليوزر فتح التطبيق أو رجعله من الخلفية! 
+      // اليوزر فتح التطبيق أو رجعله من الخلفية!
       // اضرب الـ Sticky Notification عافية فوراً
       context.read<PrayerTimesCubit>().restoreStickyNotificationIfNeeded();
     }

@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
 import 'package:hafiz_al_ahd/core/utils/app_permission.dart';
 import 'package:hafiz_al_ahd/features/main/presentation/screens/main_screen.dart';
+import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit/prayer_times_cubit.dart';
 import 'package:hafiz_al_ahd/features/onboarding/presentation/cubit/onboarding_cubit.dart';
 import 'package:hafiz_al_ahd/features/onboarding/presentation/cubit/onboarding_state.dart';
 
@@ -58,6 +59,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   void _goToMainScreen() {
     ScaffoldMessenger.of(context).clearSnackBars();
+    
+    // 👈 بعد ما خدنا الصلاحيات، نكلم الكيوبت عشان يجيب المواقيت ويجدول الإشعارات لأنه فشل في أول فتحة للتطبيق بسبب نقص الصلاحيات
+    context.read<PrayerTimesCubit>().fetchPrayerTimesByLocation();    
     Navigator.of(
       context,
     ).pushReplacement(MaterialPageRoute(builder: (_) => const MainScreen()));

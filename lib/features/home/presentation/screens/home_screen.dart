@@ -21,7 +21,6 @@ class _HomeScreenState extends State<HomeScreen>
   @override
   void initState() {
     super.initState();
-    context.read<PrayerTimesCubit>().fetchPrayerTimesByLocation();
   }
 
   @override
@@ -35,7 +34,7 @@ class _HomeScreenState extends State<HomeScreen>
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
-              context.read<PrayerTimesCubit>().fetchPrayerTimesByLocation();
+              context.read<PrayerTimesCubit>().forceReschedule();
             },
           ),
         ],
@@ -112,7 +111,7 @@ class _HomeScreenState extends State<HomeScreen>
               builder: (context, state) {
                 return FloatingActionButton(
                   onPressed: () {
-                    context.read<PrayerTimesCubit>().testNotification(1);
+                    context.read<PrayerTimesCubit>().testNotification(0);
                   },
                   child: const Icon(Icons.refresh),
                 );

@@ -11,13 +11,11 @@ import 'package:hafiz_al_ahd/features/settings/domain/usecases/get_iqama_delays_
 import 'package:home_widget/home_widget.dart';
 import 'package:hafiz_al_ahd/core/services/native_alarm_service.dart';
 import 'package:hijri/hijri_calendar.dart';
-import 'package:intl/date_symbol_data_file.dart';
-import 'package:intl/intl.dart';
+
 
 @pragma('vm:entry-point')
 Future<void> backgroundPrayerUpdater() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await initializeDateFormatting('ar', 'ar_SA'); // تهيئة تنسيق التاريخ بالعربي
   if (!di.sl.isRegistered<GetCachedLocationUseCase>()) {
     await di.init();
   }
@@ -69,6 +67,18 @@ Future<void> backgroundPrayerUpdater() async {
   }
 }
 
+String formatTimeArabic(DateTime time) {
+  final int hour = time.hour;
+  final int minute = time.minute;
+  final String amPm = hour < 12 ? 'ص' : 'م';
+  final int hour12 = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
+
+  final String minuteStr = minute.toString().padLeft(2, '0');
+  final String hourStr = hour12.toString().padLeft(2, '0');
+
+  return '$hourStr:$minuteStr $amPm';
+}
+
 // 👈 دالة التحديث بقت "خفيفة" جداً لأنها بتستلم الداتا جاهزة
 Future<void> updateNativeWidgets(
   NextPrayerTime next,
@@ -76,15 +86,13 @@ Future<void> updateNativeWidgets(
   String locationName,
   String hijriDate,
 ) async {
-  final fmt = DateFormat('hh:mm a', 'ar');
-
   // بيانات الصلاة القادمة
   await HomeWidget.saveWidgetData<String>('next_prayer_name', next.name);
   await HomeWidget.saveWidgetData<String>('location_name', locationName);
   await HomeWidget.saveWidgetData<String>('hijri_date', hijriDate);
   await HomeWidget.saveWidgetData<String>(
     'next_prayer_time',
-    fmt.format(next.time!),
+    formatTimeArabic(next.time!),
   );
   await HomeWidget.saveWidgetData<int>(
     'next_prayer_millis',
@@ -94,23 +102,23 @@ Future<void> updateNativeWidgets(
   // بيانات جدول الصلوات بالكامل (Timeline)
   await HomeWidget.saveWidgetData<String>(
     'fajr_time',
-    fmt.format(allTimes.fajr!),
+    formatTimeArabic(allTimes.fajr!),
   );
   await HomeWidget.saveWidgetData<String>(
     'dhuhr_time',
-    fmt.format(allTimes.dhuhr!),
+    formatTimeArabic(allTimes.dhuhr!),
   );
   await HomeWidget.saveWidgetData<String>(
     'asr_time',
-    fmt.format(allTimes.asr!),
+    formatTimeArabic(allTimes.asr!),
   );
   await HomeWidget.saveWidgetData<String>(
     'maghrib_time',
-    fmt.format(allTimes.maghrib!),
+    formatTimeArabic(allTimes.maghrib!),
   );
   await HomeWidget.saveWidgetData<String>(
     'isha_time',
-    fmt.format(allTimes.isha!),
+    formatTimeArabic(allTimes.isha!),
   );
 
   // تحديث الويدجت فعلياً في الأندرويد
@@ -132,7 +140,6 @@ Future<void> scheduleNextAlarm(
   );
 
   if (nextNextPrayer.time != null) {
-    final fmt = DateFormat('hh:mm a', 'ar');
     await NativeAlarmService.scheduleNativeSyncAlarm(
       triggerTimeMillis: targetTime.millisecondsSinceEpoch,
       notificationId: 999,
@@ -143,13 +150,13 @@ Future<void> scheduleNextAlarm(
           ? 'متبقي على إقامة الصلاة'
           : 'متبقي على رفع الأذان',
       nextPrayerName: nextNextPrayer.name,
-      nextPrayerTime: fmt.format(nextNextPrayer.time!),
+      nextPrayerTime: formatTimeArabic(nextNextPrayer.time!),
       nextPrayerMillis: nextNextPrayer.time!.millisecondsSinceEpoch,
-      fajrTime: fmt.format(allTimes.fajr!),
-      dhuhrTime: fmt.format(allTimes.dhuhr!),
-      asrTime: fmt.format(allTimes.asr!),
-      maghribTime: fmt.format(allTimes.maghrib!),
-      ishaTime: fmt.format(allTimes.isha!),
+      fajrTime: formatTimeArabic(allTimes.fajr!),
+      dhuhrTime: formatTimeArabic(allTimes.dhuhr!),
+      asrTime: formatTimeArabic(allTimes.asr!),
+      maghribTime: formatTimeArabic(allTimes.maghrib!),
+      ishaTime: formatTimeArabic(allTimes.isha!),
     );
   }
 

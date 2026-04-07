@@ -1,3 +1,4 @@
+import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hafiz_al_ahd/core/utils/app_permission.dart';
 import 'package:hafiz_al_ahd/features/onboarding/presentation/cubit/onboarding_state.dart';
@@ -61,6 +62,18 @@ class OnboardingCubit extends Cubit<OnboardingState> {
   Future<void> completeOnboarding() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_key, true);
+    await prefs.setBool('isAdhanEnabled', true);
+    await prefs.setBool('isIqamaEnabled', true);
+
+    // 3. 👈 إعادة تهيئة الإضافات عشان تحس بالصلاحيات الجديدة اللي لسه واخدينها
+    // (لو عندك دالة بتجمع التهيئة دي في ملف الـ DI أو الـ main نادي عليها هنا)
+    try {
+      // مثال:
+      await AndroidAlarmManager.initialize();
+      // await sl<NotificationHelper>().init();
+    } catch (e) {
+      // تجاهل لو متعملهاش تهيئة مرتين
+    }
     emit(OnboardingComplete());
   }
 }

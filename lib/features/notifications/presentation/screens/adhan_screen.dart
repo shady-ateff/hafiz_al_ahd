@@ -116,12 +116,14 @@ class _AdhanScreenState extends State<AdhanScreen> {
               // 6. النصوص: أحجام خطوط متجاوبة
               Text(
                 prayerTitle ?? 'حان وقت الصلاة',
+                textAlign: TextAlign.center,
                 style: GoogleFonts.cairo(
                   fontSize: isSmallScreen
                       ? 28
                       : 36, // يصغر شوية لو الشاشة قصيرة
                   fontWeight: FontWeight.bold,
                   color: goldColor,
+                  textBaseline: TextBaseline.alphabetic,
                 ),
               ),
 

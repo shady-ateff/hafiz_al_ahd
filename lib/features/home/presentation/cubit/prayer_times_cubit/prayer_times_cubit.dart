@@ -1,11 +1,8 @@
 import 'dart:developer';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:hafiz_al_ahd/core/DI/service_locator.dart';
 import 'package:hafiz_al_ahd/core/services/location_service.dart';
 import 'package:hafiz_al_ahd/core/utils/home_widget_helper.dart';
-import 'package:hafiz_al_ahd/features/home/domain/entities/location_entity.dart';
-import 'package:hafiz_al_ahd/features/home/domain/entities/next_pray_time.dart';
 import 'package:hafiz_al_ahd/features/home/domain/usecases/fetch_prayer_times_orchestrator_usecase.dart';
 import 'package:hafiz_al_ahd/features/home/domain/usecases/get_cached_location_usecase.dart';
 import 'package:hafiz_al_ahd/features/home/domain/usecases/get_prayer_times_use_case.dart';
@@ -17,11 +14,8 @@ import 'package:hafiz_al_ahd/features/notifications/domain/usecases/check_locati
 import 'package:hafiz_al_ahd/features/notifications/domain/usecases/schedule_prayer_usecase.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/usecases/schedule_weekly_prayers_usecase.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/usecases/show_sticky_notification_usecase.dart';
-import 'package:hafiz_al_ahd/core/utils/calculation_method_helper.dart';
 import 'package:hafiz_al_ahd/features/settings/domain/usecases/get_iqama_delays_usecase.dart';
-import 'package:home_widget/home_widget.dart';
 import 'package:hijri/hijri_calendar.dart';
-import 'package:intl/intl.dart';
 
 class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
   // 1. الـ UseCases الخاصة بالـ UI والمواقيت
@@ -56,6 +50,9 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
     final locationChanged = await checkLocationChangeUseCase.execute();
     if (locationChanged) emit(PrayerTimesLocationChanged());
 
+    log(
+      "[prayer_cubit]Checking if we need to schedule background notifications...",
+    );
     if (checkIfSchedulingNeededUseCase.execute()) {
       scheduleWeeklyPrayersUseCase.execute(lat, lng, city);
     }
@@ -67,6 +64,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
     String city,
     String? country,
   ) async {
+    log("[prayer_cubit - _handleFetchResult] Fetching prayer times...");
     final result = await fetchOrchestrator.execute(
       lat: lat,
       lng: lng,
@@ -74,12 +72,14 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
       country: country,
     );
 
+    log("Fetch orchestrator completed. Processing result...");
     result.fold((failure) => emit(PrayerTimesError(failure.message)), (
       prayerTimes,
     ) {
+      log("Prayer times fetched successfully.");
       emit(PrayerTimesLoaded(prayerTimes, city: city));
       _updateStickyCountdown(prayerTimes);
-      _checkBackgroundScheduling(lat, lng, city);
+      // _checkBackgroundScheduling(lat, lng, city);
     });
   }
 
@@ -89,6 +89,9 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
       final position = await LocationService.determinePosition();
       final details = await LocationService.getLocationDetails(position);
 
+      log(
+        "Fetching prayer times for location: ${details.city}, ${details.country} (lat: ${position.latitude}, lng: ${position.longitude})",
+      );
       await _handleFetchResult(
         position.latitude,
         position.longitude,
@@ -107,6 +110,9 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
     String? country,
   ]) async {
     emit(PrayerTimesLoading());
+    log(
+      "Fetching prayer times for manually entered location: $city, $country (lat: $lat, lng: $lng)",
+    );
     await _handleFetchResult(lat, lng, city, country);
   }
 
@@ -114,17 +120,18 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
     emit(PrayerTimesLoading());
     final result = await getCachedLocationUseCase();
 
-    result.fold(
-      (failure) => emit(PrayerTimesNeedsManualLocation()),
-      (loc) => _handleFetchResult(
+    result.fold((failure) => emit(PrayerTimesNeedsManualLocation()), (loc) {
+      log(
+        "No location from GPS, but found cached location: ${loc.city}, ${loc.country}. Fetching prayer times for cached location...",
+      );
+      return _handleFetchResult(
         loc.latitude,
         loc.longitude,
         loc.city,
         loc.country,
-      ),
-    );
+      );
+    });
   }
-
 
   // -------------------------------------------------------------------
   // دالة العداد الثابت (Sticky Notification)
@@ -160,21 +167,24 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
     final locResult = await getCachedLocationUseCase();
     locResult.fold((l) => null, (loc) {
       locationName = '${loc.city}، ${loc.country}';
+      _checkBackgroundScheduling(loc.latitude, loc.longitude, loc.city);
     });
     final hijriDate = HijriCalendar.now().toFormat("dd MMMM yyyy");
 
     await updateNativeWidgets(nextPrayer, prayerTimes, locationName, hijriDate);
-    
+
     if (nextPrayer.time != null) {
       await scheduleNextAlarm(nextPrayer.time!, prayerTimes, iqamaDelays);
     }
+
   }
-  
+
   // -------------------------------------------------------------------
   // عملية الجدولة الفورية (تستخدم عند تغيير إعدادات الإقامة أو الإشعارات)
   // -------------------------------------------------------------------
   Future<void> forceReschedule() async {
     final locationResult = await getCachedLocationUseCase();
+    fetchPrayerTimesByLocation();
     locationResult.fold(
       (failure) => log("No cached location found to reschedule!"),
       (location) async {
@@ -185,6 +195,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
           location.longitude,
           location.city,
         );
+        
         restoreStickyNotificationIfNeeded();
       },
     );
@@ -206,6 +217,9 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
       (failure) => null, // مفيش لوكيشن؟ خلاص متعملش حاجة
       (location) async {
         // نستخدم الـ Orchestrator اللي عملناه عشان نجيب المواقيت "في صمت"
+        log(
+          '[Restoring sticky notification] Fetching prayer times in the background for ${location.city}, ${location.country}...',
+        );
         final result = await fetchOrchestrator.execute(
           lat: location.latitude,
           lng: location.longitude,
