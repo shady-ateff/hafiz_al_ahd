@@ -78,7 +78,7 @@ Future<void> init() async {
 
   sl.registerLazySingleton(() => CancelAllNotificationsUseCase(sl()));
   sl.registerLazySingleton(() => SchedulePrayerUseCase(sl()));
-  sl.registerLazySingleton(() => GetPrayerTimesUseCase(sl()));
+  sl.registerLazySingleton(() => GetPrayerTimesUseCase(sl(), pref: sl()));
   sl.registerLazySingleton(() => SaveLocationUseCase(sl()));
   sl.registerLazySingleton(() => GetCachedLocationUseCase(sl()));
   sl.registerLazySingleton(() => ShowStickyNotificationUseCase(sl()));

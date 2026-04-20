@@ -1,5 +1,21 @@
 # Hafiz Al-Ahd - Release Notes
 
+## Version 1.1.1 (Enhancement Update)
+
+This update introduces a much-requested feature to maintain accurate prayer times in regions with complex or inconsistent Daylight Saving Time (DST) changes.
+
+### 🎉 New Features
+
+* **Manual DST Toggle**: Added a "التوقيت الصيفي" (Daylight Saving Time) option in settings. You can now manually apply a +60 minute offset if your device's operating system hasn't updated to the summer time automatically.
+* **Safety Warning System**: To prevent "Double DST" bugs, the app warns users before enabling the manual toggle, reminding them to only activate it if the device natively failed to update its timezone.
+* **Architecture Enhancements**: Rewrote the Time Calculation flow to use a "Single Point of Truth" architecture. When the DST offset is applied, it globally and instantly synchronizes across:
+  * Application UI displays
+  * Background Push Notifications
+  * Persistent Sticky Countdown Notifications
+  * Offline Native Android Alarm Scheduling
+  * Android Home Screen Widgets
+
+---
 ## Version 1.1.0 (Major Update & Enhancements)
 
 In this update, the app has been completely overhauled to deliver a faster and more stable experience:

@@ -36,6 +36,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   bool _isLoading = true;
   bool _isIqamaEnabled = true;
+  bool _isDstEnabled = false;
 
   @override
   void initState() {
@@ -51,6 +52,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() {
       _delays.addAll(savedDelays);
       _isIqamaEnabled = prefs.getBool('isIqamaEnabled') ?? true;
+      _isDstEnabled = (prefs.getInt('dst_offset_minutes') ?? 0) > 0;
       _isLoading = false;
     });
   }
@@ -167,6 +169,71 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 ? AppColors.silverMarble.withOpacity(0.4)
                                 : AppColors.secondaryGold,
                             size: 22,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+
+                  // ── DST Toggle ──────────────────────────────────────────
+                  _buildSectionTitle('التوقيت الصيفي', textColor),
+                  const SizedBox(height: 12),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: cardColor,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: AppColors.secondaryGold.withOpacity(0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 4,
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.access_time_rounded,
+                            color: AppColors.secondaryGold,
+                            size: 22,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'تقديم ساعة (التوقيت الصيفي)',
+                                  style: GoogleFonts.cairo(
+                                    color: textColor,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                Text(
+                                  'فعّله إذا كانت المواقيت متأخرة ساعة',
+                                  style: GoogleFonts.cairo(
+                                    color: textColor.withOpacity(0.6),
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Transform.scale(
+                            scale: 0.85,
+                            child: Switch(
+                              value: _isDstEnabled,
+                              activeColor: AppColors.secondaryGold,
+                              activeTrackColor: AppColors.secondaryGold
+                                  .withOpacity(0.3),
+                              inactiveThumbColor: const Color(0xFF7A6840),
+                              inactiveTrackColor: const Color(0xFFE8D9B5),
+                              onChanged: (val) => _handleDstToggle(val),
+                            ),
                           ),
                         ],
                       ),
@@ -328,6 +395,97 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
     );
+  }
+
+  /// معالجة تبديل التوقيت الصيفي مع AlertDialog تحذيري عند التفعيل
+  void _handleDstToggle(bool newValue) {
+    if (newValue) {
+      // عند التفعيل: نعرض تحذير الـ Double DST
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              const Icon(Icons.warning_amber_rounded,
+                  color: AppColors.secondaryGold, size: 28),
+              const SizedBox(width: 8),
+              Text(
+                'تنبيه',
+                style: GoogleFonts.cairo(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.secondaryGold,
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            'لا تقم بتفعيل هذا الخيار إلا إذا كانت مواقيت الصلاة متأخرة بساعة كاملة عن توقيتك المحلي.\n\nتفعيله مع التحديث التلقائي لهاتفك قد يؤدي لزيادة الوقت بساعتين.',
+            style: GoogleFonts.cairo(height: 1.6),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text(
+                'إلغاء',
+                style: GoogleFonts.cairo(
+                  color: Colors.grey,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.secondaryGold,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                _applyDstChange(true);
+              },
+              child: Text(
+                'تأكيد',
+                style: GoogleFonts.cairo(
+                  color: AppColors.primaryBlack,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    } else {
+      // عند الإيقاف: نطبق مباشرة بدون تحذير
+      _applyDstChange(false);
+    }
+  }
+
+  /// تطبيق تغيير التوقيت الصيفي وحفظه وإعادة جدولة الإشعارات
+  Future<void> _applyDstChange(bool enabled) async {
+    final prefs = sl<SharedPreferences>();
+    setState(() => _isDstEnabled = enabled);
+    await prefs.setInt('dst_offset_minutes', enabled ? 60 : 0);
+    await prefs.remove('scheduled_until_date');
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            enabled
+                ? 'تم تفعيل التوقيت الصيفي (+60 دقيقة)'
+                : 'تم إيقاف التوقيت الصيفي',
+            style: GoogleFonts.cairo(),
+          ),
+          backgroundColor: AppColors.secondaryGold,
+        ),
+      );
+      context.read<PrayerTimesCubit>().forceReschedule();
+    }
   }
 
   Widget _buildSectionTitle(String title, Color color) {
