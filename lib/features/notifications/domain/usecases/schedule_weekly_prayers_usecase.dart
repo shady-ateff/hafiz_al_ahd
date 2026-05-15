@@ -1,4 +1,5 @@
 import 'dart:developer';
+import 'package:alarm/alarm.dart';
 import 'package:hafiz_al_ahd/features/home/domain/usecases/get_prayer_times_use_case.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/usecases/cancel_all_notfication_usecase.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/usecases/schedule_prayer_usecase.dart';
@@ -26,7 +27,7 @@ class ScheduleWeeklyPrayersUseCase {
       "Notifications cleared. Scheduling new notifications for the next 5 days......",
     );
 
-    int notificationId = 0;
+    int notificationId = 1;
 
     for (int i = 0; i < 5; i++) {
       final date = DateTime.now().add(Duration(days: i));
@@ -59,6 +60,7 @@ class ScheduleWeeklyPrayersUseCase {
 
   Future<int> _schedulePrayersForDay(var prayerTimes, int currentId) async {
     final Map<String, int> iqamaDelays = await getIqamaDelaysUseCase.execute();
+    final double adhanVolume = pref.getDouble('adhan_volume') ?? 1.0;
     final prayers = [
       (name: 'الفجر', time: prayerTimes.fajr, key: 'fajr'),
       (name: 'الشروق', time: prayerTimes.sunrise, key: 'shurooq'),
@@ -72,24 +74,41 @@ class ScheduleWeeklyPrayersUseCase {
       if (prayer.time == null || prayer.key == 'shurooq') continue;
 
       // 1. جدولة الأذان لو الوقت لسه مجاش
+      // 👈 الأذان دلوقتي بيشتغل عن طريق باكيدج alarm (Media Player محمي)
+      //    مش عن طريق الإشعارات اللي بتتقطع من واتساب
       if (prayer.time!.isAfter(DateTime.now())) {
-        log(
-          "⏲️ Scheduling notification for prayer is: ${prayer.name} at ${prayer.time}",
-        );
+        log("⏲️ Scheduling ALARM for prayer: ${prayer.name} at ${prayer.time}");
+        log("id : $currentId");
 
-        await schedulePrayerUseCase.execute(
+        final alarmSettings = AlarmSettings(
           id: currentId++,
-          title: 'حان الآن موعد صلاة ${prayer.name}',
-          body: prayer.name == 'الفجر'
-              ? 'الصلاة خير من النوم'
-              : 'حي على الصلاة، حي على الفلاح',
-          scheduledTime: prayer.time!,
-          soundName: prayer.name == 'الفجر' ? 'fajr_azan' : 'adhan',
+          dateTime: prayer.time!,
+          assetAudioPath: prayer.name == 'الفجر'
+              ? 'assets/sounds/fajr_azan.mp3'
+              : 'assets/sounds/adhan.mp3',
+          loopAudio: false,
+          vibrate: true,
+          androidFullScreenIntent: true,
+          volumeSettings: VolumeSettings.fade(
+            volume: adhanVolume, // 👈 الصوت المختار من الإعدادات
+            fadeDuration: const Duration(seconds: 8),
+            volumeEnforced:
+                false, //  لا يمنع اليوزر من تقليل الصوت أثناء الأذان
+          ),
+          notificationSettings: NotificationSettings(
+            title: 'حان الآن موعد صلاة ${prayer.name}',
+            body: prayer.name == 'الفجر'
+                ? 'الصلاة خير من النوم'
+                : 'حي على الصلاة، حي على الفلاح',
+            stopButton: 'إيقاف الأذان',
+            icon: 'ic_stat_icon',
+          ),
         );
+        await Alarm.set(alarmSettings: alarmSettings);
       }
 
       // 2. جدولة الإقامة في شرط منفصل
-      // ده بيضمن إننا لو بنجدول وإحنا في مسافة بين الأذان والإقامة (يعني الأذان عدى)، الإقامة تتجدل لوحدها
+      // 👈 الإقامة لسه بتستخدم الإشعارات العادية (صوت قصير مش محتاج حماية)
       final bool isIqamaEnabled = pref.getBool('isIqamaEnabled') ?? true;
       final int iqamaDelay = iqamaDelays[prayer.key] ?? -1;
 
@@ -111,6 +130,8 @@ class ScheduleWeeklyPrayersUseCase {
         }
       }
     }
+    final alarms = await Alarm.getAlarms();
+    log('🚨 عدد الأذانات المجدولة حالياً: ${alarms.length}');
     return currentId;
   }
 }

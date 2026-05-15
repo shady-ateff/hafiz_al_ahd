@@ -1,4 +1,5 @@
 import 'dart:developer';
+import 'package:alarm/alarm.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hafiz_al_ahd/core/DI/service_locator.dart';
 import 'package:hafiz_al_ahd/core/services/location_service.dart';
@@ -176,7 +177,6 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
     if (nextPrayer.time != null) {
       await scheduleNextAlarm(nextPrayer.time!, prayerTimes, iqamaDelays);
     }
-
   }
 
   // -------------------------------------------------------------------
@@ -195,7 +195,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
           location.longitude,
           location.city,
         );
-        
+
         restoreStickyNotificationIfNeeded();
       },
     );
@@ -238,19 +238,43 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
     );
   }
 
+  /// 👈 اختبار الأذان: بيستخدم باكيدج alarm عشان يحاكي التجربة الحقيقية
   Future<void> testNotification(int sound) async {
     print("⏳ جاري جدولة إشعار تجريبي بعد 5 ثواني...");
 
-    await schedulePrayerUseCase.execute(
-      id: 888,
-      title: 'إشعار تجريبي 🚀',
-      body: 'عاش يا هندسة! الإشعارات شغالة في الخلفية زي الفل.',
-      scheduledTime: DateTime.now().add(const Duration(seconds: 5)),
-      soundName: sound == 2
-          ? 'fajr_azan'
-          : sound == 1
-          ? 'adhan'
-          : 'iqama_sound',
-    );
+    if (sound == 1 || sound == 2) {
+      // 👈 أذان أو أذان الفجر — بنستخدم باكيدج alarm (المسار الجديد)
+      final alarmSettings = AlarmSettings(
+        id: 888,
+        dateTime: DateTime.now().add(const Duration(seconds: 5)),
+        assetAudioPath: sound == 2
+            ? 'assets/sounds/fajr_azan.mp3'
+            : 'assets/sounds/adhan.mp3',
+        loopAudio: false,
+        vibrate: true,
+        androidFullScreenIntent: true,
+        volumeSettings: VolumeSettings.fade(
+          volume: 0.1,
+          fadeDuration: const Duration(seconds: 3),
+          volumeEnforced: true,
+        ),
+        notificationSettings: const NotificationSettings(
+          title: 'إشعار تجريبي 🚀',
+          body: 'عاش يا هندسة! الأذان شغال بباكيدج alarm المحمي.',
+          stopButton: 'إيقاف الأذان',
+          icon: 'ic_stat_icon',
+        ),
+      );
+      await Alarm.set(alarmSettings: alarmSettings);
+    } else {
+      // 👈 إقامة — لسه بتستخدم الإشعارات العادية
+      await schedulePrayerUseCase.execute(
+        id: 888,
+        title: 'إشعار تجريبي 🚀',
+        body: 'عاش يا هندسة! الإشعارات شغالة في الخلفية زي الفل.',
+        scheduledTime: DateTime.now().add(const Duration(seconds: 5)),
+        soundName: 'iqama_sound',
+      );
+    }
   }
 }

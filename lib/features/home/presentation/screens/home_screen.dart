@@ -111,7 +111,7 @@ class _HomeScreenState extends State<HomeScreen>
               builder: (context, state) {
                 return FloatingActionButton(
                   onPressed: () {
-                    context.read<PrayerTimesCubit>().testNotification(0);
+                    context.read<PrayerTimesCubit>().testNotification(1);
                   },
                   child: const Icon(Icons.refresh),
                 );

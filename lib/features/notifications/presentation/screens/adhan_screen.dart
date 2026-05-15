@@ -1,38 +1,77 @@
 import 'dart:async';
+import 'dart:developer';
 
+import 'package:alarm/alarm.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:slider_button/slider_button.dart'; // 👈 استيراد الباكيدج الجديدة
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
-import 'package:hafiz_al_ahd/features/notifications/data/repos/notification_repository_impl.dart';
 
 class AdhanScreen extends StatefulWidget {
   final String? payload;
   final int? notificationId;
+  final String? prayerName;
 
-  const AdhanScreen({super.key, this.payload, this.notificationId});
+  const AdhanScreen({
+    super.key,
+    this.payload,
+    this.notificationId,
+    this.prayerName,
+  });
 
   @override
   State<AdhanScreen> createState() => _AdhanScreenState();
 }
 
-class _AdhanScreenState extends State<AdhanScreen> {
+class _AdhanScreenState extends State<AdhanScreen> with WidgetsBindingObserver {
   Timer? _autoCloseTimer; // 👈 التايمر اللي هيقفل الشاشة
+
   void _closeScreen() async {
     if (mounted) {
       _autoCloseTimer?.cancel(); // تأمين إلغاء التايمر
-      final repo = NotificationRepositoryImpl();
-      await repo.cancelActivePrayerNotification();
+
+      // 👈 إيقاف المنبه (الصوت) عن طريق باكيدج alarm
+      // لو عندنا ID محدد، نوقف المنبه بتاعه. لو لأ، نوقف كل المنبهات الشغالة
+      if (widget.notificationId != null) {
+        await Alarm.stop(widget.notificationId!);
+        log("🛑 STOPPED ADHAN ID: ${widget.notificationId}");
+      } else {
+        // محاولة استخراج الـ ID من الـ payload (بيجي بالشكل: adhan_5)
+        final alarmId = _extractAlarmId();
+        if (alarmId != null) {
+          await Alarm.stop(alarmId);
+        } else {
+          await Alarm.stopAll();
+        }
+      }
+
       SystemNavigator.pop(); // اقفل الـ Activity بالكامل
     }
+  }
+
+  /// استخراج رقم المنبه من الـ payload (مثال: "adhan_5" -> 5)
+  int? _extractAlarmId() {
+    if (widget.payload == null) return null;
+    log("payload : ${widget.payload}");
+    final parts = widget.payload!.split('_');
+    if (parts.length >= 2) {
+      return int.tryParse(parts.last);
+    }
+    return null;
   }
 
   @override
   void initState() {
     super.initState();
-    _fetchRingingPrayerTitle();
+    WidgetsBinding.instance.addObserver(this);
+    
+    // إذا مررنا اسم الصلاة مباشرة من المنبه اللي بيرن، نستخدمه ونلغي جلب الداتا المتأخر عشان الشاشة متكتبش "الظهر" غلط
+    if (widget.prayerName != null && widget.prayerName!.isNotEmpty) {
+      prayerTitle = widget.prayerName;
+    } else {
+      _fetchRingingPrayerTitle();
+    }
 
     _autoCloseTimer = Timer(const Duration(minutes: 4, seconds: 48), () {
       _closeScreen();
@@ -41,34 +80,36 @@ class _AdhanScreenState extends State<AdhanScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _autoCloseTimer?.cancel();
     super.dispose();
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused) {
+      log("📡 Power button pressed or screen turned off - Stopping Adhan");
+      _closeScreen();
+    }
+  }
+
   String? prayerTitle;
 
+  /// 👈 جلب عنوان الصلاة من بيانات المنبه الشغال حالياً
   Future<void> _fetchRingingPrayerTitle() async {
     await Future.delayed(const Duration(milliseconds: 500));
 
-    final repo = NotificationRepositoryImpl();
-    final activeNotifications = await repo.flutterLocalNotificationsPlugin
-        .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >()
-        ?.getActiveNotifications();
-
-    if (activeNotifications != null) {
-      for (var active in activeNotifications) {
-        if (active.channelId != null &&
-            active.channelId!.contains('prayer_channel')) {
-          if (mounted) {
-            // 👈 4. لقيناه! نحدث الشاشة فوراً بالاسم الجديد
-            setState(() {
-              prayerTitle = active.title ?? 'حان وقت الصلاة';
-            });
-          }
-          break; // نوقف اللوب خلاص
-        }
+    // نجيب المنبهات اللي شغالة دلوقتي من باكيدج alarm
+    final ringingAlarms = await Alarm.getAlarms();
+    if (ringingAlarms.isNotEmpty) {
+      // أول منبه شغال — نجيب العنوان بتاعه
+      final alarm = ringingAlarms.first;
+      log("prayerTitle : ${alarm.notificationSettings.title}");
+      if (mounted) {
+        setState(() {
+          prayerTitle = alarm.notificationSettings.title;
+        });
       }
     }
   }

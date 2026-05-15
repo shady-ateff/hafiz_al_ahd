@@ -1,10 +1,13 @@
 package com.shadyatef.hafiz_alahd
 
 import android.app.AlarmManager
+import android.app.KeyguardManager // 👈 أضفنا ده
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.os.Bundle // 👈 أضفنا ده
+import android.view.WindowManager // 👈 أضفنا ده
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -12,6 +15,23 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "com.shadyatef.hafiz_alahd/alarm_channel"
 
+    // 🚨 رجعنا دالة onCreate السحرية لكسر شاشة القفل! 🚨
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            setShowWhenLocked(true)
+            setTurnScreenOn(true)
+        } else {
+            window.addFlags(
+                WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
+                WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
+                WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+            )
+        }
+    }
+
+    // الشغل البريمو بتاعك للـ Method Channel
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
@@ -77,4 +97,3 @@ class MainActivity : FlutterActivity() {
         }
     }
 }
-
