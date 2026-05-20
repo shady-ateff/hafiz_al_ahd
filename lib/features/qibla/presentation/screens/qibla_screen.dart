@@ -35,6 +35,12 @@ class _QiblaScreenState extends State<QiblaScreen> {
           'القبلة',
           style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.info_outline, color: Colors.amber),
+            onPressed: () => _showCalibrationDialog(context),
+          ),
+        ],
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -176,36 +182,22 @@ class _QiblaCompassWidgetState extends State<_QiblaCompassWidget> {
             ),
           ),
           const SizedBox(height: 50),
-          GradientText(
-            '${qiblahDirection.direction.toInt()}°',
-            style: GoogleFonts.cairo(fontSize: 48, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 10),
-          // 👈 زر المعايرة الجديد في منتصف الشاشة
-          TextButton.icon(
-            onPressed: () => _showCalibrationDialog(context),
-            icon: const Icon(Icons.compass_calibration_rounded,
-                color: Colors.amber, size: 20),
-            label: Text(
-              'كيفية المعايرة؟',
-              style: GoogleFonts.cairo(
-                color: Colors.amber,
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                decoration: TextDecoration.underline,
-              ),
+          Expanded(
+            child: GradientText(
+              '${qiblahDirection.direction.toInt()}°',
+              style: GoogleFonts.cairo(fontSize: 48, fontWeight: FontWeight.bold),
             ),
           ),
           const SizedBox(height: 20),
-          Text(
-            'ضع الهاتف بشكل مسطح للحصول على أدق نتيجة',
-            textAlign: TextAlign.center,
-            style: GoogleFonts.cairo(
-              color: context.secondaryText.withValues(alpha: 0.7),
-              fontSize: 14,
+          Expanded(
+            child: Text(
+              'ضع الهاتف بشكل مسطح للحصول على أدق نتيجة',
+              style: GoogleFonts.cairo(
+                color: context.secondaryText.withValues(alpha: 0.7),
+                fontSize: 14,
+              ),
             ),
           ),
-          const Spacer(),
         ],
       ),
     );
@@ -276,37 +268,14 @@ void _showCalibrationDialog(BuildContext context) {
           ],
         ),
         actions: [
-          Container(
-            width: double.infinity,
-            margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            decoration: BoxDecoration(
-              gradient: AppColors.goldenGradient,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.secondaryGold.withValues(alpha: 0.3),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                shadowColor: Colors.transparent,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-              ),
-              child: Text(
-                'حسناً، فهمت',
-                style: GoogleFonts.cairo(
-                  color: AppColors.primaryBlack,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'حسناً، فهمت',
+              style: GoogleFonts.cairo(
+                color: Colors.amber,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
               ),
             ),
           ),

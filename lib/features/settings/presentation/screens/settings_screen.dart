@@ -37,7 +37,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isLoading = true;
   bool _isIqamaEnabled = true;
   bool _isDstEnabled = false;
-  double _adhanVolume = 1.0;
 
   @override
   void initState() {
@@ -54,7 +53,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _delays.addAll(savedDelays);
       _isIqamaEnabled = prefs.getBool('isIqamaEnabled') ?? true;
       _isDstEnabled = (prefs.getInt('dst_offset_minutes') ?? 0) > 0;
-      _adhanVolume = prefs.getDouble('adhan_volume') ?? 1.0;
       _isLoading = false;
     });
   }
@@ -65,7 +63,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     
     await saveUseCase.execute(_delays);
     await prefs.setBool('isIqamaEnabled', _isIqamaEnabled);
-    await prefs.setDouble('adhan_volume', _adhanVolume);
 
     // مسح الكاش ده هيخلي الـ Cubit يعتبر إنه مفيش إشعارات متجدولة، فيمسح القديم ويـ schedule من الأول
     await prefs.remove('scheduled_until_date');
@@ -107,12 +104,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ? const Center(
               child: CircularProgressIndicator(color: AppColors.secondaryGold),
             )
-          : SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+          : Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   // ── Theme Toggle ──────────────────────────────────────────
                   _buildSectionTitle('المظهر', textColor),
                   const SizedBox(height: 12),
@@ -245,79 +241,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   const SizedBox(height: 28),
 
-                  // ── Adhan Volume Slider ──────────────────────────────────────────
-                  _buildSectionTitle('مستوى صوت الأذان', textColor),
-                  const SizedBox(height: 12),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: cardColor,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: AppColors.secondaryGold.withOpacity(0.3),
-                        width: 1,
-                      ),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            _adhanVolume == 0
-                                ? Icons.volume_off_rounded
-                                : _adhanVolume < 0.5
-                                    ? Icons.volume_down_rounded
-                                    : Icons.volume_up_rounded,
-                            color: AppColors.secondaryGold,
-                            size: 22,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: SliderTheme(
-                              data: SliderTheme.of(context).copyWith(
-                                activeTrackColor: AppColors.secondaryGold,
-                                inactiveTrackColor:
-                                    AppColors.secondaryGold.withOpacity(0.3),
-                                thumbColor: AppColors.secondaryGold,
-                                overlayColor:
-                                    AppColors.secondaryGold.withOpacity(0.1),
-                                trackHeight: 4.0,
-                              ),
-                              child: Slider(
-                                value: _adhanVolume,
-                                min: 0.0,
-                                max: 1.0,
-                                divisions: 10,
-                                label: '${(_adhanVolume * 100).round()}%',
-                                onChanged: (val) {
-                                  setState(() => _adhanVolume = val);
-                                },
-                                onChangeEnd: (val) {
-                                  _saveSettings(); // حفظ وإعادة جدولة فوراً
-                                },
-                              ),
-                            ),
-                          ),
-                          SizedBox(
-                            width: 40,
-                            child: Text(
-                              '${(_adhanVolume * 100).round()}%',
-                              textAlign: TextAlign.end,
-                              style: GoogleFonts.cairo(
-                                color: textColor,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 28),
-
                   // ── Iqama Toggle ──────────────────────────────────────────
                   _buildSectionTitle('تفعيل الإقامة', textColor),
                   const SizedBox(height: 12),
@@ -374,11 +297,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   const SizedBox(height: 28),
 
-                  // ── Iqama Delays Tile ──────────────────────────────────────────
-                  _buildSectionTitle('تأخير الإقامة', textColor),
+                  // ── Iqama Delays ──────────────────────────────────────────
+                  _buildSectionTitle('تأخير الإقامة (بالدقائق)', textColor),
                   const SizedBox(height: 12),
-                  GestureDetector(
-                    onTap: _showIqamaDelaysDialog,
+                  Expanded(
                     child: Container(
                       decoration: BoxDecoration(
                         color: cardColor,
@@ -388,165 +310,90 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           width: 1,
                         ),
                       ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 16,
+                      child: ListView.separated(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        itemCount: _prayerNames.length,
+                        separatorBuilder: (_, __) => Divider(
+                          color: dividerColor,
+                          indent: 16,
+                          endIndent: 16,
+                          height: 1,
                         ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.edit_calendar_rounded,
+                        itemBuilder: (context, index) {
+                          final key = _prayerNames.keys.elementAt(index);
+                          final name = _prayerNames[key]!;
+                          return ListTile(
+                            leading: const Icon(
+                              Icons.access_time_filled_rounded,
                               color: AppColors.secondaryGold,
                               size: 22,
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                'تعديل أوقات تأخير الإقامة',
-                                style: GoogleFonts.cairo(
-                                  color: textColor,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                            title: Text(
+                              name,
+                              style: GoogleFonts.cairo(
+                                fontSize: 16,
+                                color: textColor,
                               ),
                             ),
-                            const Icon(
-                              Icons.arrow_forward_ios_rounded,
-                              color: AppColors.secondaryGold,
-                              size: 16,
+                            trailing: DropdownButton<int>(
+                              value: _delays[key],
+                              dropdownColor: isDark
+                                  ? AppColors.deepBackground
+                                  : const Color(0xFFFFF8EC),
+                              underline: const SizedBox.shrink(),
+                              style: GoogleFonts.cairo(
+                                color: AppColors.secondaryGold,
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              items: [5, 10, 15, 20, 25, 30]
+                                  .map(
+                                    (v) => DropdownMenuItem<int>(
+                                      value: v,
+                                      child: Text('$v دقيقة'),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (v) {
+                                if (v != null) {
+                                  setState(() => _delays[key] = v);
+                                }
+                              },
                             ),
-                          ],
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // ── Save Button ──────────────────────────────────────────
+                  Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      gradient: AppColors.goldenGradient,
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      onPressed: _saveSettings,
+                      child: Text(
+                        'حفظ الإعدادات',
+                        style: GoogleFonts.cairo(
+                          color: AppColors.primaryBlack,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
                 ],
               ),
             ),
-          ),
-    );
-  }
-
-  /// عرض ديالوج تعديل أوقات الإقامة
-  void _showIqamaDelaysDialog() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            final isDark = context.watch<ThemeCubit>().state.isDark;
-            final textColor =
-                isDark ? AppColors.silverMarble : const Color(0xFF1A1208);
-            final cardColor =
-                isDark ? AppColors.deepBackground : const Color(0xFFFFF8EC);
-            final dividerColor =
-                isDark ? Colors.white12 : const Color(0xFFE8D9B5);
-
-            return AlertDialog(
-              backgroundColor: cardColor,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
-              ),
-              title: Center(
-                child: Text(
-                  'تأخير الإقامة (بالدقائق)',
-                  style: GoogleFonts.cairo(
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.secondaryGold,
-                    fontSize: 20,
-                  ),
-                ),
-              ),
-              content: SizedBox(
-                width: double.maxFinite,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: _prayerNames.entries.map((entry) {
-                    final key = entry.key;
-                    final name = entry.value;
-                    return Column(
-                      children: [
-                        ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          leading: const Icon(
-                            Icons.access_time_filled_rounded,
-                            color: AppColors.secondaryGold,
-                            size: 22,
-                          ),
-                          title: Text(
-                            name,
-                            style: GoogleFonts.cairo(
-                              fontSize: 16,
-                              color: textColor,
-                            ),
-                          ),
-                          trailing: DropdownButton<int>(
-                            value: _delays[key],
-                            dropdownColor: isDark
-                                ? AppColors.deepBackground
-                                : const Color(0xFFFFF8EC),
-                            underline: const SizedBox.shrink(),
-                            style: GoogleFonts.cairo(
-                              color: AppColors.secondaryGold,
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            items: [5, 10, 15, 20, 25, 30]
-                                .map(
-                                  (v) => DropdownMenuItem<int>(
-                                    value: v,
-                                    child: Text('$v دقيقة'),
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: (v) {
-                              if (v != null) {
-                                setDialogState(() => _delays[key] = v);
-                                setState(() => _delays[key] = v);
-                              }
-                            },
-                          ),
-                        ),
-                        if (key != 'isha') Divider(color: dividerColor),
-                      ],
-                    );
-                  }).toList(),
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text(
-                    'إلغاء',
-                    style: GoogleFonts.cairo(color: Colors.grey),
-                  ),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    _saveSettings();
-                    Navigator.pop(context);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.secondaryGold,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: Text(
-                    'حفظ',
-                    style: GoogleFonts.cairo(
-                      color: AppColors.primaryBlack,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      },
     );
   }
 

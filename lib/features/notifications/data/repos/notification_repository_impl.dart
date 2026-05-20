@@ -113,8 +113,8 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
       ];
     }
     String channelId = soundName != null
-        ? 'prayer_channel_v8_$soundName'
-        : 'prayer_channel_v8_default';
+        ? 'prayer_channel_v7_$soundName'
+        : 'prayer_channel_v7_default';
     AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
       channelId,
       'مواقيت الصلاة',
@@ -125,7 +125,6 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
       sound: soundName != null
           ? RawResourceAndroidNotificationSound(soundName)
           : null,
-      actions: actions, // 👈 أزرار الأكشن (إيقاف الأذان)
       audioAttributesUsage: isAdhan
           ? AudioAttributesUsage.alarm
           : AudioAttributesUsage.notification,
@@ -218,7 +217,7 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
     for (var active in activeNotifications) {
       // 2. نمسح الإشعار لو هو تبع قناة الأذان (ونسيب العداد الثابت لأنه في قناة تانية)
       if (active.channelId != null &&
-          active.channelId!.contains('prayer_channel_v8')) {
+          active.channelId!.contains('prayer_channel_v7')) {
         await flutterLocalNotificationsPlugin.cancel(id: active.id ?? -1);
       }
     }
