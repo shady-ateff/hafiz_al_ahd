@@ -1,6 +1,8 @@
 import 'dart:developer';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hafiz_al_ahd/core/DI/service_locator.dart';
+import 'package:hafiz_al_ahd/features/notifications/domain/repos/base_notification_repository.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hafiz_al_ahd/core/services/location_service.dart';
 import 'package:hafiz_al_ahd/core/utils/home_widget_helper.dart';
 import 'package:hafiz_al_ahd/features/home/domain/usecases/fetch_prayer_times_orchestrator_usecase.dart';
@@ -238,19 +240,36 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
     );
   }
 
+  /// 👈 اختبار الأذان: بيستخدم باكيدج alarm للأذان والإشعارات العادية للإقامة
   Future<void> testNotification(int sound) async {
     print("⏳ جاري جدولة إشعار تجريبي بعد 5 ثواني...");
 
-    await schedulePrayerUseCase.execute(
-      id: 888,
-      title: 'إشعار تجريبي 🚀',
-      body: 'عاش يا هندسة! الإشعارات شغالة في الخلفية زي الفل.',
-      scheduledTime: DateTime.now().add(const Duration(seconds: 5)),
-      soundName: sound == 2
-          ? 'fajr_azan'
-          : sound == 1
-          ? 'adhan'
-          : 'iqama_sound',
-    );
+    final notificationRepository = sl<BaseNotificationRepository>();
+    final pref = sl<SharedPreferences>();
+    final double adhanVolume = pref.getDouble('adhan_volume') ?? 1.0;
+
+    if (sound == 1 || sound == 2) {
+      // 👈 أذان أو أذان الفجر — بنستخدم باكيدج alarm
+      await notificationRepository.scheduleAdhanAlarm(
+        id: 888,
+        title: 'إشعار تجريبي 🚀',
+        body: 'عاش يا هندسة! الأذان شغال بباكيدج alarm المحمي.',
+        scheduledTime: DateTime.now().add(const Duration(seconds: 5)),
+        assetAudioPath: sound == 2
+            ? 'assets/sounds/fajr_azan.mp3'
+            : 'assets/sounds/adhan.mp3',
+        volume: adhanVolume,
+      );
+    } else {
+      // 👈 إقامة — لسه بتستخدم الإشعارات العادية
+      await schedulePrayerUseCase.execute(
+        id: 888,
+        title: 'إشعار تجريبي 🚀',
+        body: 'عاش يا هندسة! الإشعارات شغالة في الخلفية زي الفل.',
+        scheduledTime: DateTime.now().add(const Duration(seconds: 5)),
+        soundName: 'iqama_sound',
+      );
+    }
   }
 }
+

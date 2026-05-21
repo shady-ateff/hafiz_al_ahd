@@ -1,10 +1,20 @@
 import 'package:permission_handler/permission_handler.dart';
+import 'package:android_intent_plus/android_intent.dart';
+import 'package:auto_start_flutter/auto_start_flutter.dart';
 
-/// نتيجة طلب الصلاحية - الـ UI بيقرر إيه يعمل بناءً عليها
 enum PermissionResult {
-  granted,         // اتوافق عليها
-  denied,          // اترفضت (ممكن يتطلب تاني)
-  permanentlyDenied // اترفضت نهائياً (لازم يروح الإعدادات)
+  granted,
+  denied,
+  permanentlyDenied
+}
+
+enum PermissionType {
+  location,
+  notification,
+  exactAlarm,
+  batteryOptimization,
+  autoStart,
+  xiaomiCustom,
 }
 
 class PermissionManager {
@@ -48,6 +58,37 @@ class PermissionManager {
     }
     final status = await Permission.ignoreBatteryOptimizations.request();
     return _mapStatus(status);
+  }
+
+  /// طلب صلاحية التشغيل التلقائي (Auto Start) للأجهزة اللي بتدعمها (شاومي، أوبو، الخ)
+  static Future<PermissionResult> requestAutoStart() async {
+    try {
+      final available = await isAutoStartAvailable;
+      if (available == true) {
+        await getAutoStartPermission();
+      }
+    } catch (e) {
+      // Ignore if not available
+    }
+    return PermissionResult.granted;
+  }
+
+  /// توجيه مستخدمي شاومي لصفحة الصلاحيات الخاصة
+  static Future<PermissionResult> requestXiaomiPermissions() async {
+    try {
+      // 👈 استخدام android_intent_plus للوصول المباشر لصفحة الصلاحيات الخفية في MIUI
+      const intent = AndroidIntent(
+        action: 'miui.intent.action.APP_PERM_EDITOR',
+        arguments: <String, dynamic>{'extra_pkgname': 'com.shadyatef.hafiz_alahd'},
+      );
+      await intent.launch();
+    } catch (e) {
+      // لو فشل (مثلاً الروم متعدلة بزيادة)، افتح الإعدادات العادية
+      await openAppSettings();
+    }
+    
+    // منقدرش نتحقق برمجياً اليوزر وافق ولا لأ، فبنعتبرها تمت عشان يكمل الـ Onboarding
+    return PermissionResult.granted;
   }
 
   static PermissionResult _mapStatus(PermissionStatus status) {

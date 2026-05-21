@@ -63,6 +63,7 @@ Future<void> init() async {
       cancelAllNotificationsUseCase: sl(),
       schedulePrayerUseCase: sl(),
       getIqamaDelaysUseCase: sl(),
+      notificationRepository: sl(),
       pref: sl(), // جاب الـ SharedPreferences لوحده
     ),
   );

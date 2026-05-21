@@ -1,9 +1,15 @@
+import 'dart:developer';
 import 'dart:io';
 
+import 'package:alarm/alarm.dart';
+import 'package:alarm/utils/alarm_set.dart';
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:hafiz_al_ahd/app/view/app.dart';
 import 'package:hafiz_al_ahd/core/DI/service_locator.dart' as di;
+import 'package:hafiz_al_ahd/core/services/background_service_manager.dart'; // 👈 استيراد خدمة الخلفية
 import 'package:hafiz_al_ahd/core/services/desktop_window_service.dart';
 // 👈 استدعي الـ Base بدلاً من الـ Impl
 import 'package:hafiz_al_ahd/features/notifications/domain/repos/base_notification_repository.dart';
@@ -20,12 +26,36 @@ import 'package:hafiz_al_ahd/features/notifications/data/repos/notification_repo
 
 // 👈 الدالة دي بتتحط بره أي كلاس، مثلاً في ملف منفصل أو فوق في main.dart
 
-
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+bool _isAdhanScreenActive = false; // 👈 علم لمنع فتح الشاشة مرتين
+
+void _openAdhanScreen({required String payload, int? notificationId, String? prayerName}) {
+  if (_isAdhanScreenActive) return;
+  _isAdhanScreenActive = true;
+  
+  navigatorKey.currentState?.push(
+    MaterialPageRoute(
+      builder: (_) => AdhanScreen(
+        payload: payload,
+        notificationId: notificationId,
+        prayerName: prayerName,
+      ),
+    ),
+  ).then((_) {
+    // لما الشاشة تقفل، نرجع العلم لـ false
+    _isAdhanScreenActive = false;
+  });
+}
 
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
   await AndroidAlarmManager.initialize();
+  await Alarm.init(); // 👈 تهيئة باكيدج المنبه (للأذان)
+
+  // 👈 منطق تهجير (Migration) للمستخدمين القدامى: مسح الإشعار الثابت القديم (الوهمي) اللي كان رقمه 999
+  FlutterLocalNotificationsPlugin().cancel(id: 999);
+
+  await BackgroundServiceManager.initializeService(); // 👈 تهيئة خدمة الخلفية الحقيقية (للإشعار الثابت)
   // ---------------------------------------------------------
   // 1. تهيئة المنطقة الزمنية (عشان نمنع ضرب الإشعارات كلها مع بعض)
   // ---------------------------------------------------------
@@ -68,39 +98,70 @@ void main(List<String> args) async {
   HijriCalendar.setLocal("ar"); // Set Hijri calendar locale to Arabic
 
   // ---------------------------------------------------------
-  // 5. الاستماع لـ Stream الإشعارات (التصنت على الدوسات)
+  // 5. الاستماع لـ Stream الإشعارات العادية (flutter_local_notifications)
+  //    بس بنفلتر: الـ sticky والـ iqama مبيفتحوش شاشة الأذان
   // ---------------------------------------------------------
   selectNotificationStream.stream.listen((String? payload) {
-    if (payload == 'sticky') {
-      // Stay on the main screen, do not open AdhanScreen mistakenly.
+    if (payload == null || payload == 'sticky') {
+      // Stay on the main screen, do not open AdhanScreen.
       return;
     }
 
-    if (payload != null) {
-      navigatorKey.currentState?.push(
-        MaterialPageRoute(builder: (_) => AdhanScreen(payload: payload)),
-      );
-    } else {
-      navigatorKey.currentState?.push(
-        MaterialPageRoute(builder: (_) => const AdhanScreen()),
-      );
+    // 👈 فقط لو الـ payload بتاع أذان (بيبدأ بـ adhan_)
+    if (payload.startsWith('adhan_')) {
+      _openAdhanScreen(payload: payload);
     }
+    // أي payload تاني (iqama_, test, إلخ) مبيفتحش شاشة الأذان
   });
 
   // ---------------------------------------------------------
-  // 6. تشغيل التطبيق والتعامل مع فتح التطبيق من إشعار (Terminated)
+  // 6. تشغيل التطبيق
   // ---------------------------------------------------------
   runApp(const App()); // خليها const لو الـ App ويدجت تدعم ده
 
-  // بنجيب التفاصيل بعد الـ DI
-  final NotificationAppLaunchDetails? notificationAppLaunchDetails =
-      await FlutterLocalNotificationsPlugin().getNotificationAppLaunchDetails();
-
-  if (notificationAppLaunchDetails?.didNotificationLaunchApp ?? false) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      navigatorKey.currentState?.push(
-        MaterialPageRoute(builder: (_) => const AdhanScreen()),
-      );
+  // ---------------------------------------------------------
+  // 7. بعد ما الـ Navigator يبقى جاهز، نعمل كل حاجة تانية
+  // ---------------------------------------------------------
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
+    // 7a. الاستماع لباكيدج المنبه (alarm) — لما الأذان يرن
+    Alarm.ringing.listen((AlarmSet alarmSet) {
+      for (final alarm in alarmSet.alarms) {
+        log(
+          "[alarm ringing] Alarm ringing: ${alarm.id} - ${alarm.notificationSettings.title}",
+        );
+        _openAdhanScreen(
+          payload: 'adhan_${alarm.id}',
+          notificationId: alarm.id,
+          prayerName: alarm.notificationSettings.title,
+        );
+      }
     });
-  }
+
+    // 7b. لو التطبيق اتفتح وفيه منبه بيرن دلوقتي (app was terminated)
+    final alarms = await Alarm.getAlarms();
+    for (final alarm in alarms) {
+      if (await Alarm.isRinging(alarm.id)) {
+        _openAdhanScreen(
+          payload: 'adhan_${alarm.id}',
+          notificationId: alarm.id,
+          prayerName: alarm.notificationSettings.title,
+        );
+        break; // لقينا الأذان اللي بيرن، افتح الشاشة ووقف
+      }
+    }
+
+    // 7c. لو التطبيق اتفتح من إشعار عادي (flutter_local_notifications)
+    final NotificationAppLaunchDetails? notificationAppLaunchDetails =
+        await FlutterLocalNotificationsPlugin()
+            .getNotificationAppLaunchDetails();
+
+    if (notificationAppLaunchDetails?.didNotificationLaunchApp ?? false) {
+      final payload =
+          notificationAppLaunchDetails?.notificationResponse?.payload;
+      // 👈 فقط لو الإشعار بتاع أذان
+      if (payload != null && payload.startsWith('adhan_')) {
+        _openAdhanScreen(payload: payload);
+      }
+    }
+  });
 }

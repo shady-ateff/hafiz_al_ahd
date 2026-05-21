@@ -1,5 +1,6 @@
 import 'dart:developer';
 import 'package:hafiz_al_ahd/features/home/domain/usecases/get_prayer_times_use_case.dart';
+import 'package:hafiz_al_ahd/features/notifications/domain/repos/base_notification_repository.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/usecases/cancel_all_notfication_usecase.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/usecases/schedule_prayer_usecase.dart';
 import 'package:hafiz_al_ahd/features/settings/domain/usecases/get_iqama_delays_usecase.dart';
@@ -10,6 +11,7 @@ class ScheduleWeeklyPrayersUseCase {
   final CancelAllNotificationsUseCase cancelAllNotificationsUseCase;
   final SchedulePrayerUseCase schedulePrayerUseCase;
   final GetIqamaDelaysUseCase getIqamaDelaysUseCase;
+  final BaseNotificationRepository notificationRepository;
   final SharedPreferences pref;
 
   ScheduleWeeklyPrayersUseCase({
@@ -17,6 +19,7 @@ class ScheduleWeeklyPrayersUseCase {
     required this.cancelAllNotificationsUseCase,
     required this.schedulePrayerUseCase,
     required this.getIqamaDelaysUseCase,
+    required this.notificationRepository,
     required this.pref,
   });
 
@@ -26,7 +29,7 @@ class ScheduleWeeklyPrayersUseCase {
       "Notifications cleared. Scheduling new notifications for the next 5 days......",
     );
 
-    int notificationId = 0;
+    int notificationId = 1; // Alarm package requires ID > 0
 
     for (int i = 0; i < 5; i++) {
       final date = DateTime.now().add(Duration(days: i));
@@ -59,6 +62,8 @@ class ScheduleWeeklyPrayersUseCase {
 
   Future<int> _schedulePrayersForDay(var prayerTimes, int currentId) async {
     final Map<String, int> iqamaDelays = await getIqamaDelaysUseCase.execute();
+    final double adhanVolume = pref.getDouble('adhan_volume') ?? 1.0; // 👈 سحبنا مستوى الصوت
+
     final prayers = [
       (name: 'الفجر', time: prayerTimes.fajr, key: 'fajr'),
       (name: 'الشروق', time: prayerTimes.sunrise, key: 'shurooq'),
@@ -72,24 +77,28 @@ class ScheduleWeeklyPrayersUseCase {
       if (prayer.time == null || prayer.key == 'shurooq') continue;
 
       // 1. جدولة الأذان لو الوقت لسه مجاش
+      //    👈 الأذان بيستخدم باكيدج alarm (صوت محمي، foreground service)
       if (prayer.time!.isAfter(DateTime.now())) {
         log(
-          "⏲️ Scheduling notification for prayer is: ${prayer.name} at ${prayer.time}",
+          "⏲️ Scheduling ALARM for prayer: ${prayer.name} at ${prayer.time} with volume $adhanVolume",
         );
 
-        await schedulePrayerUseCase.execute(
+        await notificationRepository.scheduleAdhanAlarm(
           id: currentId++,
           title: 'حان الآن موعد صلاة ${prayer.name}',
           body: prayer.name == 'الفجر'
               ? 'الصلاة خير من النوم'
               : 'حي على الصلاة، حي على الفلاح',
           scheduledTime: prayer.time!,
-          soundName: prayer.name == 'الفجر' ? 'fajr_azan' : 'adhan',
+          assetAudioPath: prayer.name == 'الفجر'
+              ? 'assets/sounds/fajr_azan.mp3'
+              : 'assets/sounds/adhan.mp3',
+          volume: adhanVolume, // 👈 تمرير الصوت هنا
         );
       }
 
       // 2. جدولة الإقامة في شرط منفصل
-      // ده بيضمن إننا لو بنجدول وإحنا في مسافة بين الأذان والإقامة (يعني الأذان عدى)، الإقامة تتجدل لوحدها
+      //    👈 الإقامة لسه بتستخدم الإشعارات العادية (صوت قصير مش محتاج حماية)
       final bool isIqamaEnabled = pref.getBool('isIqamaEnabled') ?? true;
       final int iqamaDelay = iqamaDelays[prayer.key] ?? -1;
 

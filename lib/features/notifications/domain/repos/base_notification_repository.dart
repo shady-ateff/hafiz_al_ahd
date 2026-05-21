@@ -36,4 +36,17 @@ abstract class BaseNotificationRepository {
     required DateTime scheduledTime,
     String? soundName, // 👈 المتغير الجديد (اختياري)
   });
+
+  /// جدولة منبه أذان باستخدام باكيدج alarm (صوت محمي لا يتوقف)
+  Future<void> scheduleAdhanAlarm({
+    required int id,
+    required String title,
+    required String body,
+    required DateTime scheduledTime,
+    required String assetAudioPath,
+    double? volume, // 👈 إضافة متغير الصوت
+  });
+
+  /// إلغاء كل المنبهات (الأذان) اللي اتجدولت عن طريق باكيدج alarm
+  Future<void> cancelAllAlarms();
 }

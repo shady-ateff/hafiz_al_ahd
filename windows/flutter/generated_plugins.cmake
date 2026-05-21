@@ -3,6 +3,7 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  audioplayers_windows
   auto_start_flutter
   flutter_timezone
   geolocator_windows

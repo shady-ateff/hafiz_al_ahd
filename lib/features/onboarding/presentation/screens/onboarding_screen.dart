@@ -5,6 +5,10 @@ import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
 import 'package:hafiz_al_ahd/core/utils/app_permission.dart';
 import 'package:hafiz_al_ahd/features/main/presentation/screens/main_screen.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit/prayer_times_cubit.dart';
+import 'dart:io';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:auto_start_flutter/auto_start_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hafiz_al_ahd/features/onboarding/presentation/cubit/onboarding_cubit.dart';
 import 'package:hafiz_al_ahd/features/onboarding/presentation/cubit/onboarding_state.dart';
 
@@ -23,39 +27,108 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   static const _darkBg = AppColors.deepBackground;
   static const _surfaceBg = AppColors.primaryBlack;
 
-  // بيانات كل صفحة
-  static const List<_OnboardingPageData> _pages = [
-    _OnboardingPageData(
-      icon: Icons.explore,
-      title: 'دقة المواقيت',
-      body: 'لضمان دقة مواقيت الصلاة أينما كنت، نحتاج لمعرفة موقعك الجغرافي.',
-      buttonText: 'السماح بالموقع',
-      settingsHint: 'الموقع الجغرافي',
-    ),
-    _OnboardingPageData(
-      icon: Icons.notifications_active,
-      title: 'التنبيهات والأذان',
-      body: 'لا تفوت صلاتك. اسمح لنا بإرسال إشعار لك في وقت الأذان بالضبط.',
-      buttonText: 'تفعيل الإشعارات',
-      settingsHint: 'الإشعارات',
-    ),
-    _OnboardingPageData(
-      icon: Icons.alarm,
-      title: 'دقة الأذان في الخلفية',
-      body:
-          'لكي يرفع الأذان في وقته بالثانية دون تأخير من نظام أندرويد، نحتاج لصلاحية "المنبه الدقيق".',
-      buttonText: 'تفعيل المنبه الدقيق',
-      settingsHint: 'المنبه الدقيق',
-    ),
-    _OnboardingPageData(
-      icon: Icons.battery_saver,
-      title: 'التحديث المستمر',
-      body:
-          'لضمان تحديث العداد والويدجت على الشاشة الرئيسية بشكل مستمر، يرجى استثناء التطبيق من قيود توفير البطارية.',
-      buttonText: 'استثناء من البطارية',
-      settingsHint: 'استثناء البطارية',
-    ),
-  ];
+  List<_OnboardingPageData> _pages = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializePages();
+  }
+
+  Future<void> _initializePages() async {
+    final basePages = <_OnboardingPageData>[
+      const _OnboardingPageData(
+        permissionType: PermissionType.location,
+        icon: Icons.explore,
+        title: 'دقة المواقيت',
+        body: 'لضمان دقة مواقيت الصلاة أينما كنت، نحتاج لمعرفة موقعك الجغرافي.',
+        buttonText: 'السماح بالموقع',
+        settingsHint: 'الموقع الجغرافي',
+      ),
+      const _OnboardingPageData(
+        permissionType: PermissionType.notification,
+        icon: Icons.notifications_active,
+        title: 'التنبيهات والأذان',
+        body: 'لا تفوت صلاتك. اسمح لنا بإرسال إشعار لك في وقت الأذان بالضبط.',
+        buttonText: 'تفعيل الإشعارات',
+        settingsHint: 'الإشعارات',
+      ),
+      const _OnboardingPageData(
+        permissionType: PermissionType.exactAlarm,
+        icon: Icons.alarm,
+        title: 'دقة الأذان في الخلفية',
+        body:
+            'لكي يرفع الأذان في وقته بالثانية دون تأخير من نظام أندرويد، نحتاج لصلاحية "المنبه الدقيق".',
+        buttonText: 'تفعيل المنبه الدقيق',
+        settingsHint: 'المنبه الدقيق',
+      ),
+      const _OnboardingPageData(
+        permissionType: PermissionType.batteryOptimization,
+        icon: Icons.battery_saver,
+        title: 'التحديث المستمر',
+        body:
+            'لضمان تحديث العداد والويدجت على الشاشة الرئيسية بشكل مستمر، يرجى استثناء التطبيق من قيود توفير البطارية.',
+        buttonText: 'استثناء من البطارية',
+        settingsHint: 'استثناء البطارية',
+      ),
+    ];
+
+    try {
+      final available = await isAutoStartAvailable;
+      if (available == true) {
+        basePages.add(const _OnboardingPageData(
+          permissionType: PermissionType.autoStart,
+          icon: Icons.rocket_launch,
+          title: 'التشغيل التلقائي',
+          body: 'يجب تفعيل (التشغيل التلقائي / Auto Start) لضمان عمل الأذان عند إغلاق التطبيق بالكامل.',
+          buttonText: 'تفعيل التشغيل التلقائي',
+          settingsHint: 'التشغيل التلقائي',
+        ));
+      }
+    } catch (e) {
+      // Ignore if error fetching autostart status
+    }
+
+    bool isXiaomi = false;
+    if (Platform.isAndroid) {
+      DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+      AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
+      String manufacturer = androidInfo.manufacturer.toLowerCase();
+      if (manufacturer.contains('xiaomi') ||
+          manufacturer.contains('poco') ||
+          manufacturer.contains('redmi')) {
+        isXiaomi = true;
+      }
+    }
+
+    if (isXiaomi) {
+      basePages.add(const _OnboardingPageData(
+        permissionType: PermissionType.xiaomiCustom,
+        icon: Icons.phonelink_setup,
+        title: 'إعدادات شاومي الخاصة',
+        body: 'لضمان عمل الأذان وإضاءة الشاشة وقت الصلاة، يرجى تفعيل (الظهور على شاشة القفل) و(فتح نوافذ جديدة في الخلفية).',
+        buttonText: 'فتح إعدادات شاومي',
+        settingsHint: 'إعدادات شاومي',
+      ));
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    final List<_OnboardingPageData> pendingPages = [];
+    
+    for (var page in basePages) {
+      if (!(prefs.getBool('onboarding_step_${page.permissionType.name}') ?? false)) {
+        pendingPages.add(page);
+      }
+    }
+
+    if (mounted) {
+      setState(() {
+        _pages = pendingPages;
+        _isLoading = false;
+      });
+    }
+  }
 
   void _goToMainScreen() {
     ScaffoldMessenger.of(context).clearSnackBars();
@@ -210,15 +283,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
-  void _advancePage(OnboardingCubit cubit) {
+  Future<void> _advancePage(OnboardingCubit cubit) async {
+    // 👈 علم الخطوة دي إنها خلصت
+    await cubit.markStepAsComplete(_pages[cubit.currentPage].permissionType);
+
     ScaffoldMessenger.of(context).clearSnackBars();
-    if (cubit.currentPage < 3) {
-      cubit.nextPage();
-      _pageController.animateToPage(
-        cubit.currentPage,
-        duration: const Duration(milliseconds: 400),
+    if (cubit.currentPage < _pages.length - 1) {
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
+      cubit.nextPage();
     } else {
       cubit.completeOnboarding();
     }
@@ -232,8 +307,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: _darkBg,
+        body: Center(child: CircularProgressIndicator(color: _gold)),
+      );
+    }
     return BlocProvider(
-      create: (_) => OnboardingCubit(),
+      create: (_) => OnboardingCubit(
+        requiredPermissions: _pages.map((p) => p.permissionType).toList(),
+      ),
       child: BlocConsumer<OnboardingCubit, OnboardingState>(
         listener: (context, state) {
           if (state is OnboardingComplete) {
@@ -316,7 +399,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         // النقط
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: List.generate(4, (i) {
+                          children: List.generate(_pages.length, (i) {
                             final isActive = i == cubit.currentPage;
                             return AnimatedContainer(
                               duration: const Duration(milliseconds: 300),
@@ -445,6 +528,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 }
 
 class _OnboardingPageData {
+  final PermissionType permissionType;
   final IconData icon;
   final String title;
   final String body;
@@ -452,6 +536,7 @@ class _OnboardingPageData {
   final String settingsHint;
 
   const _OnboardingPageData({
+    required this.permissionType,
     required this.icon,
     required this.title,
     required this.body,

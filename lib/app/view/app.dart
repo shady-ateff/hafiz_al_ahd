@@ -13,7 +13,6 @@ import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit
 import 'package:hafiz_al_ahd/features/home/presentation/cubit/time_cubit.dart';
 import 'package:hafiz_al_ahd/features/main/presentation/screens/main_screen.dart';
 import 'package:hafiz_al_ahd/main.dart'; // For navigatorKey
-import 'package:hafiz_al_ahd/features/notifications/presentation/screens/adhan_screen.dart';
 import 'package:hafiz_al_ahd/features/onboarding/presentation/cubit/onboarding_cubit.dart';
 import 'package:hafiz_al_ahd/features/onboarding/presentation/screens/onboarding_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -42,14 +41,6 @@ class _AppState extends State<App> with TrayListener, WindowListener {
       trayManager.addListener(this);
       windowManager.addListener(this);
       _preventClose();
-    }
-
-    if (widget.initialRoute == 'adhan_screen') {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        navigatorKey.currentState?.push(
-          MaterialPageRoute(builder: (_) => const AdhanScreen()),
-        );
-      });
     }
   }
 
