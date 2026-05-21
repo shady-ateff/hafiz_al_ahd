@@ -15,6 +15,22 @@ class PrayerTimesEntity {
     this.maghrib,
     this.isha,
   });
+
+  /// تطبيق فرق التوقيت الصيفي (DST) على كل المواقيت.
+  /// بترجع Entity جديدة بالأوقات المُعدّلة، من غير ما تمس الأصلية.
+  PrayerTimesEntity applyDstOffset(int offsetMinutes) {
+    if (offsetMinutes == 0) return this;
+    final offset = Duration(minutes: offsetMinutes);
+    return PrayerTimesEntity(
+      fajr: fajr?.add(offset),
+      sunrise: sunrise?.add(offset),
+      dhuhr: dhuhr?.add(offset),
+      asr: asr?.add(offset),
+      maghrib: maghrib?.add(offset),
+      isha: isha?.add(offset),
+    );
+  }
+
   // دالة ذكية لمعرفة الصلاة القادمة والوقت المتبقي لها
   // بترجع Record فيه: اسم الصلاة، وقتها، والوقت المتبقي
   NextPrayerTime getNextPrayer(

@@ -1,6 +1,9 @@
 import 'dart:async';
+import 'dart:developer';
 import 'dart:io';
 
+import 'package:alarm/alarm.dart';
+import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/repos/base_notification_repository.dart';
 import 'package:timezone/data/latest.dart' as tz;
@@ -113,8 +116,8 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
       ];
     }
     String channelId = soundName != null
-        ? 'prayer_channel_v7_$soundName'
-        : 'prayer_channel_v7_default';
+        ? 'prayer_channel_v9_$soundName'
+        : 'prayer_channel_v9_default';
     AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
       channelId,
       'مواقيت الصلاة',
@@ -217,7 +220,7 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
     for (var active in activeNotifications) {
       // 2. نمسح الإشعار لو هو تبع قناة الأذان (ونسيب العداد الثابت لأنه في قناة تانية)
       if (active.channelId != null &&
-          active.channelId!.contains('prayer_channel_v7')) {
+          active.channelId!.contains('prayer_channel_v9')) {
         await flutterLocalNotificationsPlugin.cancel(id: active.id ?? -1);
       }
     }
@@ -249,33 +252,58 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
     required String body,
     required DateTime nextPrayerTime,
   }) async {
-    AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
-      'sticky_countdown_channel_v1',
-      'العد التنازلي للصلاة',
-      channelDescription: 'يعرض الوقت المتبقي للصلاة القادمة',
-      importance: Importance.low, // واطي عشان ميعملش صوت كل شوية
-      priority: Priority.low,
-      ongoing: true, // يمنع اليوزر إنه يمسحه
-      autoCancel: false,
-      showWhen: true,
-      when: nextPrayerTime
-          .millisecondsSinceEpoch, // بنديله وقت الصلاة الجاية بالملي ثانية
-      usesChronometer: true, // بيشغل العداد
-      chronometerCountDown: true, // بيخلي العداد ينزل لتحت
-      visibility: NotificationVisibility.public,
-      groupKey: 'countdown_group',
-    );
+    // 👈 استدعاء خدمة الخلفية الحقيقية (True Foreground Service) لتحديث الإشعار الثابت
+    FlutterBackgroundService().invoke('updatePrayerNotification', {
+      'title': title,
+      'body': body,
+      'nextPrayerTimeMs': nextPrayerTime.millisecondsSinceEpoch,
+    });
+  }
 
-    NotificationDetails platformSpecifics = NotificationDetails(
-      android: androidDetails,
-      iOS: const DarwinNotificationDetails(), // الـ iOS ليه حسبة تانية للويدجت
-    );
+  @override
+  Future<void> scheduleAdhanAlarm({
+    required int id,
+    required String title,
+    required String body,
+    required DateTime scheduledTime,
+    required String assetAudioPath,
+    double? volume,
+  }) async {
+    if (scheduledTime.isBefore(DateTime.now())) return;
 
-    await flutterLocalNotificationsPlugin.show(
+    final alarmSettings = AlarmSettings(
       id: id,
-      title: title,
-      body: body,
-      notificationDetails: platformSpecifics,
+      dateTime: scheduledTime,
+      assetAudioPath: assetAudioPath,
+      loopAudio: false,
+      vibrate: true,
+      androidFullScreenIntent: true,
+      androidStopAlarmOnTermination: false, // 👈 لمنع مسح الأذان عند الإغلاق (Swipe up)
+      volumeSettings: volume == 0.0
+          ? VolumeSettings.fade(
+              volume: 0.0,
+              fadeDuration: const Duration(milliseconds: 1),
+            ) // If 0, mute it completely
+          : VolumeSettings.fade(
+              volume: volume, // استخدام صوت المستخدم (أو النظام لو null)
+              fadeDuration: const Duration(seconds: 5),
+              volumeEnforced: false, // 👈 خليناها false عشان منظهرش بار الصوت الإجباري في الشاشة
+            ),
+      notificationSettings: NotificationSettings(
+        title: title,
+        body: body,
+        stopButton: 'إيقاف الأذان',
+        icon: 'ic_stat_icon',
+      ),
     );
+
+    await Alarm.set(alarmSettings: alarmSettings);
+    log('🔔 Scheduled Adhan alarm #$id at $scheduledTime ($assetAudioPath)');
+  }
+
+  @override
+  Future<void> cancelAllAlarms() async {
+    await Alarm.stopAll();
+    log('🛑 All Adhan alarms stopped');
   }
 }

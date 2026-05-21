@@ -1,8 +1,10 @@
 import 'dart:developer';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:geolocator/geolocator.dart';
+import 'package:hafiz_al_ahd/core/DI/service_locator.dart';
+import 'package:hafiz_al_ahd/features/notifications/domain/repos/base_notification_repository.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hafiz_al_ahd/core/services/location_service.dart';
-import 'package:hafiz_al_ahd/features/home/domain/entities/location_entity.dart';
+import 'package:hafiz_al_ahd/core/utils/home_widget_helper.dart';
 import 'package:hafiz_al_ahd/features/home/domain/usecases/fetch_prayer_times_orchestrator_usecase.dart';
 import 'package:hafiz_al_ahd/features/home/domain/usecases/get_cached_location_usecase.dart';
 import 'package:hafiz_al_ahd/features/home/domain/usecases/get_prayer_times_use_case.dart';
@@ -14,7 +16,8 @@ import 'package:hafiz_al_ahd/features/notifications/domain/usecases/check_locati
 import 'package:hafiz_al_ahd/features/notifications/domain/usecases/schedule_prayer_usecase.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/usecases/schedule_weekly_prayers_usecase.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/usecases/show_sticky_notification_usecase.dart';
-import 'package:hafiz_al_ahd/core/utils/calculation_method_helper.dart';
+import 'package:hafiz_al_ahd/features/settings/domain/usecases/get_iqama_delays_usecase.dart';
+import 'package:hijri/hijri_calendar.dart';
 
 class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
   // 1. الـ UseCases الخاصة بالـ UI والمواقيت
@@ -49,6 +52,9 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
     final locationChanged = await checkLocationChangeUseCase.execute();
     if (locationChanged) emit(PrayerTimesLocationChanged());
 
+    log(
+      "[prayer_cubit]Checking if we need to schedule background notifications...",
+    );
     if (checkIfSchedulingNeededUseCase.execute()) {
       scheduleWeeklyPrayersUseCase.execute(lat, lng, city);
     }
@@ -60,6 +66,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
     String city,
     String? country,
   ) async {
+    log("[prayer_cubit - _handleFetchResult] Fetching prayer times...");
     final result = await fetchOrchestrator.execute(
       lat: lat,
       lng: lng,
@@ -67,12 +74,14 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
       country: country,
     );
 
+    log("Fetch orchestrator completed. Processing result...");
     result.fold((failure) => emit(PrayerTimesError(failure.message)), (
       prayerTimes,
     ) {
+      log("Prayer times fetched successfully.");
       emit(PrayerTimesLoaded(prayerTimes, city: city));
       _updateStickyCountdown(prayerTimes);
-      _checkBackgroundScheduling(lat, lng, city);
+      // _checkBackgroundScheduling(lat, lng, city);
     });
   }
 
@@ -82,6 +91,9 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
       final position = await LocationService.determinePosition();
       final details = await LocationService.getLocationDetails(position);
 
+      log(
+        "Fetching prayer times for location: ${details.city}, ${details.country} (lat: ${position.latitude}, lng: ${position.longitude})",
+      );
       await _handleFetchResult(
         position.latitude,
         position.longitude,
@@ -100,6 +112,9 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
     String? country,
   ]) async {
     emit(PrayerTimesLoading());
+    log(
+      "Fetching prayer times for manually entered location: $city, $country (lat: $lat, lng: $lng)",
+    );
     await _handleFetchResult(lat, lng, city, country);
   }
 
@@ -107,230 +122,71 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
     emit(PrayerTimesLoading());
     final result = await getCachedLocationUseCase();
 
-    result.fold(
-      (failure) => emit(PrayerTimesNeedsManualLocation()),
-      (loc) => _handleFetchResult(
+    result.fold((failure) => emit(PrayerTimesNeedsManualLocation()), (loc) {
+      log(
+        "No location from GPS, but found cached location: ${loc.city}, ${loc.country}. Fetching prayer times for cached location...",
+      );
+      return _handleFetchResult(
         loc.latitude,
         loc.longitude,
         loc.city,
         loc.country,
-      ),
-    );
+      );
+    });
   }
-
-  // -------------------------------------------------------------------
-  //  المايسترو: الدالة الرئيسية اللي بتشتغل أول ما التطبيق يفتح
-  // -------------------------------------------------------------------
-  // Future<void> initAppAndCheckPrayers(
-  //   double lat,
-  //   double lng,
-  //   String city,
-  // ) async {
-  //   // 1. هل المكان اتغير بمسافة كبيرة؟
-  //   final locationChanged = await checkLocationChangeUseCase.execute();
-  //   if (locationChanged) {
-  //     // بنبعت State للـ UI عشان يطلع رسالة لليوزر يطلب منه تحديث المكان
-  //     emit(PrayerTimesLocationChanged());
-  //   }
-
-  //   // 2. هل إحنا محتاجين نجدول إشعارات 6 أيام؟ (هترد في جزء من الثانية من الكاش)
-  //   final needsScheduling = checkIfSchedulingNeededUseCase.execute();
-  //   if (needsScheduling) {
-  //     log("⏳ بدء عملية جدولة الإشعارات للـ 6 أيام القادمة في الخلفية...");
-  //     // بنشغلها في الخلفية من غير ما نوقف الـ UI (ممكن تحط await لو عايز تظهر Loading)
-  //     scheduleWeeklyPrayersUseCase.execute(lat, lng, city).then((_) {
-  //       log("✅ تمت الجدولة بنجاح!");
-  //     });
-  //   }
-  // }
-
-  // -------------------------------------------------------------------
-  // جلب مواقيت اليوم لعرضها في الشاشة الرئيسية (UI)
-  // -------------------------------------------------------------------
-  // Future<void> fetchPrayerTimes({
-  //   required double latitude,
-  //   required double longitude,
-  //   required DateTime date,
-  //   String? city,
-  //   String? country,
-  //   String? method,
-  // }) async {
-  //   emit(PrayerTimesLoading());
-  //   try {
-  //     final result = await getPrayerTimesUseCase(
-  //       latitude: latitude,
-  //       longitude: longitude,
-  //       date: date,
-  //       city: city,
-  //       country: country,
-  //       method: method,
-  //     );
-
-  //     result.fold((failure) => emit(PrayerTimesError(failure.message)), (
-  //       prayerTimes,
-  //     ) {
-  //       emit(PrayerTimesLoaded(prayerTimes, city: city));
-
-  //       // تشغيل العداد الثابت للصلاة القادمة
-  //       _updateStickyCountdown(prayerTimes);
-  //     });
-  //   } catch (e) {
-  //     emit(PrayerTimesError(e.toString()));
-  //   }
-  // }
 
   // -------------------------------------------------------------------
   // دالة العداد الثابت (Sticky Notification)
   // -------------------------------------------------------------------
   Future<void> _updateStickyCountdown(var prayerTimes) async {
-    DateTime now = DateTime.now();
-    DateTime? nextTime;
-    String? nextName;
+    // 1. نجلب إعدادات تأخير الإقامة من الكاش بسرعة
+    final iqamaDelaysUseCase =
+        sl<GetIqamaDelaysUseCase>(); // تأكد من استدعاء sl
+    final iqamaDelays = await iqamaDelaysUseCase.execute();
 
-    if (prayerTimes.fajr!.isAfter(now)) {
-      nextTime = prayerTimes.fajr;
-      nextName = 'الفجر';
-    } else if (prayerTimes.dhuhr!.isAfter(now)) {
-      nextTime = prayerTimes.dhuhr;
-      nextName = 'الظهر';
-    } else if (prayerTimes.asr!.isAfter(now)) {
-      nextTime = prayerTimes.asr;
-      nextName = 'العصر';
-    } else if (prayerTimes.maghrib!.isAfter(now)) {
-      nextTime = prayerTimes.maghrib;
-      nextName = 'المغرب';
-    } else if (prayerTimes.isha!.isAfter(now)) {
-      nextTime = prayerTimes.isha;
-      nextName = 'العشاء';
-    } else {
-      nextTime = prayerTimes.fajr!.add(const Duration(days: 1));
-      nextName = 'الفجر';
-    }
+    // 2. نحسب الصلاة القادمة (مدمج معها حالة الإقامة)
+    final nextPrayer = prayerTimes.getNextPrayer(
+      DateTime.now(),
+      iqamaDelays: iqamaDelays,
+    );
 
-    if (nextTime != null) {
+    // 3. تحديث الإشعار الثابت (Sticky Notification)
+    if (nextPrayer.time != null) {
       await showStickyNotificationUseCase.execute(
         id: 999,
-        title: 'الصلاة القادمة: $nextName',
-        body: 'متبقي على رفع الأذان',
-        nextPrayerTime: nextTime,
+        title: nextPrayer.isIqama
+            ? 'الإقامة القادمة: ${nextPrayer.name}'
+            : 'الصلاة القادمة: ${nextPrayer.name}',
+        body: nextPrayer.isIqama
+            ? 'متبقي على إقامة الصلاة'
+            : 'متبقي على رفع الأذان',
+        nextPrayerTime: nextPrayer.time!,
       );
     }
+
+    // 4. 👈 السطر السحري: تحديث الويدجت الخارجية (App Widget)
+    String locationName = "غير محدد";
+    final locResult = await getCachedLocationUseCase();
+    locResult.fold((l) => null, (loc) {
+      locationName = '${loc.city}، ${loc.country}';
+      _checkBackgroundScheduling(loc.latitude, loc.longitude, loc.city);
+    });
+    final hijriDate = HijriCalendar.now().toFormat("dd MMMM yyyy");
+
+    await updateNativeWidgets(nextPrayer, prayerTimes, locationName, hijriDate);
+
+    if (nextPrayer.time != null) {
+      await scheduleNextAlarm(nextPrayer.time!, prayerTimes, iqamaDelays);
+    }
+
   }
-
-  // -------------------------------------------------------------------
-  // دوال الـ GPS والـ Cache (لم تتغير، فقط نضفنا ترتيبها)
-  // -------------------------------------------------------------------
-  // Future<void> fetchPrayerTimesByLocation() async {
-  //   late Position position;
-  //   try {
-  //     emit(PrayerTimesLoading());
-  //     position = await LocationService.determinePosition();
-  //     LocationEntity locationDetails = await LocationService.getLocationDetails(
-  //       position,
-  //     );
-  //     String cityName = locationDetails.city;
-
-  //     String method = '3';
-  //     if (locationDetails.country != null) {
-  //       method = CalculationMethodHelper.getMethodForCountry(
-  //         locationDetails.country!,
-  //       );
-  //     }
-
-  //     await saveLocationUseCase(
-  //       LocationEntity(
-  //         latitude: position.latitude,
-  //         longitude: position.longitude,
-  //         city: cityName,
-  //         country: locationDetails.country,
-  //       ),
-  //     );
-
-  //     await fetchPrayerTimes(
-  //       latitude: position.latitude,
-  //       longitude: position.longitude,
-  //       date: DateTime.now(),
-  //       city: cityName,
-  //       country: locationDetails.country,
-  //       method: method,
-  //     );
-
-  //     // نبلغ المايسترو يتأكد من الجدولة
-  //     initAppAndCheckPrayers(position.latitude, position.longitude, cityName);
-  //   } catch (e) {
-  //     print("GPS Failed, loading from Cache... Error was: ${e.toString()}");
-  //     await loadPrayerTimesFromCache();
-  //   }
-  // }
-
-  // Future<void> fetchPrayerTimesManually(
-  //   double lat,
-  //   double lng,
-  //   String city, [
-  //   String? country,
-  // ]) async {
-  //   emit(PrayerTimesLoading());
-
-  //   String method = '3';
-  //   if (country != null) {
-  //     method = CalculationMethodHelper.getMethodForCountry(country);
-  //   }
-
-  //   await saveLocationUseCase(
-  //     LocationEntity(
-  //       latitude: lat,
-  //       longitude: lng,
-  //       city: city,
-  //       country: country,
-  //     ),
-  //   );
-
-  //   await fetchPrayerTimes(
-  //     latitude: lat,
-  //     longitude: lng,
-  //     date: DateTime.now(),
-  //     city: city,
-  //     country: country,
-  //     method: method,
-  //   );
-  // }
-
-  // Future<void> loadPrayerTimesFromCache() async {
-  //   emit(PrayerTimesLoading());
-
-  //   final result = await getCachedLocationUseCase();
-
-  //   result.fold((failure) => emit(PrayerTimesNeedsManualLocation()), (
-  //     location,
-  //   ) async {
-  //     String method = '3';
-  //     if (location.country != null) {
-  //       method = CalculationMethodHelper.getMethodForCountry(location.country!);
-  //     }
-
-  //     await fetchPrayerTimes(
-  //       latitude: location.latitude,
-  //       longitude: location.longitude,
-  //       date: DateTime.now(),
-  //       city: location.city,
-  //       country: location.country,
-  //       method: method,
-  //     );
-
-  //     // نبلغ المايسترو يتأكد من الجدولة
-  //     initAppAndCheckPrayers(
-  //       location.latitude,
-  //       location.longitude,
-  //       location.city,
-  //     );
-  //   });
-  // }
 
   // -------------------------------------------------------------------
   // عملية الجدولة الفورية (تستخدم عند تغيير إعدادات الإقامة أو الإشعارات)
   // -------------------------------------------------------------------
   Future<void> forceReschedule() async {
     final locationResult = await getCachedLocationUseCase();
+    fetchPrayerTimesByLocation();
     locationResult.fold(
       (failure) => log("No cached location found to reschedule!"),
       (location) async {
@@ -341,6 +197,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
           location.longitude,
           location.city,
         );
+        
         restoreStickyNotificationIfNeeded();
       },
     );
@@ -362,6 +219,9 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
       (failure) => null, // مفيش لوكيشن؟ خلاص متعملش حاجة
       (location) async {
         // نستخدم الـ Orchestrator اللي عملناه عشان نجيب المواقيت "في صمت"
+        log(
+          '[Restoring sticky notification] Fetching prayer times in the background for ${location.city}, ${location.country}...',
+        );
         final result = await fetchOrchestrator.execute(
           lat: location.latitude,
           lng: location.longitude,
@@ -380,19 +240,36 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
     );
   }
 
+  /// 👈 اختبار الأذان: بيستخدم باكيدج alarm للأذان والإشعارات العادية للإقامة
   Future<void> testNotification(int sound) async {
     print("⏳ جاري جدولة إشعار تجريبي بعد 5 ثواني...");
 
-    await schedulePrayerUseCase.execute(
-      id: 888,
-      title: 'إشعار تجريبي 🚀',
-      body: 'عاش يا هندسة! الإشعارات شغالة في الخلفية زي الفل.',
-      scheduledTime: DateTime.now().add(const Duration(seconds: 5)),
-      soundName: sound == 2
-          ? 'fajr_azan'
-          : sound == 1
-          ? 'adhan'
-          : 'iqama_sound',
-    );
+    final notificationRepository = sl<BaseNotificationRepository>();
+    final pref = sl<SharedPreferences>();
+    final double adhanVolume = pref.getDouble('adhan_volume') ?? 1.0;
+
+    if (sound == 1 || sound == 2) {
+      // 👈 أذان أو أذان الفجر — بنستخدم باكيدج alarm
+      await notificationRepository.scheduleAdhanAlarm(
+        id: 888,
+        title: 'إشعار تجريبي 🚀',
+        body: 'عاش يا هندسة! الأذان شغال بباكيدج alarm المحمي.',
+        scheduledTime: DateTime.now().add(const Duration(seconds: 5)),
+        assetAudioPath: sound == 2
+            ? 'assets/sounds/fajr_azan.mp3'
+            : 'assets/sounds/adhan.mp3',
+        volume: adhanVolume,
+      );
+    } else {
+      // 👈 إقامة — لسه بتستخدم الإشعارات العادية
+      await schedulePrayerUseCase.execute(
+        id: 888,
+        title: 'إشعار تجريبي 🚀',
+        body: 'عاش يا هندسة! الإشعارات شغالة في الخلفية زي الفل.',
+        scheduledTime: DateTime.now().add(const Duration(seconds: 5)),
+        soundName: 'iqama_sound',
+      );
+    }
   }
 }
+

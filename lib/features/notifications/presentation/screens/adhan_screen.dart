@@ -1,73 +1,206 @@
 import 'dart:async';
+import 'dart:developer';
 
+import 'package:alarm/alarm.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:slider_button/slider_button.dart'; // 👈 استيراد الباكيدج الجديدة
+import 'package:slider_button/slider_button.dart';
+import 'package:audioplayers/audioplayers.dart'; // 👈 لاستخراج مدة الصوت ديناميكياً
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
-import 'package:hafiz_al_ahd/features/notifications/data/repos/notification_repository_impl.dart';
 
 class AdhanScreen extends StatefulWidget {
   final String? payload;
   final int? notificationId;
+  final String? prayerName;
 
-  const AdhanScreen({super.key, this.payload, this.notificationId});
+  const AdhanScreen({
+    super.key,
+    this.payload,
+    this.notificationId,
+    this.prayerName,
+  });
 
   @override
   State<AdhanScreen> createState() => _AdhanScreenState();
 }
 
-class _AdhanScreenState extends State<AdhanScreen> {
-  Timer? _autoCloseTimer; // 👈 التايمر اللي هيقفل الشاشة
+class _AdhanScreenState extends State<AdhanScreen> with WidgetsBindingObserver {
+  Timer? _autoCloseTimer; // 👈 التايمر اللي هيقفل الشاشة بناءً على مدة الصوت
+  Timer? _checkExternalStopTimer; // 👈 لمراقبة لو اليوزر قفل الأذان من الإشعار
+  bool _isClosing = false; // لمنع تكرار الإغلاق
+
   void _closeScreen() async {
+    if (_isClosing) return;
     if (mounted) {
+      _isClosing = true;
       _autoCloseTimer?.cancel(); // تأمين إلغاء التايمر
-      final repo = NotificationRepositoryImpl();
-      await repo.cancelActivePrayerNotification();
+      _checkExternalStopTimer?.cancel(); // تأمين إلغاء تايمر المراقبة
+
+      // 👈 إيقاف المنبه (الصوت) عن طريق باكيدج alarm
+      if (widget.notificationId != null) {
+        await Alarm.stop(widget.notificationId!);
+        log("🛑 STOPPED ADHAN ID: ${widget.notificationId}");
+      } else {
+        // محاولة استخراج الـ ID من الـ payload (بيجي بالشكل: adhan_5)
+        final alarmId = _extractAlarmId();
+        if (alarmId != null) {
+          await Alarm.stop(alarmId);
+          log("🛑 STOPPED ADHAN from payload ID: $alarmId");
+        } else {
+          await Alarm.stopAll();
+          log("🛑 STOPPED ALL ADHAN alarms (no ID found)");
+        }
+      }
+
       SystemNavigator.pop(); // اقفل الـ Activity بالكامل
     }
+  }
+
+  /// استخراج رقم المنبه من الـ payload (مثال: "adhan_5" -> 5)
+  int? _extractAlarmId() {
+    if (widget.payload == null) return null;
+    final parts = widget.payload!.split('_');
+    if (parts.length >= 2) {
+      return int.tryParse(parts.last);
+    }
+    return null;
   }
 
   @override
   void initState() {
     super.initState();
-    _fetchRingingPrayerTitle();
+    WidgetsBinding.instance.addObserver(this); // 👈 إضافة المراقب
 
-    _autoCloseTimer = Timer(const Duration(minutes: 4, seconds: 48), () {
-      _closeScreen();
+    // إذا مررنا اسم الصلاة مباشرة من المنبه، نستخدمه
+    if (widget.prayerName != null && widget.prayerName!.isNotEmpty) {
+      prayerTitle = widget.prayerName;
+    }
+
+    // دايماً بنعمل فحص للمنبه الشغال عشان نجيب مسار الصوت منه لضبط التايمر
+    _fetchRingingAlarmData();
+
+    // 👈 تايمر كل ثانيتين يفحص لو الأذان اتقفل من الإشعار الخارجي عشان يقفل الشاشة
+    _checkExternalStopTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
+      final alarms = await Alarm.getAlarms();
+      bool anyRinging = false;
+      for (var alarm in alarms) {
+        if (await Alarm.isRinging(alarm.id)) {
+          anyRinging = true;
+          break;
+        }
+      }
+      
+      if (!anyRinging && mounted) {
+        log("🛑 All alarms stopped externally. Closing screen.");
+        _closeScreen();
+      }
     });
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // لو اليوزر داس زرار الباور (الشاشة قفلت) أو داس زرار الهوم (التطبيق نزل في الخلفية)
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.hidden) {
+      log("🛑 App went to background (Power/Home pressed). Cancelling Adhan!");
+      _closeScreen();
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this); // 👈 إزالة المراقب
     _autoCloseTimer?.cancel();
+    _checkExternalStopTimer?.cancel();
     super.dispose();
   }
 
   String? prayerTitle;
 
-  Future<void> _fetchRingingPrayerTitle() async {
+  /// إعداد التايمر ديناميكياً بقراءة طول الملف الصوتي الحقيقي (حل جذري)
+  Future<void> _setupDynamicCloseTimer(String assetPath) async {
+    final player = AudioPlayer();
+    try {
+      String relativePath = assetPath;
+      if (relativePath.startsWith('assets/')) {
+        relativePath = relativePath.substring(7); // إزالة assets/ لأن audioplayers بيفهمها ضمناً
+      }
+
+      await player.setSource(AssetSource(relativePath));
+      
+      // محاولة سحب الطول مباشرة
+      Duration? duration = await player.getDuration();
+      
+      // لو النظام مرجعش الطول فوراً، نستنى الـ Stream لمدة ثانيتين كحد أقصى عشان التطبيق ميهنجش
+      if (duration == null) {
+        try {
+          duration = await player.onDurationChanged.first.timeout(const Duration(seconds: 2));
+        } catch (_) {
+          log("⚠️ Timeout waiting for onDurationChanged");
+        }
+      }
+
+      // لو لسه مرجعش الطول (بعض أجهزة أندرويد بتحتاج تشغل الصوت الأول)، هنشغله صامت لحظة واحدة عشان يقراه
+      if (duration == null) {
+        log("⚠️ Forcing audio load to get dynamic duration...");
+        await player.setVolume(0.0);
+        await player.play(AssetSource(relativePath));
+        await Future.delayed(const Duration(milliseconds: 200));
+        duration = await player.getDuration();
+        await player.stop();
+      }
+
+      if (duration != null && duration.inSeconds > 0 && mounted) {
+        // إضافة 5 ثواني Margin لضمان انتهاء الصوت بالكامل
+        final closeDuration = duration + const Duration(seconds: 5);
+        _autoCloseTimer?.cancel();
+        _autoCloseTimer = Timer(closeDuration, () {
+          if (mounted) _closeScreen();
+        });
+        log("🕒 Dynamic auto-close timer set for ${closeDuration.inSeconds} seconds.");
+      } else {
+        _setStaticFallbackTimer(assetPath);
+      }
+    } catch (e) {
+      log("❌ Error fetching dynamic audio duration: $e");
+      _setStaticFallbackTimer(assetPath);
+    } finally {
+      await player.dispose();
+    }
+  }
+
+  void _setStaticFallbackTimer(String assetPath) {
+    int durationInSeconds = 215; 
+    if (assetPath.contains('fajr_azan')) {
+      durationInSeconds = 245; 
+    }
+    _autoCloseTimer?.cancel();
+    _autoCloseTimer = Timer(Duration(seconds: durationInSeconds), () {
+      if (mounted) _closeScreen();
+    });
+    log("🕒 Static fallback timer used: $durationInSeconds seconds.");
+  }
+
+  /// 👈 جلب بيانات المنبه الشغال حالياً (العنوان ومسار الصوت)
+  Future<void> _fetchRingingAlarmData() async {
     await Future.delayed(const Duration(milliseconds: 500));
 
-    final repo = NotificationRepositoryImpl();
-    final activeNotifications = await repo.flutterLocalNotificationsPlugin
-        .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >()
-        ?.getActiveNotifications();
+    // استخراج الـ ID الخاص بالمنبه اللي رن دلوقتي
+    final id = widget.notificationId ?? _extractAlarmId();
+    
+    if (id != null) {
+      final alarm = await Alarm.getAlarm(id);
+      if (alarm != null) {
+        // ضبط التايمر على مدة هذا الصوت بالظبط
+        _setupDynamicCloseTimer(
+          alarm.assetAudioPath ?? 'assets/sounds/adhan.mp3',
+        );
 
-    if (activeNotifications != null) {
-      for (var active in activeNotifications) {
-        if (active.channelId != null &&
-            active.channelId!.contains('prayer_channel')) {
-          if (mounted) {
-            // 👈 4. لقيناه! نحدث الشاشة فوراً بالاسم الجديد
-            setState(() {
-              prayerTitle = active.title ?? 'حان وقت الصلاة';
-            });
-          }
-          break; // نوقف اللوب خلاص
+        if (mounted && (prayerTitle == null || prayerTitle!.isEmpty)) {
+          setState(() {
+            prayerTitle = alarm.notificationSettings.title;
+          });
         }
       }
     }
@@ -84,12 +217,18 @@ class _AdhanScreenState extends State<AdhanScreen> {
     const Color goldColor = AppColors.lightGold;
     const Color darkBgColor = AppColors.deepBackground;
 
-    return Scaffold(
-      backgroundColor: darkBgColor,
-      body: SafeArea(
-        child: Padding(
-          // 👈 3. حواف متجاوبة (8% من العرض و 3% من الطول)
-          padding: EdgeInsets.symmetric(
+    return PopScope(
+      canPop: false, // 👈 يمنع الرجوع العادي للـ Home
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _closeScreen(); // 👈 ينفذ نفس أمر زرار الإيقاف ويقفل التطبيق بالكامل
+      },
+      child: Scaffold(
+        backgroundColor: darkBgColor,
+        body: SafeArea(
+          child: Padding(
+            // 👈 3. حواف متجاوبة (8% من العرض و 3% من الطول)
+            padding: EdgeInsets.symmetric(
             horizontal: size.width * 0.08,
             vertical: size.height * 0.03,
           ),
@@ -116,12 +255,14 @@ class _AdhanScreenState extends State<AdhanScreen> {
               // 6. النصوص: أحجام خطوط متجاوبة
               Text(
                 prayerTitle ?? 'حان وقت الصلاة',
+                textAlign: TextAlign.center,
                 style: GoogleFonts.cairo(
                   fontSize: isSmallScreen
                       ? 28
                       : 36, // يصغر شوية لو الشاشة قصيرة
                   fontWeight: FontWeight.bold,
                   color: goldColor,
+                  textBaseline: TextBaseline.alphabetic,
                 ),
               ),
 
@@ -181,6 +322,7 @@ class _AdhanScreenState extends State<AdhanScreen> {
           ),
         ),
       ),
+    ),
     );
   }
 }

@@ -13,7 +13,8 @@ import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit
 import 'package:hafiz_al_ahd/features/home/presentation/cubit/time_cubit.dart';
 import 'package:hafiz_al_ahd/features/main/presentation/screens/main_screen.dart';
 import 'package:hafiz_al_ahd/main.dart'; // For navigatorKey
-import 'package:hafiz_al_ahd/features/notifications/presentation/screens/adhan_screen.dart';
+import 'package:hafiz_al_ahd/features/onboarding/presentation/cubit/onboarding_cubit.dart';
+import 'package:hafiz_al_ahd/features/onboarding/presentation/screens/onboarding_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:tray_manager/tray_manager.dart';
@@ -29,21 +30,17 @@ class App extends StatefulWidget {
 
 // 2. 👈 ضفنا الـ Listeners بتاعة الويندوز والأيقونة
 class _AppState extends State<App> with TrayListener, WindowListener {
+  late Future<bool> _onboardingFuture;
+
   @override
   void initState() {
     super.initState();
+    _onboardingFuture = OnboardingCubit.isOnboardingComplete();
+
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       trayManager.addListener(this);
       windowManager.addListener(this);
       _preventClose();
-    }
-
-    if (widget.initialRoute == 'adhan_screen') {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        navigatorKey.currentState?.push(
-          MaterialPageRoute(builder: (_) => const AdhanScreen()),
-        );
-      });
     }
   }
 
@@ -115,7 +112,21 @@ class _AppState extends State<App> with TrayListener, WindowListener {
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
             themeMode: themeState.themeMode,
-            home: const MainScreen(),
+            home: FutureBuilder<bool>(
+              future: _onboardingFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Scaffold(
+                    backgroundColor: Color(0xFF121212),
+                    body: Center(
+                      child: CircularProgressIndicator(color: Color(0xFFB89B5E)),
+                    ),
+                  );
+                }
+                final isComplete = snapshot.data ?? false;
+                return isComplete ? const MainScreen() : const OnboardingScreen();
+              },
+            ),
             debugShowCheckedModeBanner: true,
             localizationsDelegates: const [
               GlobalMaterialLocalizations.delegate,

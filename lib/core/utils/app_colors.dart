@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 class AppColors {
   static const Color primaryBlack = Color(0xFF1E1E1E);
   static const Color secondaryGold = Color(0xFFbc8c15);
-  static const Color lightGold = Color(0xFFF9D406);
+  static const Color lightGold = Color(0xFFF9D406); 
+  // static const Color lightGold = Color(0xFFB89B5E); 
+
   static const Color silverMarble = Color(0xFFE0E0E0);
   static const Color iqamaWarning = Color(0xFFD84315);
   static const Color darkSilverMarble = Color(0xFFc4c8ca);

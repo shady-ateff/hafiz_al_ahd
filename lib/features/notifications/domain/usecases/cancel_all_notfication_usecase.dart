@@ -7,6 +7,9 @@ class CancelAllNotificationsUseCase {
   CancelAllNotificationsUseCase(this.repository);
 
   Future<void> execute() async {
+    // 👈 مسح كل المنبهات (الأذان) اللي اتجدولت عن طريق باكيدج alarm
+    await repository.cancelAllAlarms();
+    // 👈 مسح كل الإشعارات العادية (الإقامة + الـ sticky)
     return await repository.cancelAllNotifications();
   }
 }

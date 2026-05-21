@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -20,13 +21,13 @@ class _HomeScreenState extends State<HomeScreen>
   @override
   void initState() {
     super.initState();
-    context.read<PrayerTimesCubit>().fetchPrayerTimesByLocation();
   }
 
   @override
   bool get wantKeepAlive => true;
   @override
   Widget build(BuildContext context) {
+    super.build(context); // 👈 لازم تنادي السوبر عشان يحافظ على الـ State
     return Scaffold(
       // الـ Scaffold بياخد الخلفية أوتوماتيك من الـ Theme
       appBar: AppBar(
@@ -34,7 +35,7 @@ class _HomeScreenState extends State<HomeScreen>
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
-              context.read<PrayerTimesCubit>().fetchPrayerTimesByLocation();
+              context.read<PrayerTimesCubit>().forceReschedule();
             },
           ),
         ],
@@ -106,16 +107,18 @@ class _HomeScreenState extends State<HomeScreen>
           },
         ),
       ),
-      floatingActionButton: BlocBuilder<PrayerTimesCubit, PrayerTimesStates>(
-        builder: (context, state) {
-          return FloatingActionButton(
-            onPressed: () {
-              context.read<PrayerTimesCubit>().testNotification(1);
-            },
-            child: const Icon(Icons.refresh),
-          );
-        },
-      ),
+      floatingActionButton: kDebugMode
+          ? BlocBuilder<PrayerTimesCubit, PrayerTimesStates>(
+              builder: (context, state) {
+                return FloatingActionButton(
+                  onPressed: () {
+                    context.read<PrayerTimesCubit>().testNotification(1);
+                  },
+                  child: const Icon(Icons.refresh),
+                );
+              },
+            )
+          : null,
     );
   }
 

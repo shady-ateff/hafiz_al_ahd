@@ -16,14 +16,14 @@ class QiblaScreen extends StatefulWidget {
   State<QiblaScreen> createState() => _QiblaScreenState();
 }
 class _QiblaScreenState extends State<QiblaScreen> {
-  // 1. المتغير ده static عشان نسأل الأندرويد مرة واحدة بس في عمر التطبيق
-  static Future<bool?>? _deviceSupportFuture;
+  // شلنا الـ static عشان نعطي البلوجن وقت (Async Gap) يعمل Reset للسنسور
+  // لو دخلنا وخرجنا بسرعة، الـ FlutterQiblah بيعلق لو معملناش await
+  Future<bool?>? _deviceSupportFuture;
 
   @override
   void initState() {
     super.initState();
-    // لو سألناه قبل كده، مش هنسأله تاني!
-    _deviceSupportFuture ??= FlutterQiblah.androidDeviceSensorSupport();
+    _deviceSupportFuture = FlutterQiblah.androidDeviceSensorSupport();
   }
 
   @override
@@ -76,107 +76,130 @@ class _QiblaScreenState extends State<QiblaScreen> {
   }
 }
 
-class _QiblaCompassWidget extends StatelessWidget {
+class _QiblaCompassWidget extends StatefulWidget {
   const _QiblaCompassWidget();
 
-  // 2. المتغير ده static هيحفظ آخر زاوية البوصلة وقفت عليها
+  @override
+  State<_QiblaCompassWidget> createState() => _QiblaCompassWidgetState();
+}
+
+class _QiblaCompassWidgetState extends State<_QiblaCompassWidget> {
   static QiblahDirection? _lastDirection;
+  Stream<QiblahDirection>? _qiblahStream;
+
+  @override
+  void initState() {
+    super.initState();
+    // تأخير 300 ملي ثانية لعلاج الـ Race Condition في قناة الـ Native
+    // بحيث نعطي النظام وقت يقفل البوصلة القديمة قبل ما يفتح الجديدة لو اليوزر فتح الشاشة وقفلها بسرعة
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        setState(() {
+          _qiblahStream = FlutterQiblah.qiblahStream;
+        });
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_qiblahStream == null) {
+      if (_lastDirection != null) {
+        return _buildUI(context, _lastDirection!);
+      }
+      return const Center(child: CircularProgressIndicator(color: Colors.amber));
+    }
+
     return StreamBuilder<QiblahDirection>(
-      stream: FlutterQiblah.qiblahStream,
-      initialData: _lastDirection, // 3. السر هنا! ابدأ بآخر قراءة مخزنة فوراً
+      stream: _qiblahStream,
       builder: (_, AsyncSnapshot<QiblahDirection> snapshot) {
-        
-        // 4. تحديث الكاش أول ما داتا جديدة توصل
         if (snapshot.hasData) {
           _lastDirection = snapshot.data;
         }
 
-        // لو مفيش كاش ومفيش داتا لسة (أول فتحة خالص للتطبيق)
-        if (snapshot.connectionState == ConnectionState.waiting && _lastDirection == null) {
+        final qiblahDirection = snapshot.data ?? _lastDirection;
+        
+        if (qiblahDirection == null) {
           return const Center(child: CircularProgressIndicator(color: Colors.amber));
         }
 
-        final qiblahDirection = snapshot.data ?? _lastDirection;
-        if (qiblahDirection == null) return const SizedBox();
-
-        final compassAngle = (qiblahDirection.qiblah * (pi / 180) * -1);
-
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Expanded(
-                flex: 1,
-                child: Text(
-                  'قم بتدوير الهاتف حتى يتطابق السهم مع القبلة',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.cairo(color: context.secondaryText, fontSize: 16),
-                ),
-              ),
-              const SizedBox(height: 50),
-
-              Expanded(
-                flex: 4,
-                child: Transform.rotate(
-                  angle: compassAngle,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      Container(
-                        width: 280,
-                        height: 280,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: context.borderGold, width: 2),
-                        ),
-                        child: Center(
-                          child: Icon(Icons.explore_outlined, size: 270, color: context.divider),
-                        ),
-                      ),
-                      Transform.translate(
-                        offset: const Offset(0, -100),
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            const GradientIcon(icon: Icons.navigation, size: 90),
-                            Image.asset(
-                              'assets/icons/kaaba_haram.png',
-                              width: 30,
-                              height: 30,
-                              color: context.cardBg,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 50),
-              Expanded(
-                child: GradientText(
-                  '${qiblahDirection.direction.toInt()}°',
-                  style: GoogleFonts.cairo(fontSize: 48, fontWeight: FontWeight.bold),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Expanded(
-                child: Text(
-                  'ضع الهاتف بشكل مسطح للحصول على أدق نتيجة',
-                  style: GoogleFonts.cairo(
-                    color: context.secondaryText.withValues(alpha: 0.7),
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
+        return _buildUI(context, qiblahDirection);
       },
+    );
+  }
+
+  Widget _buildUI(BuildContext context, QiblahDirection qiblahDirection) {
+    final compassAngle = (qiblahDirection.qiblah * (pi / 180) * -1);
+
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Expanded(
+            flex: 1,
+            child: Text(
+              'قم بتدوير الهاتف حتى يتطابق السهم مع القبلة',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.cairo(color: context.secondaryText, fontSize: 16),
+            ),
+          ),
+          const SizedBox(height: 50),
+          Expanded(
+            flex: 4,
+            child: Transform.rotate(
+              angle: compassAngle,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    width: 280,
+                    height: 280,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: context.borderGold, width: 2),
+                    ),
+                    child: Center(
+                      child: Icon(Icons.explore_outlined, size: 270, color: context.divider),
+                    ),
+                  ),
+                  Transform.translate(
+                    offset: const Offset(0, -100),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        const GradientIcon(icon: Icons.navigation, size: 90),
+                        Image.asset(
+                          'assets/icons/kaaba_haram.png',
+                          width: 30,
+                          height: 30,
+                          color: context.cardBg,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 50),
+          Expanded(
+            child: GradientText(
+              '${qiblahDirection.direction.toInt()}°',
+              style: GoogleFonts.cairo(fontSize: 48, fontWeight: FontWeight.bold),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Expanded(
+            child: Text(
+              'ضع الهاتف بشكل مسطح للحصول على أدق نتيجة',
+              style: GoogleFonts.cairo(
+                color: context.secondaryText.withValues(alpha: 0.7),
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
