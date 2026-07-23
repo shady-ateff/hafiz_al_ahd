@@ -20,7 +20,7 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-          cache: true # تفعيل الكاش لتقليل زمن البناء لـ 40 ثانية فقط
+          cache: true # تفعيل الكاش لتقليل زمن البناء لـ 40 ثانية فق
 
       - name: 📦 Install Dependencies
         run: flutter pub get
