@@ -18,7 +18,8 @@ import 'package:hafiz_al_ahd/features/gamification/presentation/cubit/gamificati
 import 'package:hafiz_al_ahd/features/gamification/presentation/cubit/gamification_state.dart';
 
 class AzkarScreen extends StatefulWidget {
-  const AzkarScreen({super.key});
+  final String? initialCategory;
+  const AzkarScreen({super.key, this.initialCategory});
 
   @override
   State<AzkarScreen> createState() => _AzkarScreenState();
@@ -26,6 +27,7 @@ class AzkarScreen extends StatefulWidget {
 
 class _AzkarScreenState extends State<AzkarScreen> {
   String _searchQuery = '';
+  bool _hasNavigatedToInitial = false;
 
   void _navigateToCategory(
     BuildContext context,
@@ -69,7 +71,23 @@ class _AzkarScreenState extends State<AzkarScreen> {
           ],
         ),
         body: SafeArea(
-          child: BlocBuilder<AzkarCubit, AzkarState>(
+          child: BlocConsumer<AzkarCubit, AzkarState>(
+            listener: (context, state) {
+              if (state is AzkarLoaded &&
+                  !_hasNavigatedToInitial &&
+                  widget.initialCategory != null) {
+                final list = state.azkarMap[widget.initialCategory!];
+                if (list != null && list.isNotEmpty) {
+                  _hasNavigatedToInitial = true;
+                  // استخدام Future.microtask لضمان إتمام الـ Build الحالي قبل الانتقال
+                  Future.microtask(() {
+                    if (mounted) {
+                      _navigateToCategory(context, widget.initialCategory!, list);
+                    }
+                  });
+                }
+              }
+            },
             builder: (context, state) {
               if (state is AzkarLoading || state is AzkarInitial) {
                 return const Center(

@@ -15,28 +15,33 @@ import 'package:hafiz_al_ahd/features/gamification/presentation/cubit/gamificati
 import 'package:hafiz_al_ahd/features/gamification/presentation/widgets/achievement_dialog.dart';
 
 class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
+  final int initialTab;
+  final String? initialAzkarCategory;
+  const MainScreen({super.key, this.initialTab = 0, this.initialAzkarCategory});
 
   @override
   State<MainScreen> createState() => _MainScreenState();
 }
 
 class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
-  int _currentIndex = 0;
+  late int _currentIndex;
 
   // 👈 1. تعريف الـ PageController
   late PageController _pageController;
 
-  final List<Widget> _screens = const [
-    HomeScreen(),
-    QiblaScreen(),
-    AzkarScreen(),
-    SettingsScreen(),
-  ];
+  late final List<Widget> _screens;
 
   @override
   void initState() {
     super.initState();
+    _currentIndex = widget.initialTab;
+    
+    _screens = [
+      const HomeScreen(),
+      const QiblaScreen(),
+      AzkarScreen(initialCategory: widget.initialAzkarCategory),
+      const SettingsScreen(),
+    ];
     // 👈 2. تهيئة الـ Controller وإعطاؤه الصفحة الافتراضية
     _pageController = PageController(initialPage: _currentIndex);
     WidgetsBinding.instance.addObserver(this);

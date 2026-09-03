@@ -38,6 +38,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isIqamaEnabled = true;
   bool _isDstEnabled = false;
   double _adhanVolume = 1.0;
+  bool _isAdhanVibrationEnabled = true;
+  bool _isAzkarReminderEnabled = true;
 
   @override
   void initState() {
@@ -55,6 +57,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _isIqamaEnabled = prefs.getBool('isIqamaEnabled') ?? true;
       _isDstEnabled = (prefs.getInt('dst_offset_minutes') ?? 0) > 0;
       _adhanVolume = prefs.getDouble('adhan_volume') ?? 1.0;
+      _isAdhanVibrationEnabled = prefs.getBool('isAdhanVibrationEnabled') ?? true;
+      _isAzkarReminderEnabled = prefs.getBool('isAzkarReminderEnabled') ?? true;
       _isLoading = false;
     });
   }
@@ -66,6 +70,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await saveUseCase.execute(_delays);
     await prefs.setBool('isIqamaEnabled', _isIqamaEnabled);
     await prefs.setDouble('adhan_volume', _adhanVolume);
+    await prefs.setBool('isAdhanVibrationEnabled', _isAdhanVibrationEnabled);
+    await prefs.setBool('isAzkarReminderEnabled', _isAzkarReminderEnabled);
 
     // مسح الكاش ده هيخلي الـ Cubit يعتبر إنه مفيش إشعارات متجدولة، فيمسح القديم ويـ schedule من الأول
     await prefs.remove('scheduled_until_date');
@@ -245,6 +251,75 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     const SizedBox(height: 28),
 
+                    // ── Azkar Reminders Toggle ──────────────────────────────────────────
+                    _buildSectionTitle('تذكير الأذكار', textColor),
+                    const SizedBox(height: 12),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: cardColor,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: AppColors.secondaryGold.withOpacity(0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.notifications_active_rounded,
+                              color: AppColors.secondaryGold,
+                              size: 22,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'تفعيل إشعارات الأذكار',
+                                    style: GoogleFonts.cairo(
+                                      color: textColor,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  Text(
+                                    'أذكار الصباح والمساء وبعد الصلاة',
+                                    style: GoogleFonts.cairo(
+                                      color: textColor.withOpacity(0.6),
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Transform.scale(
+                              scale: 0.85,
+                              child: Switch(
+                                value: _isAzkarReminderEnabled,
+                                activeColor: AppColors.secondaryGold,
+                                activeTrackColor: AppColors.secondaryGold
+                                    .withOpacity(0.3),
+                                inactiveThumbColor: const Color(0xFF7A6840),
+                                inactiveTrackColor: const Color(0xFFE8D9B5),
+                                onChanged: (val) {
+                                  setState(() {
+                                    _isAzkarReminderEnabled = val;
+                                  });
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+
                     // ── Adhan Volume Slider ──────────────────────────────────────────
                     _buildSectionTitle('مستوى صوت الأذان', textColor),
                     const SizedBox(height: 12),
@@ -312,6 +387,62 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   fontWeight: FontWeight.bold,
                                   fontSize: 14,
                                 ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+
+                    // ── Adhan Vibration Toggle ──────────────────────────────────────────
+                    _buildSectionTitle('الاهتزاز (Vibration)', textColor),
+                    const SizedBox(height: 12),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: cardColor,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: AppColors.secondaryGold.withOpacity(0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.vibration_rounded,
+                              color: AppColors.secondaryGold,
+                              size: 22,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'الاهتزاز مع الأذان',
+                                style: GoogleFonts.cairo(
+                                  color: textColor,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            Transform.scale(
+                              scale: 0.85,
+                              child: Switch(
+                                value: _isAdhanVibrationEnabled,
+                                activeColor: AppColors.secondaryGold,
+                                activeTrackColor: AppColors.secondaryGold
+                                    .withOpacity(0.3),
+                                inactiveThumbColor: const Color(0xFF7A6840),
+                                inactiveTrackColor: const Color(0xFFE8D9B5),
+                                onChanged: (val) {
+                                  setState(() => _isAdhanVibrationEnabled = val);
+                                  _saveSettings(); // حفظ وإعادة جدولة فوراً
+                                },
                               ),
                             ),
                           ],

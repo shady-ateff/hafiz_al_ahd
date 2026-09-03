@@ -11,6 +11,7 @@ import 'package:hafiz_al_ahd/app/view/app.dart';
 import 'package:hafiz_al_ahd/core/DI/service_locator.dart' as di;
 import 'package:hafiz_al_ahd/core/services/background_service_manager.dart'; // 👈 استيراد خدمة الخلفية
 import 'package:hafiz_al_ahd/core/services/desktop_window_service.dart';
+import 'package:hafiz_al_ahd/features/main/presentation/screens/main_screen.dart';
 // 👈 استدعي الـ Base بدلاً من الـ Impl
 import 'package:hafiz_al_ahd/features/notifications/domain/repos/base_notification_repository.dart';
 import 'package:hafiz_al_ahd/features/notifications/presentation/screens/adhan_screen.dart';
@@ -107,9 +108,20 @@ void main(List<String> args) async {
       return;
     }
 
-    // 👈 فقط لو الـ payload بتاع أذان (بيبدأ بـ adhan_)
     if (payload.startsWith('adhan_')) {
       _openAdhanScreen(payload: payload);
+    } else if (payload.startsWith('azkar_')) {
+      String? category;
+      if (payload == 'azkar_morning') category = 'أذكار الصباح';
+      else if (payload == 'azkar_evening') category = 'أذكار المساء';
+      else if (payload == 'azkar_after_prayer') category = 'أذكار بعد الصلاة';
+
+      navigatorKey.currentState?.pushAndRemoveUntil(
+        MaterialPageRoute(
+          builder: (context) => MainScreen(initialTab: 2, initialAzkarCategory: category),
+        ),
+        (route) => false,
+      );
     }
     // أي payload تاني (iqama_, test, إلخ) مبيفتحش شاشة الأذان
   });
@@ -124,44 +136,101 @@ void main(List<String> args) async {
   // ---------------------------------------------------------
   WidgetsBinding.instance.addPostFrameCallback((_) async {
     // 7a. الاستماع لباكيدج المنبه (alarm) — لما الأذان يرن
-    Alarm.ringing.listen((AlarmSet alarmSet) {
+    Alarm.ringing.listen((AlarmSet alarmSet) async {
+      // إذا كان هناك منبهات متعددة رنت في نفس اللحظة (مثلاً الجهاز كان مغلقاً)، نحتفظ بالأحدث فقط
+      AlarmSettings? latestAlarm;
       for (final alarm in alarmSet.alarms) {
+        if (latestAlarm != null) {
+          // أوقف المنبه القديم بصمت
+          await Alarm.stop(latestAlarm.id);
+          log("[alarm ringing] Stopped older alarm: ${latestAlarm.id} due to stacking");
+        }
+        latestAlarm = alarm;
+      }
+      
+      if (latestAlarm != null) {
+        // إذا كان الأذان الأحدث قد مر على وقته أكثر من 5 دقائق (بسبب إغلاق الهاتف)، نتجاهله
+        if (DateTime.now().difference(latestAlarm.dateTime).inMinutes > 5) {
+           await Alarm.stop(latestAlarm.id);
+           log("[alarm ringing] Stopped expired alarm: ${latestAlarm.id}");
+           return;
+        }
+
         log(
-          "[alarm ringing] Alarm ringing: ${alarm.id} - ${alarm.notificationSettings.title}",
+          "[alarm ringing] Alarm ringing: ${latestAlarm.id} - ${latestAlarm.notificationSettings.title}",
         );
         _openAdhanScreen(
-          payload: 'adhan_${alarm.id}',
-          notificationId: alarm.id,
-          prayerName: alarm.notificationSettings.title,
+          payload: 'adhan_${latestAlarm.id}_${latestAlarm.notificationSettings.title}',
+          notificationId: latestAlarm.id,
+          prayerName: latestAlarm.notificationSettings.title,
         );
       }
     });
 
-    // 7b. لو التطبيق اتفتح وفيه منبه بيرن دلوقتي (app was terminated)
-    final alarms = await Alarm.getAlarms();
-    for (final alarm in alarms) {
-      if (await Alarm.isRinging(alarm.id)) {
-        _openAdhanScreen(
-          payload: 'adhan_${alarm.id}',
-          notificationId: alarm.id,
-          prayerName: alarm.notificationSettings.title,
-        );
-        break; // لقينا الأذان اللي بيرن، افتح الشاشة ووقف
-      }
-    }
-
-    // 7c. لو التطبيق اتفتح من إشعار عادي (flutter_local_notifications)
+    // 7b. التحقق من إشعارات flutter_local_notifications (عشان نعرف لو اليوزر داس على حاجة)
     final NotificationAppLaunchDetails? notificationAppLaunchDetails =
         await FlutterLocalNotificationsPlugin()
             .getNotificationAppLaunchDetails();
 
+    bool launchedFromSticky = false;
+
     if (notificationAppLaunchDetails?.didNotificationLaunchApp ?? false) {
       final payload =
           notificationAppLaunchDetails?.notificationResponse?.payload;
-      // 👈 فقط لو الإشعار بتاع أذان
-      if (payload != null && payload.startsWith('adhan_')) {
-        _openAdhanScreen(payload: payload);
+          
+      if (payload == 'sticky') {
+        launchedFromSticky = true;
       }
+
+      // نستخدم نفس اللوجيك اللي فوق لتوحيد التوجيه (الأذان أو الأذكار)
+      if (payload != null) {
+        if (payload.startsWith('adhan_')) {
+          _openAdhanScreen(payload: payload);
+        } else if (payload.startsWith('azkar_')) {
+          String? category;
+          if (payload == 'azkar_morning') category = 'أذكار الصباح';
+          else if (payload == 'azkar_evening') category = 'أذكار المساء';
+          else if (payload == 'azkar_after_prayer') category = 'أذكار بعد الصلاة';
+
+          navigatorKey.currentState?.pushAndRemoveUntil(
+            MaterialPageRoute(
+              builder: (context) => MainScreen(initialTab: 2, initialAzkarCategory: category),
+            ),
+            (route) => false,
+          );
+        }
+      }
+    }
+
+    // 7c. لو التطبيق اتفتح وفيه منبه بيرن دلوقتي (app was terminated)
+    final alarms = await Alarm.getAlarms();
+    AlarmSettings? latestRingingAlarm;
+    
+    for (final alarm in alarms) {
+      if (await Alarm.isRinging(alarm.id)) {
+        if (latestRingingAlarm != null) {
+           await Alarm.stop(latestRingingAlarm.id);
+           log("[cold start] Stopped older ringing alarm: ${latestRingingAlarm.id}");
+        }
+        latestRingingAlarm = alarm;
+      }
+    }
+    
+    if (latestRingingAlarm != null) {
+        if (launchedFromSticky) {
+           // لو اليوزر داس على الـ sticky notification، نوقف المنبه بصمت ومبنفتحش شاشة الأذان
+           await Alarm.stop(latestRingingAlarm.id);
+           log("[cold start] Stopped ringing alarm silently because launched from sticky: ${latestRingingAlarm.id}");
+        } else if (DateTime.now().difference(latestRingingAlarm.dateTime).inMinutes > 5) {
+           await Alarm.stop(latestRingingAlarm.id);
+           log("[cold start] Stopped expired ringing alarm: ${latestRingingAlarm.id}");
+        } else {
+          _openAdhanScreen(
+            payload: 'adhan_${latestRingingAlarm.id}_${latestRingingAlarm.notificationSettings.title}',
+            notificationId: latestRingingAlarm.id,
+            prayerName: latestRingingAlarm.notificationSettings.title,
+          );
+        }
     }
   });
 }

@@ -53,16 +53,20 @@ class _AdhanScreenState extends State<AdhanScreen> with WidgetsBindingObserver {
         }
       }
 
-      SystemNavigator.pop(); // اقفل الـ Activity بالكامل
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      } else {
+        SystemNavigator.pop();
+      }
     }
   }
 
-  /// استخراج رقم المنبه من الـ payload (مثال: "adhan_5" -> 5)
+  /// استخراج رقم المنبه من الـ payload (مثال: "adhan_5_الفجر" -> 5)
   int? _extractAlarmId() {
     if (widget.payload == null) return null;
     final parts = widget.payload!.split('_');
     if (parts.length >= 2) {
-      return int.tryParse(parts.last);
+      return int.tryParse(parts[1]);
     }
     return null;
   }

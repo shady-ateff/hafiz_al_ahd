@@ -32,8 +32,16 @@ class _HomeScreenState extends State<HomeScreen>
       // الـ Scaffold بياخد الخلفية أوتوماتيك من الـ Theme
       appBar: AppBar(
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
+          TextButton.icon(
+            icon: const Icon(Icons.refresh, color: AppColors.secondaryGold),
+            label: Text(
+              'تحديث',
+              style: GoogleFonts.cairo(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: AppColors.secondaryGold,
+              ),
+            ),
             onPressed: () {
               context.read<PrayerTimesCubit>().forceReschedule();
             },
@@ -56,14 +64,14 @@ class _HomeScreenState extends State<HomeScreen>
           },
           builder: (context, state) {
             return Row(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.max,
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 const Icon(
                   Icons.location_on_outlined,
                   color: AppColors.secondaryGold,
+                  size: 20,
                 ),
-                const SizedBox(width: 8),
                 Text(
                   state is PrayerTimesLoaded
                       ? state.city ?? "غير معروف"

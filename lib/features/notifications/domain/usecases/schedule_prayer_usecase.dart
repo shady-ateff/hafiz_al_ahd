@@ -11,6 +11,7 @@ class SchedulePrayerUseCase {
     required String body,
     required DateTime scheduledTime,
     String? soundName,
+    String? payload,
   }) async {
     // هنا ممكن نضيف أي Logic مستقبلاً (مثلاً: لو وقت الصلاة في الماضي متعملش جدولة)
     if (scheduledTime.isBefore(DateTime.now())) return;
@@ -21,6 +22,7 @@ class SchedulePrayerUseCase {
       body: body,
       scheduledTime: scheduledTime,
       soundName: soundName,
+      payload: payload,
     );
   }
 }

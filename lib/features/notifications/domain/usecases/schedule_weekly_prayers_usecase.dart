@@ -63,6 +63,7 @@ class ScheduleWeeklyPrayersUseCase {
   Future<int> _schedulePrayersForDay(var prayerTimes, int currentId) async {
     final Map<String, int> iqamaDelays = await getIqamaDelaysUseCase.execute();
     final double adhanVolume = pref.getDouble('adhan_volume') ?? 1.0; // 👈 سحبنا مستوى الصوت
+    final bool isAdhanVibrationEnabled = pref.getBool('isAdhanVibrationEnabled') ?? true; // 👈 الاهتزاز
 
     final prayers = [
       (name: 'الفجر', time: prayerTimes.fajr, key: 'fajr'),
@@ -94,6 +95,7 @@ class ScheduleWeeklyPrayersUseCase {
               ? 'assets/sounds/fajr_azan.mp3'
               : 'assets/sounds/adhan.mp3',
           volume: adhanVolume, // 👈 تمرير الصوت هنا
+          enableVibration: isAdhanVibrationEnabled, // 👈 تمرير الاهتزاز
         );
       }
 
@@ -116,6 +118,61 @@ class ScheduleWeeklyPrayersUseCase {
             body: 'تجهز للصلاة، ستقام الصلاة الآن',
             scheduledTime: iqamaTime,
             soundName: 'iqama_sound',
+          );
+        }
+      }
+
+      // 3. جدولة تذكير الأذكار (بعد الصلاة، الصباح، المساء)
+      bool isAzkarReminderEnabled = pref.getBool('isAzkarReminderEnabled') ?? true;
+      
+      if (isAzkarReminderEnabled) {
+        // جدولة أذكار بعد الصلاة لجميع الصلوات دائماً
+        DateTime azkarAfterPrayerTime;
+        if (isIqamaEnabled && iqamaDelay > 0) {
+          azkarAfterPrayerTime = prayer.time!.add(Duration(minutes: iqamaDelay + 5));
+        } else {
+          azkarAfterPrayerTime = prayer.time!.add(const Duration(minutes: 25));
+        }
+
+        if (azkarAfterPrayerTime.isAfter(DateTime.now())) {
+          log("📿 Scheduling Azkar (أذكار بعد الصلاة) at $azkarAfterPrayerTime");
+          await schedulePrayerUseCase.execute(
+            id: currentId++,
+            title: 'أذكار بعد الصلاة',
+            body: 'تقبل الله صلاتك، لا تنس أذكار ما بعد صلاة ${prayer.name}.',
+            scheduledTime: azkarAfterPrayerTime,
+            payload: 'azkar_after_prayer',
+          );
+        }
+
+        // جدولة أذكار الصباح والمساء الخاصة بالفجر والعصر
+        DateTime? specificAzkarTime;
+        String? specificAzkarTitle;
+        String? specificAzkarBody;
+        String? specificAzkarPayload;
+
+        if (prayer.key == 'fajr') {
+          // أذكار الصباح بعد الفجر بـ 30 دقيقة
+          specificAzkarTime = prayer.time!.add(const Duration(minutes: 30));
+          specificAzkarTitle = 'أذكار الصباح';
+          specificAzkarBody = 'حان وقت أذكار الصباح، احفظ عهدك مع الله.';
+          specificAzkarPayload = 'azkar_morning';
+        } else if (prayer.key == 'asr') {
+          // أذكار المساء بعد العصر بـ 30 دقيقة
+          specificAzkarTime = prayer.time!.add(const Duration(minutes: 30));
+          specificAzkarTitle = 'أذكار المساء';
+          specificAzkarBody = 'حان وقت أذكار المساء، احفظ عهدك مع الله.';
+          specificAzkarPayload = 'azkar_evening';
+        }
+
+        if (specificAzkarTime != null && specificAzkarTime.isAfter(DateTime.now())) {
+          log("📿 Scheduling Azkar ($specificAzkarTitle) at $specificAzkarTime");
+          await schedulePrayerUseCase.execute(
+            id: currentId++,
+            title: specificAzkarTitle!,
+            body: specificAzkarBody!,
+            scheduledTime: specificAzkarTime,
+            payload: specificAzkarPayload!,
           );
         }
       }

@@ -101,6 +101,7 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
     required String body,
     required DateTime scheduledTime,
     String? soundName,
+    String? payload,
   }) async {
     bool isAdhan = (soundName == 'adhan' || soundName == 'fajr_azan');
     List<AndroidNotificationAction>? actions;
@@ -137,7 +138,7 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
       fullScreenIntent:
           isAdhan, // لو الأذان، نخليها fullScreen عشان تفتح الشاشة حتى لو التليفون مقفول
       ticker: 'مواقيت الصلاة',
-      largeIcon: DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
+      largeIcon: const DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
       timeoutAfter: 30 * 60 * 1000, // 30 دقيقة عشان لو ما انضغطش يختفي
       visibility: NotificationVisibility.public,
       enableVibration: true,
@@ -145,6 +146,7 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
       groupKey: 'adhan_group',
       ongoing: isAdhan, // 👈 بتخليه زي إشعار المكالمة مبيتمسحش بالسحب
       autoCancel: !isAdhan, // 👈 تمنع مسحه بمجرد اللمس
+      actions: actions, // 👈 إضافة الأكشن لزر إيقاف الأذان
     );
 
     DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
@@ -161,6 +163,9 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
       windows: windowsDetails,
     );
 
+    String payloadData =
+        payload ?? (isAdhan ? 'adhan_${id}_$title' : 'iqama_${id}_$title');
+
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       final delay = scheduledTime.difference(DateTime.now());
       if (!delay.isNegative) {
@@ -170,14 +175,13 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
             title: title,
             body: body,
             notificationDetails: platformSpecifics,
-            payload: 'adhan_screen',
+            payload: payloadData,
           );
         });
       }
       return;
     }
 
-    String payloadData = isAdhan ? 'adhan_${id}_$title' : 'iqama_${id}_$title';
     final tz.TZDateTime tzScheduledTime = tz.TZDateTime.from(
       scheduledTime,
       tz.local,
@@ -233,6 +237,7 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
     required String body,
     required DateTime scheduledTime,
     String? soundName,
+    String? payload,
   }) async {
     if (scheduledTime.isBefore(DateTime.now())) return;
 
@@ -242,6 +247,7 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
       body: body,
       scheduledTime: scheduledTime,
       soundName: soundName,
+      payload: payload,
     );
   }
 
@@ -268,17 +274,27 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
     required DateTime scheduledTime,
     required String assetAudioPath,
     double? volume,
+    bool enableVibration = true,
   }) async {
-    if (scheduledTime.isBefore(DateTime.now())) return;
+    // 👈 لا نجدول منبه في الماضي أو بعد أقل من دقيقة لتجنب الأخطاء وقت الـ Boot
+    // باستثناء المنبه التجريبي (id == 888) اللي بيتجدو[ل بعد 5 ثواني
+    if (id != 888 &&
+        scheduledTime.difference(DateTime.now()).inMinutes < 1 &&
+        scheduledTime.isBefore(
+          DateTime.now().add(const Duration(minutes: 1)),
+        )) {
+      return;
+    }
 
     final alarmSettings = AlarmSettings(
       id: id,
       dateTime: scheduledTime,
       assetAudioPath: assetAudioPath,
       loopAudio: false,
-      vibrate: true,
+      vibrate: enableVibration,
       androidFullScreenIntent: true,
-      androidStopAlarmOnTermination: false, // 👈 لمنع مسح الأذان عند الإغلاق (Swipe up)
+      androidStopAlarmOnTermination:
+          false, // 👈 لمنع مسح الأذان عند الإغلاق (Swipe up)
       volumeSettings: volume == 0.0
           ? VolumeSettings.fade(
               volume: 0.0,
@@ -287,7 +303,8 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
           : VolumeSettings.fade(
               volume: volume, // استخدام صوت المستخدم (أو النظام لو null)
               fadeDuration: const Duration(seconds: 5),
-              volumeEnforced: false, // 👈 خليناها false عشان منظهرش بار الصوت الإجباري في الشاشة
+              volumeEnforced:
+                  false, // 👈 خليناها false عشان منظهرش بار الصوت الإجباري في الشاشة
             ),
       notificationSettings: NotificationSettings(
         title: title,
