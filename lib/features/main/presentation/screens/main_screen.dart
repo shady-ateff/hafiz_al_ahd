@@ -10,6 +10,9 @@ import 'package:hafiz_al_ahd/features/home/presentation/screens/home_screen.dart
 import 'package:hafiz_al_ahd/features/qibla/presentation/screens/qibla_screen.dart';
 import 'package:hafiz_al_ahd/features/azkar/presentation/screens/azkar_screen.dart';
 import 'package:hafiz_al_ahd/features/settings/presentation/screens/settings_screen.dart';
+import 'package:hafiz_al_ahd/features/gamification/presentation/cubit/gamification_cubit.dart';
+import 'package:hafiz_al_ahd/features/gamification/presentation/cubit/gamification_state.dart';
+import 'package:hafiz_al_ahd/features/gamification/presentation/widgets/achievement_dialog.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -88,18 +91,25 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       backgroundColor: scaffoldBgColor,
 
       // 👈 4. استخدام PageView بدل استدعاء الشاشة مباشرة
-      body: PageView(
-        controller: _pageController,
-        physics:
-            const BouncingScrollPhysics(), // 👈 بتدي تأثير ارتداد ناعم زي الـ iOS
-        onPageChanged: (index) {
-          // 👈 لما اليوزر يعمل Swipe، نحدث الـ GNav واتجاه الشاشة
-          setState(() {
-            _currentIndex = index;
-            _updateOrientation(index);
-          });
+      body: BlocListener<GamificationCubit, GamificationState>(
+        listener: (context, state) {
+          if (state is AchievementUnlockedState) {
+            AchievementDialog.show(context, state.badge);
+          }
         },
-        children: _screens,
+        child: PageView(
+          controller: _pageController,
+          physics:
+              const BouncingScrollPhysics(), // 👈 بتدي تأثير ارتداد ناعم زي الـ iOS
+          onPageChanged: (index) {
+            // 👈 لما اليوزر يعمل Swipe، نحدث الـ GNav واتجاه الشاشة
+            setState(() {
+              _currentIndex = index;
+              _updateOrientation(index);
+            });
+          },
+          children: _screens,
+        ),
       ),
 
       bottomNavigationBar: Container(

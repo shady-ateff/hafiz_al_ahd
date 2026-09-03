@@ -18,8 +18,8 @@
 | **مواقيت الصلاة** | عرض الصلوات الخمس + الشروق بناءً على GPS أو موقع يدوي، تخزين محلي (cache)، 3 مراحل بصرية للكارت (عادي → قبل نص ساعة → إقامة) |
 | **الإشعارات** | جدولة لـ 6 أيام قادمة، أصوات مخصصة (أذان عادي، أذان فجر، صوت إقامة)، دعم boot receiver لإعادة الجدولة |
 | **تأخير الإقامة** | إعداد مستقل لكل صلاة (5-30 دقيقة) محفوظ في SharedPreferences |
-| **الأذكار** | أذكار الصباح/المساء، بعد الصلاة، النوم، أدعية الأنبياء، تسابيح، أذكار الاستيقاظ — كلها من `azkar.json` |
-| **المسبحة** | عداد تفاعلي مع Haptic feedback، نبض ذهبي (pulse animation)، 3 أذكار مختلفة |
+| **الأذكار** | أذكار الصباح/المساء، بعد الصلاة وغيرها من `azkar.json`. نظام تتبع ذكي مشترك مع المسبحة، يعيد تصفير الأذكار العادية عند الخروج ويحفظ الأذكار اليومية حتى منتصف الليل |
+| **المسبحة** | عداد تفاعلي مع Haptic feedback ونبض ذهبي. يفتح تلقائياً على الذكر غير المكتمل مع شريط سفلي مختصر. تظهر نافذة احتفالية (Celebration Dialog) عند إتمام الأذكار |
 | **بحث الأذكار** | بحث فوري بتنظيف نص عربي (بدون تشكيل) |
 | **القبلة** | بوصلة حية (Live Compass) مع أيقونة الكعبة + dialog معايرة |
 | **التصميم** | Responsive (Mobile, Tablet, Desktop, Watch)، تدرجات ذهبية/فضية، ثيم فاتح وداكن |
@@ -44,7 +44,7 @@ lib/
 │   └── helpers/                       ← Arabic text normalizer
 ├── features/
 │   ├── home/                          ← Prayer times (cubit, widgets, data sources)
-│   ├── azkar/                         ← Azkar + Misbaha (clean arch)
+│   ├── azkar/                         ← Azkar + Misbaha (clean arch, AzkarTrackerCubit)
 │   ├── qibla/                         ← Compass screen
 │   ├── notifications/                 ← Notification scheduling (repos, use cases)
 │   ├── settings/                      ← Iqama delays + theme toggle

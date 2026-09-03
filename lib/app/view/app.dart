@@ -9,12 +9,15 @@ import 'package:hafiz_al_ahd/features/azkar/data/datasources/azkar_local_data_so
 import 'package:hafiz_al_ahd/features/azkar/data/repositories/azkar_repository_impl.dart';
 import 'package:hafiz_al_ahd/features/azkar/domain/usecases/get_azkar_usecase.dart';
 import 'package:hafiz_al_ahd/features/azkar/presentation/cubit/azkar_cubit.dart';
+import 'package:hafiz_al_ahd/features/azkar/presentation/cubit/azkar_tracker_cubit.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit/prayer_times_cubit.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/cubit/time_cubit.dart';
 import 'package:hafiz_al_ahd/features/main/presentation/screens/main_screen.dart';
 import 'package:hafiz_al_ahd/main.dart'; // For navigatorKey
 import 'package:hafiz_al_ahd/features/onboarding/presentation/cubit/onboarding_cubit.dart';
 import 'package:hafiz_al_ahd/features/onboarding/presentation/screens/onboarding_screen.dart';
+import 'package:hafiz_al_ahd/features/gamification/data/repositories/gamification_repository_impl.dart';
+import 'package:hafiz_al_ahd/features/gamification/presentation/cubit/gamification_cubit.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:tray_manager/tray_manager.dart';
@@ -103,6 +106,12 @@ class _AppState extends State<App> with TrayListener, WindowListener {
           )..loadAzkar(),
         ),
         BlocProvider(create: (context) => ThemeCubit()..loadSavedTheme()),
+        BlocProvider(
+          create: (context) => GamificationCubit(
+            repository: GamificationRepositoryImpl(),
+          )..init(),
+        ),
+        BlocProvider(create: (context) => AzkarTrackerCubit()),
       ],
       child: BlocBuilder<ThemeCubit, ThemeState>(
         builder: (context, themeState) {

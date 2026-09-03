@@ -6,8 +6,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:hafiz_al_ahd/core/theme/theme_helper.dart'; 
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
 import 'package:hafiz_al_ahd/features/azkar/domain/entities/azkar_item.dart';
-// 🚨 تأكد من عمل استدعاء لملف AzkarItem هنا
-// import 'مسار_ملف_AzkarItem_بتاعك'; 
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hafiz_al_ahd/features/gamification/presentation/cubit/gamification_cubit.dart';
+import 'package:hafiz_al_ahd/features/azkar/presentation/cubit/azkar_tracker_cubit.dart';
+import 'package:hafiz_al_ahd/features/azkar/presentation/widgets/celebration_dialog.dart';
 
 class MisbahaScreen extends StatefulWidget {
   // 👈 1. المسبحة بقت بتستقبل AzkarItem مباشرة
@@ -21,7 +23,6 @@ class MisbahaScreen extends StatefulWidget {
 
 class _MisbahaScreenState extends State<MisbahaScreen>
     with SingleTickerProviderStateMixin {
-  int _count = 0;
   int _selectedIndex = 0;
   bool _isTransitioning = false; 
 
@@ -48,7 +49,17 @@ class _MisbahaScreenState extends State<MisbahaScreen>
         ? widget.dynamicAzkarList!
         : _defaultAzkarList;
 
-    _scrollController = ScrollController();
+    final cubit = context.read<AzkarTrackerCubit>();
+    _selectedIndex = _currentAzkarList.indexWhere((item) {
+      final target = item.count > 0 ? item.count : 1;
+      final current = cubit.getZikrCount(item.text);
+      return current < target;
+    });
+    if (_selectedIndex == -1) _selectedIndex = 0; // All completed, start from 0
+
+    _scrollController = ScrollController(
+      initialScrollOffset: _selectedIndex * 110.0,
+    );
 
     _pulseController = AnimationController(
       vsync: this,
@@ -74,8 +85,10 @@ class _MisbahaScreenState extends State<MisbahaScreen>
   void _incrementCounter() async {
     if (_isTransitioning) return; 
 
-    // 👈 3. بقينا بنقرا من .count بدل defaultTarget
-    final target = _currentAzkarList[_selectedIndex].count;
+    final cubit = context.read<AzkarTrackerCubit>();
+    final currentZikr = _currentAzkarList[_selectedIndex];
+    final target = currentZikr.count > 0 ? currentZikr.count : 1;
+    final int _count = cubit.getZikrCount(currentZikr.text);
 
     if (_count >= target) {
       HapticFeedback.heavyImpact();
@@ -84,12 +97,12 @@ class _MisbahaScreenState extends State<MisbahaScreen>
 
     HapticFeedback.lightImpact();
     _pulseController.forward(from: 0.0);
+    context.read<GamificationCubit>().incrementMisbaha();
 
-    setState(() {
-      _count++;
-    });
+    cubit.incrementZikr(currentZikr);
+    final int newCount = cubit.getZikrCount(currentZikr.text);
 
-    if (_count == target) {
+    if (newCount >= target) {
       HapticFeedback.heavyImpact();
 
       if (_selectedIndex < _currentAzkarList.length - 1) {
@@ -102,17 +115,16 @@ class _MisbahaScreenState extends State<MisbahaScreen>
           _isTransitioning = false; 
         }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-           SnackBar(
-            content: Text(
-              'تقبل الله! أتممت جميع الأذكار 🕋',
-              style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-            backgroundColor: AppColors.secondaryGold,
-            duration: const Duration(seconds: 2),
-            behavior: SnackBarBehavior.floating,
-          ),
+        showCelebrationDialog(
+          context,
+          onContinue: () {
+            Navigator.of(context).popUntil((route) => route.isFirst);
+          },
+          onReset: () {
+            context.read<AzkarTrackerCubit>().resetCategory(_currentAzkarList);
+            Navigator.of(context).pop(); // Close Dialog
+            _changeZikr(0, auto: true); // Start over from the first Zikr
+          },
         );
       }
     }
@@ -120,9 +132,8 @@ class _MisbahaScreenState extends State<MisbahaScreen>
 
   void _resetCounter() {
     HapticFeedback.mediumImpact();
-    setState(() {
-      _count = 0;
-    });
+    final currentZikr = _currentAzkarList[_selectedIndex];
+    context.read<AzkarTrackerCubit>().resetZikr(currentZikr.text);
   }
 
   void _changeZikr(int index, {bool auto = false}) {
@@ -130,7 +141,6 @@ class _MisbahaScreenState extends State<MisbahaScreen>
     
     setState(() {
       _selectedIndex = index;
-      _count = 0;
     });
 
     if (_scrollController.hasClients) {
@@ -145,9 +155,10 @@ class _MisbahaScreenState extends State<MisbahaScreen>
   @override
   Widget build(BuildContext context) {
     final currentZikr = _currentAzkarList[_selectedIndex];
-    // 👈 4. بقينا بنتعامل مع .count في كل المعادلات
-    final remaining = currentZikr.count - _count;
-    final progress = _count / currentZikr.count;
+    final int _count = context.watch<AzkarTrackerCubit>().getZikrCount(currentZikr.text);
+    final target = currentZikr.count > 0 ? currentZikr.count : 1;
+    final remaining = target - _count;
+    final progress = _count / target;
 
     final screenWidth = MediaQuery.sizeOf(context).width;
 
@@ -391,7 +402,7 @@ class _MisbahaScreenState extends State<MisbahaScreen>
 
             // Bottom Navigation Categories
             SizedBox(
-              height: 55, 
+              height: 45, 
               child: ListView.builder(
                 controller: _scrollController,
                 scrollDirection: Axis.horizontal,
@@ -400,28 +411,35 @@ class _MisbahaScreenState extends State<MisbahaScreen>
                 itemCount: _currentAzkarList.length,
                 itemBuilder: (context, index) {
                   final isSelected = index == _selectedIndex;
+                  
+                  final fullText = _currentAzkarList[index].text.trim();
+                  final words = fullText.split(RegExp(r'\s+'));
+                  final String shortText = words.length > 2 
+                      ? '${words[0]} ${words[1]}..' 
+                      : fullText;
+
                   return GestureDetector(
                     onTap: () => _changeZikr(index),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 300),
-                      margin: const EdgeInsets.only(left: 12),
+                      margin: const EdgeInsets.only(left: 8),
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
+                        horizontal: 16,
                       ),
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
-                        color: isSelected ? AppColors.lightGold : context.cardBg,
-                        borderRadius: BorderRadius.circular(20),
+                        color: isSelected ? AppColors.lightGold.withOpacity(0.9) : context.cardBg.withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(15),
                         border: Border.all(
-                          color: isSelected ? AppColors.lightGold : context.borderSubtle,
+                          color: isSelected ? AppColors.lightGold : context.borderSubtle.withOpacity(0.3),
                           width: 1,
                         ),
                       ),
                       child: Text(
-                        _currentAzkarList[index].text,
+                        shortText,
                         style: GoogleFonts.cairo(
                           color: isSelected ? AppColors.primaryBlack : context.secondaryText,
-                          fontSize: 14,
+                          fontSize: 12,
                           fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
                         ),
                       ),

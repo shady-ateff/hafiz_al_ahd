@@ -13,6 +13,9 @@ import 'package:hafiz_al_ahd/features/azkar/presentation/screens/azkar_list_scre
 import 'package:hafiz_al_ahd/features/azkar/presentation/screens/misbaha_screen.dart';
 import 'package:hafiz_al_ahd/features/azkar/presentation/widgets/category_card.dart';
 import 'package:hafiz_al_ahd/features/azkar/presentation/widgets/daily_azkar_card.dart';
+import 'package:hafiz_al_ahd/features/gamification/presentation/screens/profile_screen.dart';
+import 'package:hafiz_al_ahd/features/gamification/presentation/cubit/gamification_cubit.dart';
+import 'package:hafiz_al_ahd/features/gamification/presentation/cubit/gamification_state.dart';
 
 class AzkarScreen extends StatefulWidget {
   const AzkarScreen({super.key});
@@ -52,6 +55,18 @@ class _AzkarScreenState extends State<AzkarScreen> {
             style: GoogleFonts.cairo(fontSize: 28, fontWeight: FontWeight.bold),
           ),
           centerTitle: true,
+          actions: [
+            IconButton(
+              icon: Icon(Icons.workspace_premium_rounded, color: AppColors.secondaryGold, size: 30),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ProfileScreen()),
+                );
+              },
+            ),
+            const SizedBox(width: 8),
+          ],
         ),
         body: SafeArea(
           child: BlocBuilder<AzkarCubit, AzkarState>(
@@ -156,6 +171,54 @@ class _AzkarScreenState extends State<AzkarScreen> {
 
                 return Column(
                   children: [
+                    BlocBuilder<GamificationCubit, GamificationState>(
+                      builder: (context, gamificationState) {
+                        if (gamificationState is GamificationLoaded || gamificationState is LevelUpState || gamificationState is AchievementUnlockedState) {
+                          dynamic stateObj = gamificationState;
+                          int level = stateObj.profile.level;
+                          int xp = stateObj.profile.xp;
+                          int nextLevelXp = level * 100;
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
+                            child: Row(
+                              children: [
+                                Icon(Icons.star_rounded, color: AppColors.secondaryGold),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'المستوى $level',
+                                  style: GoogleFonts.cairo(
+                                    color: context.primaryText,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: LinearProgressIndicator(
+                                      value: xp / nextLevelXp,
+                                      backgroundColor: AppColors.secondaryGold.withOpacity(0.2),
+                                      color: AppColors.secondaryGold,
+                                      minHeight: 6,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  '$xp XP',
+                                  style: GoogleFonts.cairo(
+                                    color: AppColors.secondaryGold,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      },
+                    ),
                     Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 20.0,
@@ -204,6 +267,7 @@ class _AzkarScreenState extends State<AzkarScreen> {
           ),
         ),
         floatingActionButton: FloatingActionButton.extended(
+          heroTag: 'misbaha_fab',
           onPressed: () {
             Navigator.push(
               context,

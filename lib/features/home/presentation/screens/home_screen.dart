@@ -111,6 +111,7 @@ class _HomeScreenState extends State<HomeScreen>
           ? BlocBuilder<PrayerTimesCubit, PrayerTimesStates>(
               builder: (context, state) {
                 return FloatingActionButton(
+                  heroTag: 'home_quran_fab',
                   onPressed: () {
                     context.read<PrayerTimesCubit>().testNotification(1);
                   },
