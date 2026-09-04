@@ -18,6 +18,7 @@ import 'package:hafiz_al_ahd/features/onboarding/presentation/cubit/onboarding_c
 import 'package:hafiz_al_ahd/features/onboarding/presentation/screens/onboarding_screen.dart';
 import 'package:hafiz_al_ahd/features/gamification/data/repositories/gamification_repository_impl.dart';
 import 'package:hafiz_al_ahd/features/gamification/presentation/cubit/gamification_cubit.dart';
+import 'package:hafiz_al_ahd/features/quran/presentation/cubit/quran_cubit.dart'; // 👈 استيراد المصحف
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:tray_manager/tray_manager.dart';
@@ -112,6 +113,7 @@ class _AppState extends State<App> with TrayListener, WindowListener {
           )..init(),
         ),
         BlocProvider(create: (context) => AzkarTrackerCubit()),
+        BlocProvider(create: (context) => sl<QuranCubit>()), // 👈 إضافة QuranCubit
       ],
       child: BlocBuilder<ThemeCubit, ThemeState>(
         builder: (context, themeState) {

@@ -13,6 +13,7 @@ import 'package:hafiz_al_ahd/features/settings/presentation/screens/settings_scr
 import 'package:hafiz_al_ahd/features/gamification/presentation/cubit/gamification_cubit.dart';
 import 'package:hafiz_al_ahd/features/gamification/presentation/cubit/gamification_state.dart';
 import 'package:hafiz_al_ahd/features/gamification/presentation/widgets/achievement_dialog.dart';
+import 'package:hafiz_al_ahd/features/quran/presentation/screens/quran_screen.dart';
 
 class MainScreen extends StatefulWidget {
   final int initialTab;
@@ -38,6 +39,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     
     _screens = [
       const HomeScreen(),
+      const QuranScreen(), // 👈 شاشة المصحف كـ Tab ثاني
       const QiblaScreen(),
       AzkarScreen(initialCategory: widget.initialAzkarCategory),
       const SettingsScreen(),
@@ -166,7 +168,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                     activeColor: activeColor,
                     iconSize: 24,
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
+                      horizontal: 12, // تم تقليلها لمنع الـ Overflow بعد إضافة المصحف
                       vertical: 12,
                     ),
                     textStyle: GoogleFonts.cairo(
@@ -176,6 +178,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                     ),
                     tabs: const [
                       GButton(icon: Icons.home_filled, text: 'الرئيسية'),
+                      GButton(icon: Icons.menu_book, text: 'المصحف'),
                       GButton(icon: Icons.explore, text: 'القبلة'),
                       GButton(icon: Icons.book, text: 'الأذكار'),
                       GButton(icon: Icons.settings, text: 'الإعدادات'),

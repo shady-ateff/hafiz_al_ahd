@@ -23,6 +23,13 @@ import 'package:hafiz_al_ahd/features/settings/domain/usecases/get_iqama_delays_
 import 'package:hafiz_al_ahd/features/settings/domain/usecases/save_iqama_delays_usecase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+// --- Quran Imports ---
+import 'package:hafiz_al_ahd/features/quran/data/datasources/quran_local_data_source.dart';
+import 'package:hafiz_al_ahd/features/quran/domain/repositories/base_quran_repository.dart';
+import 'package:hafiz_al_ahd/features/quran/data/repositories/quran_repository_impl.dart';
+import 'package:hafiz_al_ahd/features/quran/domain/usecases/get_quran_page_use_case.dart';
+import 'package:hafiz_al_ahd/features/quran/presentation/cubit/quran_cubit.dart';
+
 // سميناه sl اختصاراً لـ Service Locator
 final sl = GetIt.instance;
 
@@ -108,4 +115,15 @@ Future<void> init() async {
       cancelAllNotificationsUseCase: sl(),
     ),
   );
+  // ---------------------------------------------------
+  // 4. Quran Feature
+  // ---------------------------------------------------
+  sl.registerLazySingleton<BaseQuranLocalDataSource>(
+    () => QuranLocalDataSourceImpl(),
+  );
+  sl.registerLazySingleton<BaseQuranRepository>(
+    () => QuranRepositoryImpl(localDataSource: sl()),
+  );
+  sl.registerLazySingleton(() => GetQuranPageUseCase(sl()));
+  sl.registerFactory(() => QuranCubit(getQuranPageUseCase: sl()));
 }
