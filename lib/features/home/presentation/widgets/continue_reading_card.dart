@@ -15,6 +15,7 @@ class ContinueReadingCard extends StatefulWidget {
 
 class _ContinueReadingCardState extends State<ContinueReadingCard> {
   int _lastPage = 1;
+  bool _hasReadBefore = false;
 
   @override
   void initState() {
@@ -25,6 +26,7 @@ class _ContinueReadingCardState extends State<ContinueReadingCard> {
   Future<void> _loadLastPage() async {
     final prefs = sl<SharedPreferences>();
     setState(() {
+      _hasReadBefore = prefs.containsKey('last_quran_page');
       _lastPage = prefs.getInt('last_quran_page') ?? 1;
     });
   }
@@ -62,7 +64,7 @@ class _ContinueReadingCardState extends State<ContinueReadingCard> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'استكمل التلاوة',
+                  _hasReadBefore ? 'استكمل التلاوة' : 'ابدأ التلاوة',
                   style: GoogleFonts.cairo(
                     color: AppColors.deepBackground,
                     fontSize: 20,
@@ -71,7 +73,7 @@ class _ContinueReadingCardState extends State<ContinueReadingCard> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'توقفت عند صفحة $_lastPage',
+                  _hasReadBefore ? 'توقفت عند صفحة $_lastPage' : 'افتح المصحف الشريف الآن',
                   style: GoogleFonts.cairo(
                     color: AppColors.deepBackground.withOpacity(0.9),
                     fontSize: 14,
@@ -79,6 +81,7 @@ class _ContinueReadingCardState extends State<ContinueReadingCard> {
                   ),
                 ),
               ],
+
             ),
             SvgPicture.asset(
               'assets/svgs/Quran_Kareem.svg',

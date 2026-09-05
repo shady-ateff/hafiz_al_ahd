@@ -25,10 +25,10 @@ class QuranLocalDataSourceImpl implements BaseQuranLocalDataSource {
 
     return await openDatabase(
       path,
-      version: 4,
+      version: 7,
       onCreate: _createDB,
       onUpgrade: (db, oldVersion, newVersion) async {
-        if (oldVersion < 4) {
+        if (oldVersion < 7) {
           await db.execute('DROP TABLE IF EXISTS quran_pages');
           await _createDB(db, newVersion);
         }
@@ -70,12 +70,10 @@ class QuranLocalDataSourceImpl implements BaseQuranLocalDataSource {
       await db.rawQuery('SELECT COUNT(*) FROM quran_pages'),
     ) ?? 0;
 
-    // لو حصل تكرار بسبب الـ Concurrency في التشغيلة اللي فاتت أو لو حصل Seed ناقص
-    if (count > 6240 || (count > 0 && count < 6000)) {
-      log("⚠️ Corrupted or partial Quran DB detected (count: $count). Resetting...");
-      await db.delete('quran_pages');
-      count = 0;
-    }
+    // FORCE RESET FOR DEBUGGING:
+    log("⚠️ Forcing Quran DB Reset...");
+    await db.delete('quran_pages');
+    count = 0;
 
     if (count == 0) {
       log("⏳ Seeding Quran database from quran_lines.json...");

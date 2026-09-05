@@ -35,12 +35,6 @@ class _QiblaScreenState extends State<QiblaScreen> {
           'القبلة',
           style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.info_outline, color: Colors.amber),
-            onPressed: () => _showCalibrationDialog(context),
-          ),
-        ],
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -48,10 +42,7 @@ class _QiblaScreenState extends State<QiblaScreen> {
       body: FutureBuilder(
         future: _deviceSupportFuture,
         builder: (context, AsyncSnapshot<bool?> snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator(color: Colors.amber));
-          }
-          if (snapshot.hasError || (snapshot.data == false)) {
+          if (snapshot.hasError || (snapshot.hasData && snapshot.data == false)) {
             // ... (نفس كود الإيرور بتاعك بالظبط مفيش تغيير)
             return Center(
               child: Column(
@@ -104,10 +95,7 @@ class _QiblaCompassWidgetState extends State<_QiblaCompassWidget> {
   @override
   Widget build(BuildContext context) {
     if (_qiblahStream == null) {
-      if (_lastDirection != null) {
-        return _buildUI(context, _lastDirection!);
-      }
-      return const Center(child: CircularProgressIndicator(color: Colors.amber));
+      return _buildUI(context, _lastDirection ?? const QiblahDirection(0, 0, 0));
     }
 
     return StreamBuilder<QiblahDirection>(
@@ -117,11 +105,7 @@ class _QiblaCompassWidgetState extends State<_QiblaCompassWidget> {
           _lastDirection = snapshot.data;
         }
 
-        final qiblahDirection = snapshot.data ?? _lastDirection;
-        
-        if (qiblahDirection == null) {
-          return const Center(child: CircularProgressIndicator(color: Colors.amber));
-        }
+        final qiblahDirection = snapshot.data ?? _lastDirection ?? const QiblahDirection(0, 0, 0);
 
         return _buildUI(context, qiblahDirection);
       },
@@ -181,14 +165,27 @@ class _QiblaCompassWidgetState extends State<_QiblaCompassWidget> {
               ),
             ),
           ),
-          const SizedBox(height: 50),
+          const SizedBox(height: 30),
           Expanded(
-            child: GradientText(
-              '${qiblahDirection.direction.toInt()}°',
-              style: GoogleFonts.cairo(fontSize: 48, fontWeight: FontWeight.bold),
+            flex: 2,
+            child: Column(
+              children: [
+                GradientText(
+                  '${qiblahDirection.direction.toInt()}°',
+                  style: GoogleFonts.cairo(fontSize: 48, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                TextButton.icon(
+                  onPressed: () => _showCalibrationDialog(context),
+                  icon: const Icon(Icons.screen_rotation_rounded, color: Colors.amber, size: 20),
+                  label: Text(
+                    'معايرة البوصلة',
+                    style: GoogleFonts.cairo(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 20),
           Expanded(
             child: Text(
               'ضع الهاتف بشكل مسطح للحصول على أدق نتيجة',

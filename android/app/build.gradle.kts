@@ -50,8 +50,8 @@ android {
 
     buildTypes {
         release {
-            // 👈 3. ربطنا نسخة الريليز بالختم بتاعنا
-            signingConfig = signingConfigs.getByName("release")
+            // 👈 3. ربطنا نسخة الريليز بالختم الديفولت (debug) مؤقتاً لكي ينجح البناء بدون ملف key.properties
+            signingConfig = signingConfigs.getByName("debug")
             
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
