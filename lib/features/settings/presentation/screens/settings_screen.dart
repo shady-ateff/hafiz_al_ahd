@@ -9,6 +9,7 @@ import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit
 import 'package:hafiz_al_ahd/features/settings/domain/usecases/get_iqama_delays_usecase.dart';
 import 'package:hafiz_al_ahd/features/settings/domain/usecases/save_iqama_delays_usecase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:hafiz_al_ahd/features/quran/presentation/widgets/quran_theme_bottom_sheet.dart' as hafiz_quran_theme;
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -181,6 +182,64 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               size: 22,
                             ),
                           ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+
+                    // ── Quran Theme ──────────────────────────────────────────
+                    _buildSectionTitle('مظهر المصحف', textColor),
+                    const SizedBox(height: 12),
+                    GestureDetector(
+                      onTap: () {
+                        showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          backgroundColor: Colors.transparent,
+                          builder: (context) {
+                            return const hafiz_quran_theme.QuranThemeBottomSheet();
+                          },
+                        );
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: cardColor,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: AppColors.secondaryGold.withOpacity(0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 16,
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.menu_book_rounded,
+                                color: AppColors.secondaryGold,
+                                size: 22,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'تغيير مظهر خلفية المصحف',
+                                  style: GoogleFonts.cairo(
+                                    color: textColor,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                              const Icon(
+                                Icons.arrow_forward_ios_rounded,
+                                color: AppColors.secondaryGold,
+                                size: 16,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),

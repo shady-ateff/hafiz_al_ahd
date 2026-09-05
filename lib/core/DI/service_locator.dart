@@ -29,6 +29,7 @@ import 'package:hafiz_al_ahd/features/quran/domain/repositories/base_quran_repos
 import 'package:hafiz_al_ahd/features/quran/data/repositories/quran_repository_impl.dart';
 import 'package:hafiz_al_ahd/features/quran/domain/usecases/get_quran_page_use_case.dart';
 import 'package:hafiz_al_ahd/features/quran/presentation/cubit/quran_cubit.dart';
+import 'package:hafiz_al_ahd/features/quran/presentation/cubit/quran_settings_cubit.dart';
 
 // سميناه sl اختصاراً لـ Service Locator
 final sl = GetIt.instance;
@@ -126,4 +127,5 @@ Future<void> init() async {
   );
   sl.registerLazySingleton(() => GetQuranPageUseCase(sl()));
   sl.registerFactory(() => QuranCubit(getQuranPageUseCase: sl()));
+  sl.registerFactory(() => QuranSettingsCubit(sharedPreferences: sl()));
 }

@@ -4,7 +4,9 @@ import '../../domain/entities/quran_page.dart';
 import '../cubit/quran_cubit.dart';
 import '../../data/datasources/quran_page_metadata.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import '../../data/datasources/surah_names.dart'; // 👈 استيراد أسماء السور
+import '../../data/datasources/surah_names.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../cubit/quran_settings_cubit.dart';
 
 class QuranPageWidget extends StatelessWidget {
   final QuranPage page;
@@ -16,23 +18,35 @@ class QuranPageWidget extends StatelessWidget {
     required this.isFontLoaded,
   });
 
+  bool _isDarkMode(BuildContext context, ThemeMode mode) {
+    if (mode == ThemeMode.dark) return true;
+    if (mode == ThemeMode.light) return false;
+    return Theme.of(context).brightness == Brightness.dark;
+  }
+
   @override
   Widget build(BuildContext context) {
     final fontFamily = QuranCubit.getFontFamilyForPage(page.pageNumber);
+    final themeMode = context.watch<QuranSettingsCubit>().state.quranThemeMode;
+    final isDark = _isDarkMode(context, themeMode);
 
-    // جلب بيانات الصفحة (السورة والجزء) من الخريطة المحلية الخفيفة
+    final bgColor = isDark ? const Color(0xFF121212) : const Color(0xffFFFCE6);
+    final textColor = isDark ? const Color(0xFFF5F5DC) : Colors.black87;
+    final primaryTextColor = isDark ? const Color(0xffD4AF37) : Colors.black87;
+
     final meta =
         quranPageMetadata[page.pageNumber] ??
         const QuranPageMetadata(surahName: "", juzNumber: 0);
     final surahName = meta.surahName;
     final juzNumber = meta.juzNumber;
 
-    return Container(
-      color: const Color(0xffFFFCE6), // لون خلفية المصحف الورقي
-      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16.0),
+    return SafeArea(
+      child: Container(
+        color: bgColor,
+        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16.0),
       child: Column(
         children: [
-          // الهيدر الثابت للسورة والجزء
+          // Header
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             margin: const EdgeInsets.only(bottom: 12),
@@ -46,20 +60,20 @@ class QuranPageWidget extends StatelessWidget {
               children: [
                 Text(
                   'الجزء $juzNumber',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'Cairo',
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: primaryTextColor,
                   ),
                 ),
                 Text(
                   'سورة $surahName',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'Cairo',
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                    color: primaryTextColor,
                   ),
                 ),
               ],
@@ -70,34 +84,26 @@ class QuranPageWidget extends StatelessWidget {
               child: isFontLoaded
                   ? LayoutBuilder(
                       builder: (context, constraints) {
-                        // حساب نسبة الشاشة (الطول مقسوم على العرض)
-                        final screenRatio =
-                            constraints.maxHeight / constraints.maxWidth;
-
-                        // المعادلة السحرية: جعل ارتفاع السطر يتفاعل مع طول الشاشة
-                        // الحد الأدنى 1.45 (عشان التابلت) والحد الأقصى 2.0 (للموبايلات الطويلة جداً)
-                        final dynamicHeight = (screenRatio * 1.0).clamp(
-                          1.45,
-                          3.0,
-                        );
+                        final screenRatio = constraints.maxHeight / constraints.maxWidth;
+                        final dynamicHeight = (screenRatio * 1.0).clamp(1.45, 3.0);
 
                         return FittedBox(
-                          fit: BoxFit
-                              .contain, // 👈 contain لضمان عدم القص أبداً في أي شاشة
+                          fit: BoxFit.contain,
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: _buildPageLines(
                               fontFamily,
                               dynamicHeight,
+                              textColor,
                             ),
                           ),
                         );
                       },
                     )
-                  : const CircularProgressIndicator(color: Colors.black),
+                  : CircularProgressIndicator(color: primaryTextColor),
             ),
           ),
-          // برواز رفيع حول رقم الصفحة
+          // Footer Page Number
           Container(
             margin: const EdgeInsets.only(top: 12),
             width: 120,
@@ -106,25 +112,25 @@ class QuranPageWidget extends StatelessWidget {
               alignment: Alignment.center,
               children: [
                 RotatedBox(
-                  quarterTurns: 1, // دوران 90 درجة
+                  quarterTurns: 1,
                   child: SvgPicture.asset(
                     'assets/svgs/Juz_border.svg',
                     width: 150,
                     height: 150,
                     fit: BoxFit.contain,
-                    colorFilter: const ColorFilter.mode(
-                      Colors.black,
+                    colorFilter: ColorFilter.mode(
+                      primaryTextColor,
                       BlendMode.srcIn,
                     ),
                   ),
                 ),
                 Text(
                   '${page.pageNumber}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'Thuluth Pro',
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black,
+                    color: primaryTextColor,
                   ),
                 ),
               ],
@@ -132,53 +138,50 @@ class QuranPageWidget extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ));
   }
 
-  // الدالة السحرية لرسم الأسطر ورصد الفراغات لوضع الفواصل والبسملة
-  List<Widget> _buildPageLines(String fontFamily, double dynamicHeight) {
+  List<Widget> _buildPageLines(String fontFamily, double dynamicHeight, Color textColor) {
     final List<Widget> widgets = [];
     int expectedLine = 1;
-    final int maxLines = (page.pageNumber == 1 || page.pageNumber == 2)
-        ? 7
-        : 15;
+    final int maxLines = (page.pageNumber == 1 || page.pageNumber == 2) ? 7 : 15;
 
     for (var line in page.lines) {
       if (line.lineNumber > expectedLine) {
         int gapSize = line.lineNumber - expectedLine;
 
         if (gapSize == 2) {
-          widgets.add(_buildSurahHeader(line.surahNumber, dynamicHeight));
-          widgets.add(_buildBasmalah(dynamicHeight));
+          widgets.add(_buildSurahHeader(line.surahNumber, dynamicHeight, textColor));
+          widgets.add(_buildBasmalah(dynamicHeight, textColor));
         } else if (gapSize == 1) {
-          if (line.surahNumber == 9) {
-            // التوبة
-            widgets.add(_buildSurahHeader(line.surahNumber, dynamicHeight));
-          } else if (line.surahNumber == 1) {
-            // الفاتحة
-            widgets.add(_buildSurahHeader(line.surahNumber, dynamicHeight));
-          } else {
-            // سطر واحد مفقود والسورة بدأت؟ يعني برواز السورة كان في الصفحة السابقة! وهذا السطر هو البسملة
-            widgets.add(_buildBasmalah(dynamicHeight));
-          }
+          widgets.add(_buildSurahHeader(line.surahNumber, dynamicHeight, textColor));
         } else {
-          // فجوة أكبر من سطرين؟ نضع فراغات للحفاظ على التوازن
           for (int i = 0; i < gapSize; i++) {
             widgets.add(SizedBox(height: 40 * dynamicHeight));
           }
         }
+        expectedLine = line.lineNumber;
       }
 
-      // إضافة نص الآية الفعلي
+      if ((page.pageNumber == 2 && line.lineNumber == 1) || (line.lineNumber == 1 && _isSurahStart(page, line.surahNumber))) {
+        widgets.add(_buildSurahHeader(line.surahNumber, dynamicHeight, textColor));
+
+        if (line.surahNumber != 9 && line.surahNumber != 1) {
+          widgets.add(_buildBasmalah(dynamicHeight, textColor));
+        }
+        expectedLine = line.lineNumber + 1;
+        continue;
+      }
+
       widgets.add(
         Text(
           line.text,
-          textAlign: TextAlign.center, // توسيط الآيات لتعويض التمدد
+          textAlign: TextAlign.center,
           textDirection: TextDirection.rtl,
           style: TextStyle(
             fontFamily: fontFamily,
-            fontSize: 40, // حجم الخط المرجعي للـ QCF
-            color: Colors.black,
+            fontSize: 40,
+            color: textColor,
             height: dynamicHeight,
             wordSpacing: -3.5,
             letterSpacing: -0.5,
@@ -188,30 +191,26 @@ class QuranPageWidget extends StatelessWidget {
       expectedLine = line.lineNumber + 1;
     }
 
-    // إكمال الصفحة إلى 15 سطراً بدقة إذا كان هناك فراغ في الأسفل
     if (expectedLine <= maxLines) {
       int gapSize = maxLines - expectedLine + 1;
-      int nextSurah = page.lines.isNotEmpty
-          ? page.lines.last.surahNumber + 1
-          : 1;
+      int nextSurah = page.lines.isNotEmpty ? page.lines.last.surahNumber + 1 : 1;
 
       if (nextSurah <= 114) {
         if (gapSize == 2) {
-          widgets.add(_buildSurahHeader(nextSurah, dynamicHeight));
+          widgets.add(_buildSurahHeader(nextSurah, dynamicHeight, textColor));
           if (nextSurah != 9) {
-            widgets.add(_buildBasmalah(dynamicHeight));
+            widgets.add(_buildBasmalah(dynamicHeight, textColor));
           } else {
             widgets.add(SizedBox(height: 40 * dynamicHeight));
           }
         } else if (gapSize == 1) {
-          widgets.add(_buildSurahHeader(nextSurah, dynamicHeight));
+          widgets.add(_buildSurahHeader(nextSurah, dynamicHeight, textColor));
         } else {
           for (int i = 0; i < gapSize; i++) {
             widgets.add(SizedBox(height: 40 * dynamicHeight));
           }
         }
       } else {
-        // نهاية المصحف
         for (int i = 0; i < gapSize; i++) {
           widgets.add(SizedBox(height: 40 * dynamicHeight));
         }
@@ -222,45 +221,35 @@ class QuranPageWidget extends StatelessWidget {
   }
 
   String _getQcfSurahName(int surahNumber) {
-    // خوارزمية مجمع الملك فهد لاستخراج رمز اسم السورة من خط QCF_BSML
     String surahName = "";
     if (64396 + surahNumber >= 64434) {
       surahName = String.fromCharCode(64429 + surahNumber);
     } else {
       surahName = String.fromCharCode(64396 + surahNumber);
     }
-    // الرمز 64396 هو غالباً كلمة "سورة" بالرسم العثماني في هذا الخط
     return "${String.fromCharCode(64396)} $surahName";
   }
 
-  Widget _buildSurahHeader(int surahNumber, double dynamicHeight) {
+  Widget _buildSurahHeader(int surahNumber, double dynamicHeight, Color textColor) {
     return Container(
-      width: 700, // 👈 لا نستخدم double.infinity لأن الـ Column موجود داخل FittedBox
-      height: 44 * dynamicHeight, 
+      width: 700,
+      height: 44 * dynamicHeight,
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // إطار السورة الأصلي
           SvgPicture.asset(
             'assets/svgs/Sura_border.svg',
             width: 700,
             fit: BoxFit.fill,
-            colorFilter: const ColorFilter.mode(Colors.black, BlendMode.srcIn),
+            colorFilter: ColorFilter.mode(textColor, BlendMode.srcIn),
           ),
-          // اسم السورة بخط مجمع الملك فهد QCF_BSML
-          Padding(
-            padding: const EdgeInsets.only(
-              bottom: 6.0,
-            ), // لرفع الخط قليلا ليوسطن
-            child: Text(
-              _getQcfSurahName(surahNumber),
-              style: const TextStyle(
-                fontFamily: 'QCF_BSML', // خط أسماء السور الرسمي من المجمع
-                fontSize: 48, // حجم أكبر قليلا لرموز الـ QCF
-                color: Colors.black,
-                textBaseline: TextBaseline.alphabetic,
-              ),
-              textAlign: TextAlign.center,
+          Text(
+            _getQcfSurahName(surahNumber),
+            style: TextStyle(
+              fontFamily: 'QCF_BSML',
+              fontSize: 34,
+              color: textColor,
+              height: 1,
             ),
           ),
         ],
@@ -268,19 +257,22 @@ class QuranPageWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildBasmalah(double dynamicHeight) {
+  Widget _buildBasmalah(double dynamicHeight, Color textColor) {
     return Container(
-      height: 40 * dynamicHeight, // أخذ مساحة السطر المفقود
+      height: 40 * dynamicHeight,
       alignment: Alignment.center,
-      child: const Text(
-        "ﱁ ﱂ ﱃ ﱄ", // تم إزالة الرمز الخامس (ﱅ) الخاص برقم الآية 1
+      child: Text(
+        "ﱁ ﱂ ﱃ ﱄ",
         style: TextStyle(
-          fontFamily:
-              'QCF2001', // الخط الذي يحتوي على البسملة مرسومة بدقة المجمع
-          fontSize: 40, // نفس حجم خط الآيات
-          color: Colors.black,
+          fontFamily: 'QCF2001',
+          fontSize: 40,
+          color: textColor,
         ),
       ),
     );
+  }
+
+  bool _isSurahStart(QuranPage page, int surahNumber) {
+    return surahStartPages[surahNumber - 1] == page.pageNumber;
   }
 }

@@ -15,6 +15,10 @@ class QuranCubit extends Cubit<QuranState> {
 
   QuranCubit({required this.getQuranPageUseCase}) : super(QuranInitial());
 
+  QuranPageLoaded? getCachedPage(int pageNumber) {
+    return _pagesCache[pageNumber] as QuranPageLoaded?;
+  }
+
   Future<void> loadPage(int pageNumber) async {
     if (_pagesCache.containsKey(pageNumber)) {
       emit(_pagesCache[pageNumber]!);
