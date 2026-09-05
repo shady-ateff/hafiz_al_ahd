@@ -24,6 +24,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:hafiz_al_ahd/core/widgets/app_snackbar.dart';
+import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
 
 // 1. 👈 حولناها لـ StatefulWidget
 class App extends StatefulWidget {
