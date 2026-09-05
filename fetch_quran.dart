@@ -1,84 +1,98 @@
 import 'dart:convert';
 import 'dart:io';
 
-Future<Map<String, dynamic>?> fetchPage(int page) async {
-  final url = Uri.parse('https://api.quran.com/api/v4/verses/by_page/$page?words=true&word_fields=code_v2,line_number');
-  for (int retry = 0; retry < 3; retry++) {
-    try {
-      final request = await HttpClient().getUrl(url).timeout(Duration(seconds: 10));
-      final response = await request.close().timeout(Duration(seconds: 10));
-      final responseBody = await response.transform(utf8.decoder).join();
-      final data = jsonDecode(responseBody);
-      final verses = data['verses'] as List;
+Future<List<Map<String, dynamic>>> fetchAllQuran() async {
+  final Map<int, Map<int, Map<String, dynamic>>> globalPages = {};
 
-      // Map of lineNumber -> Map with 'text' (List of words) and 'surah'
-      final Map<int, Map<String, dynamic>> linesMap = {};
-      
-      for (var verse in verses) {
-        final surahNumber = int.parse(verse['verse_key'].toString().split(':')[0]);
-        final words = verse['words'] as List;
-        for (var word in words) {
-          final lineNumber = word['line_number'] as int;
-          final codeV2 = word['code_v2'];
-          if (codeV2 != null && codeV2.toString().trim().isNotEmpty) {
-            if (!linesMap.containsKey(lineNumber)) {
-              linesMap[lineNumber] = {
-                'words': <String>[],
-                'surah': surahNumber,
-              };
+  final futures = <Future<void>>[];
+  for (int i = 1; i <= 604; i++) {
+    futures.add(() async {
+      final url = Uri.parse('https://api.quran.com/api/v4/verses/by_page/$i?words=true&word_fields=code_v2,line_number,v2_page');
+      for (int retry = 0; retry < 3; retry++) {
+        try {
+          final request = await HttpClient().getUrl(url).timeout(Duration(seconds: 15));
+          final response = await request.close().timeout(Duration(seconds: 15));
+          final responseBody = await response.transform(utf8.decoder).join();
+          final data = jsonDecode(responseBody);
+          final verses = data['verses'] as List;
+
+          for (var verse in verses) {
+            final surahNumber = int.parse(verse['verse_key'].toString().split(':')[0]);
+            final words = verse['words'] as List;
+            for (var word in words) {
+              final codeV2 = word['code_v2'];
+              if (codeV2 == null || codeV2.toString().trim().isEmpty) continue;
+
+              final v2Page = word['v2_page'] ?? i;
+              final lineNumber = word['line_number'] as int;
+              final wordId = word['id'] as int;
+
+              if (!globalPages.containsKey(v2Page)) {
+                globalPages[v2Page as int] = {};
+              }
+
+              if (!globalPages[v2Page]!.containsKey(lineNumber)) {
+                globalPages[v2Page]![lineNumber] = {
+                  'words': <Map<String, dynamic>>[],
+                  'surah': surahNumber,
+                };
+              }
+              (globalPages[v2Page]![lineNumber]!['words'] as List<Map<String, dynamic>>).add({
+                'code': codeV2.toString(),
+                'id': wordId,
+              });
             }
-            (linesMap[lineNumber]!['words'] as List<String>).add(codeV2.toString());
+          }
+          break;
+        } catch (e) {
+          if (retry == 2) {
+            print('Failed to fetch page $i after 3 retries: $e');
           }
         }
       }
+    }());
 
-      final List<Map<String, dynamic>> linesList = [];
-      final sortedKeys = linesMap.keys.toList()..sort();
-      for (var key in sortedKeys) {
-        linesList.add({
-          'line_number': key,
-          'surah_number': linesMap[key]!['surah'],
-          'text': (linesMap[key]!['words'] as List<String>).join(' '),
-        });
-      }
-
-      return {
-        'page_number': page,
-        'lines': linesList,
-      };
-    } catch (e) {
-      print('Retry page $page due to error: $e');
-      await Future.delayed(Duration(seconds: 2));
+    if (i % 50 == 0 || i == 604) {
+      await Future.wait(futures);
+      futures.clear();
+      print('Fetched up to page $i');
     }
   }
-  return null;
+
+  final List<Map<String, dynamic>> finalPagesList = [];
+  final sortedPages = globalPages.keys.toList()..sort();
+  
+  for (var pageNum in sortedPages) {
+    final linesMap = globalPages[pageNum]!;
+    final List<Map<String, dynamic>> linesList = [];
+    final sortedLines = linesMap.keys.toList()..sort();
+    
+    for (var lineNum in sortedLines) {
+      final wordsList = linesMap[lineNum]!['words'] as List<Map<String, dynamic>>;
+      // Sort words by their exact ID to ensure correct Quranic order regardless of fetch concurrency
+      wordsList.sort((a, b) => (a['id'] as int).compareTo(b['id'] as int));
+      
+      linesList.add({
+        'line_number': lineNum,
+        'surah_number': linesMap[lineNum]!['surah'],
+        'text': wordsList.map((w) => w['code'] as String).join(' '),
+      });
+    }
+
+    finalPagesList.add({
+      'page_number': pageNum,
+      'lines': linesList,
+    });
+  }
+
+  return finalPagesList;
 }
 
 void main() async {
-  final file = File('assets/quran/mushaf/quran_lines.json');
-  final List<Map<String, dynamic>> allPages = [];
-
-  print('Fetching 604 pages concurrently...');
+  print('Fetching all Quran data and grouping by v2_page (sorted by word ID)...');
+  final allPages = await fetchAllQuran();
   
-  // Fetch in chunks of 10 to avoid API blocks
-  for (int i = 0; i < 604; i += 10) {
-    final chunk = <Future<Map<String, dynamic>?>>[];
-    for (int j = 1; j <= 10; j++) {
-      if (i + j > 604) break;
-      chunk.add(fetchPage(i + j));
-    }
-    
-    final results = await Future.wait(chunk);
-    for (var res in results) {
-      if (res != null) allPages.add(res);
-    }
-    print('Fetched up to ${i + 10 > 604 ? 604 : i + 10}');
-    await Future.delayed(Duration(milliseconds: 500)); // Be nice to the API
-  }
-
-  // Sort by page number just in case
-  allPages.sort((a, b) => (a['page_number'] as int).compareTo(b['page_number'] as int));
-
-  await file.writeAsString(jsonEncode(allPages));
-  print('Done! Saved to ${file.path}');
+  final file = File('assets/quran/mushaf/quran_lines.json');
+  file.writeAsStringSync(jsonEncode(allPages));
+  print('Successfully wrote ${allPages.length} pages to quran_lines.json');
 }

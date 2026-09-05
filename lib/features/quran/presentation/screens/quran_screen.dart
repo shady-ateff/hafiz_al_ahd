@@ -8,6 +8,7 @@ import '../cubit/quran_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/DI/service_locator.dart';
 import '../widgets/quran_page_widget.dart';
+import '../../data/datasources/surah_names.dart';
 
 class QuranScreen extends StatefulWidget {
   const QuranScreen({super.key});
@@ -49,6 +50,26 @@ class _QuranScreenState extends State<QuranScreen> {
     super.dispose();
   }
 
+  double _sliderValue = 1.0;
+  bool _isSliding = false;
+
+  int _getCurrentSurah(int page) {
+    for (int i = 113; i >= 0; i--) {
+      if (page >= surahStartPages[i]) {
+        return i + 1;
+      }
+    }
+    return 1;
+  }
+
+  String _getQcfSurahName(int surahNumber) {
+    if (64396 + surahNumber >= 64434) {
+      return String.fromCharCode(64429 + surahNumber);
+    } else {
+      return String.fromCharCode(64396 + surahNumber);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!_isInit) {
@@ -56,6 +77,10 @@ class _QuranScreenState extends State<QuranScreen> {
         backgroundColor: Color(0xffFFFCE6),
         body: Center(child: CircularProgressIndicator()),
       );
+    }
+
+    if (!_isSliding) {
+      _sliderValue = _getCurrentSurah(_currentPage).toDouble();
     }
 
     return Scaffold(
@@ -70,73 +95,113 @@ class _QuranScreenState extends State<QuranScreen> {
         ),
         backgroundColor: Colors.transparent,
       ),
-      body: PageView.builder(
-        controller: _pageController,
-        itemCount: 604,
-        reverse: true, // من اليمين لليسار
-        onPageChanged: (index) {
-          final int pageNumber = index + 1;
-          setState(() {
-            _currentPage = pageNumber;
-          });
-          context.read<QuranCubit>().loadPage(pageNumber);
-          _saveLastPage(pageNumber); // 👈 حفظ الصفحة الحالية
+      body: Stack(
+        children: [
+          PageView.builder(
+            controller: _pageController,
+            itemCount: 604,
+            reverse: false, // تم تعديلها لتتوافق مع اتجاه التمرير العربي السليم
+            onPageChanged: (index) {
+              final int pageNumber = index + 1;
+              setState(() {
+                _currentPage = pageNumber;
+              });
+              context.read<QuranCubit>().loadPage(pageNumber);
+              _saveLastPage(pageNumber);
 
-          // Pre-fetch the next page for smooth scrolling
-          if (pageNumber < 604) {
-            context.read<QuranCubit>().loadPage(pageNumber + 1);
-          }
-        },
-        itemBuilder: (context, index) {
-          final int pageNumber = index + 1;
-
-          return BlocBuilder<QuranCubit, QuranState>(
-            buildWhen: (previous, current) {
-              if (current is QuranPageLoaded) {
-                return current.page.pageNumber == pageNumber;
+              if (pageNumber < 604) {
+                context.read<QuranCubit>().loadPage(pageNumber + 1);
               }
-              return true;
             },
-            builder: (context, state) {
-              if (state is QuranLoading || state is QuranInitial) {
-                log('pageNumber ${state.runtimeType}');
-                return const Center(child: CircularProgressIndicator());
-              } else if (state is QuranError) {
-                log('pageNumber ${state.runtimeType}');
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        state.message,
-                        style: const TextStyle(color: Colors.red),
+            itemBuilder: (context, index) {
+              final int pageNumber = index + 1;
+
+              return BlocBuilder<QuranCubit, QuranState>(
+                buildWhen: (previous, current) {
+                  if (current is QuranPageLoaded) {
+                    return current.page.pageNumber == pageNumber;
+                  }
+                  return true;
+                },
+                builder: (context, state) {
+                  if (state is QuranLoading || state is QuranInitial) {
+                    return const Center(child: CircularProgressIndicator());
+                  } else if (state is QuranError) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            state.message,
+                            style: const TextStyle(color: Colors.red),
+                          ),
+                          ElevatedButton(
+                            onPressed: () =>
+                                context.read<QuranCubit>().loadPage(pageNumber),
+                            child: const Text('إعادة المحاولة'),
+                          ),
+                        ],
                       ),
-                      ElevatedButton(
-                        onPressed: () =>
-                            context.read<QuranCubit>().loadPage(pageNumber),
-                        child: const Text('إعادة المحاولة'),
-                      ),
-                    ],
-                  ),
-                );
-              } else if (state is QuranPageLoaded &&
-                  state.page.pageNumber == pageNumber) {
-                return QuranPageWidget(
-                  page: state.page,
-                  isFontLoaded: state.isFontLoaded,
-                );
-              } else {
-                log('pageNumber ${state.runtimeType}');
-              }
-              return Center(
-                child: Text(
-                  'جاري التحميل ${state.runtimeType}',
-                  style: TextStyle(color: AppColors.deepBackground),
-                ),
+                    );
+                  } else if (state is QuranPageLoaded &&
+                      state.page.pageNumber == pageNumber) {
+                    return QuranPageWidget(
+                      page: state.page,
+                      isFontLoaded: state.isFontLoaded,
+                    );
+                  }
+                  return const Center(
+                    child: CircularProgressIndicator(color: AppColors.deepBackground),
+                  );
+                },
               );
             },
-          );
-        },
+          ),
+          
+          // سلايدر السور في الأسفل
+          Positioned(
+            bottom: 30,
+            left: 20,
+            right: 20,
+            child: Directionality(
+              textDirection: TextDirection.rtl,
+              child: SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  valueIndicatorTextStyle: const TextStyle(
+                    fontFamily: 'QCF_BSML',
+                    fontSize: 28,
+                    color: Colors.white,
+                  ),
+                  showValueIndicator: ShowValueIndicator.always,
+                  thumbColor: const Color(0xffD4AF37),
+                  activeTrackColor: const Color(0xffD4AF37),
+                  inactiveTrackColor: Colors.black26,
+                  valueIndicatorColor: Colors.black87,
+                ),
+                child: Slider(
+                  value: _sliderValue,
+                  min: 1,
+                  max: 114,
+                  divisions: 113,
+                  label: "${String.fromCharCode(64396)} ${_getQcfSurahName(_sliderValue.toInt())}",
+                  onChanged: (val) {
+                    setState(() {
+                      _sliderValue = val;
+                      _isSliding = true;
+                    });
+                  },
+                  onChangeEnd: (val) {
+                    final targetPage = surahStartPages[val.toInt() - 1];
+                    _pageController.jumpToPage(targetPage - 1);
+                    setState(() {
+                      _isSliding = false;
+                    });
+                  },
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

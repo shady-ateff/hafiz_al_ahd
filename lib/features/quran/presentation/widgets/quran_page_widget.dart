@@ -235,17 +235,15 @@ class QuranPageWidget extends StatelessWidget {
 
   Widget _buildSurahHeader(int surahNumber, double dynamicHeight) {
     return Container(
-      width: 700,
-      height: 40 * dynamicHeight, // أخذ مساحة السطر المفقود بالضبط
-      margin: const EdgeInsets.symmetric(vertical: 2, horizontal: 16),
+      width: 700, // 👈 لا نستخدم double.infinity لأن الـ Column موجود داخل FittedBox
+      height: 44 * dynamicHeight, 
       child: Stack(
         alignment: Alignment.center,
         children: [
           // إطار السورة الأصلي
           SvgPicture.asset(
             'assets/svgs/Sura_border.svg',
-            width: double.infinity,
-            height: 50 * dynamicHeight,
+            width: 700,
             fit: BoxFit.fill,
             colorFilter: const ColorFilter.mode(Colors.black, BlendMode.srcIn),
           ),

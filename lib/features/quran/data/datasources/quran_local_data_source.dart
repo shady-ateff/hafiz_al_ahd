@@ -25,10 +25,10 @@ class QuranLocalDataSourceImpl implements BaseQuranLocalDataSource {
 
     return await openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: _createDB,
       onUpgrade: (db, oldVersion, newVersion) async {
-        if (oldVersion < 3) {
+        if (oldVersion < 4) {
           await db.execute('DROP TABLE IF EXISTS quran_pages');
           await _createDB(db, newVersion);
         }
