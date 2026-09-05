@@ -39,7 +39,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     
     _screens = [
       const HomeScreen(),
-      const QuranScreen(), // 👈 شاشة المصحف كـ Tab ثاني
       const QiblaScreen(),
       AzkarScreen(initialCategory: widget.initialAzkarCategory),
       const SettingsScreen(),
@@ -178,7 +177,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                     ),
                     tabs: const [
                       GButton(icon: Icons.home_filled, text: 'الرئيسية'),
-                      GButton(icon: Icons.menu_book, text: 'المصحف'),
                       GButton(icon: Icons.explore, text: 'القبلة'),
                       GButton(icon: Icons.book, text: 'الأذكار'),
                       GButton(icon: Icons.settings, text: 'الإعدادات'),

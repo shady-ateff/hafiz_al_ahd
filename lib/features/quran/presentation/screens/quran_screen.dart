@@ -1,5 +1,8 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
 import '../cubit/quran_cubit.dart';
 import '../cubit/quran_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -58,11 +61,14 @@ class _QuranScreenState extends State<QuranScreen> {
     return Scaffold(
       backgroundColor: const Color(0xffFFFCE6),
       appBar: AppBar(
-        title: Text('المصحف الشريف - صفحة $_currentPage'),
-        centerTitle: true,
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Colors.white,
-        elevation: 1,
+        title: const Text(
+          'المصحف الشريف',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: AppColors.amoledBackground,
+          ),
+        ),
+        backgroundColor: Colors.transparent,
       ),
       body: PageView.builder(
         controller: _pageController,
@@ -75,7 +81,7 @@ class _QuranScreenState extends State<QuranScreen> {
           });
           context.read<QuranCubit>().loadPage(pageNumber);
           _saveLastPage(pageNumber); // 👈 حفظ الصفحة الحالية
-          
+
           // Pre-fetch the next page for smooth scrolling
           if (pageNumber < 604) {
             context.read<QuranCubit>().loadPage(pageNumber + 1);
@@ -93,29 +99,41 @@ class _QuranScreenState extends State<QuranScreen> {
             },
             builder: (context, state) {
               if (state is QuranLoading || state is QuranInitial) {
+                log('pageNumber ${state.runtimeType}');
                 return const Center(child: CircularProgressIndicator());
               } else if (state is QuranError) {
+                log('pageNumber ${state.runtimeType}');
                 return Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(state.message, style: const TextStyle(color: Colors.red)),
+                      Text(
+                        state.message,
+                        style: const TextStyle(color: Colors.red),
+                      ),
                       ElevatedButton(
-                        onPressed: () => context.read<QuranCubit>().loadPage(pageNumber),
+                        onPressed: () =>
+                            context.read<QuranCubit>().loadPage(pageNumber),
                         child: const Text('إعادة المحاولة'),
                       ),
                     ],
                   ),
                 );
-              } else if (state is QuranPageLoaded && state.page.pageNumber == pageNumber) {
+              } else if (state is QuranPageLoaded &&
+                  state.page.pageNumber == pageNumber) {
                 return QuranPageWidget(
                   page: state.page,
                   isFontLoaded: state.isFontLoaded,
                 );
+              } else {
+                log('pageNumber ${state.runtimeType}');
               }
-
-              // إذا كانت الحالة محملة لصفحة أخرى، نعرض Loader مؤقت
-              return const Center(child: CircularProgressIndicator());
+              return Center(
+                child: Text(
+                  'جاري التحميل ${state.runtimeType}',
+                  style: TextStyle(color: AppColors.deepBackground),
+                ),
+              );
             },
           );
         },

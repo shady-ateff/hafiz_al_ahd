@@ -7,6 +7,7 @@ import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit
 import 'package:hafiz_al_ahd/features/home/presentation/widgets/manual_location_dialog.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/widgets/prayer_times_grid.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/widgets/time_date_section.dart';
+import 'package:hafiz_al_ahd/features/home/presentation/widgets/continue_reading_card.dart';
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -72,13 +73,16 @@ class _HomeScreenState extends State<HomeScreen>
                   color: AppColors.secondaryGold,
                   size: 20,
                 ),
-                Text(
-                  state is PrayerTimesLoaded
-                      ? state.city ?? "غير معروف"
-                      : "جار التحميل...",
-                  style: GoogleFonts.cairo(
-                    color: AppColors.secondaryGold,
-                    fontWeight: FontWeight.bold,
+                Flexible(
+                  child: Text(
+                    state is PrayerTimesLoaded
+                        ? state.city ?? "غير معروف"
+                        : "جار التحميل...",
+                    style: GoogleFonts.cairo(
+                      color: AppColors.secondaryGold,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
@@ -150,7 +154,12 @@ class _HomeScreenState extends State<HomeScreen>
           children: [
             const Expanded(
               flex: 4,
-              child: TimeDateSection(isLandscape: false, isTabletDesktop: true),
+              child: Column(
+                children: [
+                  Expanded(child: TimeDateSection(isLandscape: false, isTabletDesktop: true)),
+                  ContinueReadingCard(),
+                ],
+              ),
             ),
             const SizedBox(width: 40),
             Expanded(
@@ -174,6 +183,7 @@ class _HomeScreenState extends State<HomeScreen>
             flex: 2,
             child: TimeDateSection(isLandscape: false, isMobile: true),
           ),
+          ContinueReadingCard(), // 👈 البطاقة الجديدة
           Expanded(flex: 3, child: PrayerTimesGrid(crossAxisCount: 2)),
         ],
       ),
@@ -192,7 +202,9 @@ class _HomeScreenState extends State<HomeScreen>
                 height: 200,
                 child: TimeDateSection(isLandscape: false, isWatch: true),
               ),
-              const SizedBox(height: 60),
+              const SizedBox(height: 16),
+              const ContinueReadingCard(),
+              const SizedBox(height: 16),
               const PrayerTimesGrid(
                 crossAxisCount: 1,
                 isScrollable: true,

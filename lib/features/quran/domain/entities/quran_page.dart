@@ -1,6 +1,6 @@
 class QuranPage {
   final int pageNumber;
-  final List<PageLine> lines;
+  final List<QuranLine> lines;
 
   QuranPage({
     required this.pageNumber,
@@ -8,12 +8,14 @@ class QuranPage {
   });
 }
 
-class PageLine {
+class QuranLine {
   final int lineNumber;
-  final String text; // الـ QCF Text
+  final int surahNumber;
+  final String text;
 
-  PageLine({
+  const QuranLine({
     required this.lineNumber,
+    required this.surahNumber,
     required this.text,
   });
 }

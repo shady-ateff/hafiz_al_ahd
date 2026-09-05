@@ -21,7 +21,7 @@ class QuranCubit extends Cubit<QuranState> {
       return;
     }
 
-    emit(QuranLoading());
+    // emit(QuranLoading());
 
     final failureOrPage = await getQuranPageUseCase(pageNumber);
 
@@ -32,6 +32,9 @@ class QuranCubit extends Cubit<QuranState> {
       (page) async {
         // Load the specific QCF font for this page dynamically
         bool isFontLoaded = await _loadFontForPage(pageNumber);
+        
+        // Also always ensure QCF2001 is loaded, because we use it for the Basmalah!
+        await _loadFontForPage(1);
         
         final state = QuranPageLoaded(page: page, isFontLoaded: isFontLoaded);
         _pagesCache[pageNumber] = state;

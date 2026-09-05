@@ -25,10 +25,10 @@ class QuranLocalDataSourceImpl implements BaseQuranLocalDataSource {
 
     return await openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: _createDB,
       onUpgrade: (db, oldVersion, newVersion) async {
-        if (oldVersion < 2) {
+        if (oldVersion < 3) {
           await db.execute('DROP TABLE IF EXISTS quran_pages');
           await _createDB(db, newVersion);
         }
@@ -42,6 +42,7 @@ class QuranLocalDataSourceImpl implements BaseQuranLocalDataSource {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         page_number INTEGER NOT NULL,
         line_number INTEGER NOT NULL,
+        surah_number INTEGER NOT NULL,
         text_qcf TEXT NOT NULL
       )
     ''');
@@ -69,15 +70,15 @@ class QuranLocalDataSourceImpl implements BaseQuranLocalDataSource {
       await db.rawQuery('SELECT COUNT(*) FROM quran_pages'),
     ) ?? 0;
 
-    // لو حصل تكرار بسبب الـ Concurrency في التشغيلة اللي فاتت
-    if (count > 6240) {
-      log("⚠️ Corrupted Quran DB detected (count: $count). Resetting...");
+    // لو حصل تكرار بسبب الـ Concurrency في التشغيلة اللي فاتت أو لو حصل Seed ناقص
+    if (count > 6240 || (count > 0 && count < 6000)) {
+      log("⚠️ Corrupted or partial Quran DB detected (count: $count). Resetting...");
       await db.delete('quran_pages');
       count = 0;
     }
 
     if (count == 0) {
-      log("⏳ Seeding Quran database from mushaf-v2.txt...");
+      log("⏳ Seeding Quran database from quran_lines.json...");
       await _seedDatabase(db);
       log("✅ Quran database seeded successfully.");
     } else {
@@ -98,14 +99,17 @@ class QuranLocalDataSourceImpl implements BaseQuranLocalDataSource {
 
         int currentLineNumber = 1;
         for (var line in lines) {
-          final String textQcf = line.toString().trim();
+          final String textQcf = line['text'].toString().trim();
+          final int lineNumber = line['line_number'] as int;
+          final int surahNumber = line['surah_number'] as int;
+
           if (textQcf.isNotEmpty) {
             batch.insert('quran_pages', {
               'page_number': pageNumber,
-              'line_number': currentLineNumber,
+              'line_number': lineNumber,
+              'surah_number': surahNumber,
               'text_qcf': textQcf,
             });
-            currentLineNumber++;
           }
         }
       }
@@ -130,9 +134,10 @@ class QuranLocalDataSourceImpl implements BaseQuranLocalDataSource {
       throw Exception("Page $pageNumber not found");
     }
 
-    final List<PageLineModel> lines = maps.map((map) {
-      return PageLineModel(
+    final List<QuranLineModel> lines = maps.map((map) {
+      return QuranLineModel(
         lineNumber: map['line_number'] as int,
+        surahNumber: map['surah_number'] as int,
         text: map['text_qcf'] as String,
       );
     }).toList();
