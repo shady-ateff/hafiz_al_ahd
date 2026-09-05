@@ -56,7 +56,7 @@ class QuranCubit extends Cubit<QuranState> {
       final file = File(zipPath);
 
       // Download from internet
-      final url = 'https://github.com/shady-ateff/hafiz_al_ahd/releases/download/v1.0.0/fonts.zip';
+      final url = 'https://github.com/shady-ateff/hafiz_al_ahd/releases/download/v1.0.0/quran_fonts.zip';
       final httpClient = HttpClient();
       final request = await httpClient.getUrl(Uri.parse(url));
       final response = await request.close();
