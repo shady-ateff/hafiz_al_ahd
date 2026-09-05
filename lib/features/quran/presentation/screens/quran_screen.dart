@@ -161,26 +161,56 @@ class _QuranScreenState extends State<QuranScreen> {
                           final bool isDownloading = state is QuranDownloadingFonts;
                           final double progress = isDownloading ? state.progress : 1.0;
                           return Center(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                              child: AppSnackBarWidget(
-                                title: isDownloading ? 'جاري تهيئة المصحف...' : 'جاري فك الضغط...',
-                                subtitle: 'يتم الآن تجهيز الخطوط العثمانية لتعمل بدون إنترنت.',
-                                icon: Icons.cloud_download_rounded,
-                                trailing: Text(
-                                  '${(progress * 100).toStringAsFixed(1)}%',
-                                  style: const TextStyle(
-                                    color: AppColors.lightGold,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    SizedBox(
+                                      width: 120,
+                                      height: 120,
+                                      child: CircularProgressIndicator(
+                                        value: isDownloading ? progress : null,
+                                        strokeWidth: 8,
+                                        color: AppColors.lightGold,
+                                        backgroundColor: isDark ? Colors.white12 : Colors.black12,
+                                        strokeCap: StrokeCap.round,
+                                      ),
+                                    ),
+                                    if (isDownloading)
+                                      Text(
+                                        '${(progress * 100).toInt()}%',
+                                        style: TextStyle(
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.bold,
+                                          color: isDark ? Colors.white : AppColors.primaryBlack,
+                                        ),
+                                      )
+                                    else
+                                      const Icon(Icons.settings_suggest_rounded, size: 48, color: AppColors.lightGold),
+                                  ],
+                                ),
+                                const SizedBox(height: 40),
+                                Text(
+                                  isDownloading ? 'جاري تحميل المصحف الشريف...' : 'جاري تهيئة الخطوط...',
+                                  style: TextStyle(
+                                    fontSize: 22,
                                     fontWeight: FontWeight.bold,
+                                    color: isDark ? Colors.white : AppColors.primaryBlack,
                                   ),
                                 ),
-                                bottom: LinearProgressIndicator(
-                                  value: isDownloading ? progress : null,
-                                  color: AppColors.lightGold,
-                                  backgroundColor: Colors.white24,
-                                  borderRadius: BorderRadius.circular(4),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'هذه العملية تتم مرة واحدة فقط لضمان عمل المصحف\nبدون إنترنت وبأفضل جودة ممكنة.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    height: 1.5,
+                                    color: isDark ? Colors.white60 : Colors.black54,
+                                  ),
                                 ),
-                              ),
+                              ],
                             ),
                           );
                         }
