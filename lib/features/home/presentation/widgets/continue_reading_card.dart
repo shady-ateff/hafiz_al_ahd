@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
 import 'package:hafiz_al_ahd/features/quran/presentation/screens/quran_screen.dart';
@@ -79,10 +80,15 @@ class _ContinueReadingCardState extends State<ContinueReadingCard> {
                 ),
               ],
             ),
-            const Icon(
-              Icons.menu_book,
-              color: AppColors.deepBackground,
-              size: 40,
+            SvgPicture.asset(
+              'assets/svgs/Quran_Kareem.svg',
+              width: 50,
+              height: 50,
+              fit: BoxFit.fitHeight,
+              colorFilter: const ColorFilter.mode(
+                AppColors.deepBackground,
+                BlendMode.srcIn,
+              ),
             ),
           ],
         ),
