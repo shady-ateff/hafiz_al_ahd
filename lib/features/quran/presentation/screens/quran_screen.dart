@@ -23,7 +23,7 @@ class QuranScreen extends StatefulWidget {
 
 class _QuranScreenState extends State<QuranScreen> {
   final PageController _pageController = PageController(initialPage: 0);
-  int _currentPage = 1;
+  final ValueNotifier<int> _currentPageNotifier = ValueNotifier<int>(1);
   bool _isFullScreen = false;
 
   @override
@@ -35,9 +35,7 @@ class _QuranScreenState extends State<QuranScreen> {
   Future<void> _loadLastPage() async {
     final prefs = sl<SharedPreferences>();
     final lastPage = prefs.getInt('last_quran_page') ?? 1;
-    setState(() {
-      _currentPage = lastPage;
-    });
+    _currentPageNotifier.value = lastPage;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_pageController.hasClients) {
@@ -58,6 +56,7 @@ class _QuranScreenState extends State<QuranScreen> {
   @override
   void dispose() {
     _pageController.dispose();
+    _currentPageNotifier.dispose();
     super.dispose();
   }
 
@@ -98,14 +97,15 @@ class _QuranScreenState extends State<QuranScreen> {
                   itemCount: 604,
                   onPageChanged: (index) {
                     final int pageNumber = index + 1;
-                    setState(() {
-                      _currentPage = pageNumber;
-                    });
+                    _currentPageNotifier.value = pageNumber;
                     context.read<QuranCubit>().loadPage(pageNumber);
                     _saveLastPage(pageNumber);
 
                     if (pageNumber < 604) {
                       context.read<QuranCubit>().loadPage(pageNumber + 1);
+                    }
+                    if (pageNumber > 1) {
+                      context.read<QuranCubit>().loadPage(pageNumber - 1);
                     }
                   },
                   itemBuilder: (context, index) {
@@ -219,9 +219,7 @@ class _QuranScreenState extends State<QuranScreen> {
                                   return SurahJuzBottomSheet(
                                     onPageSelected: (page) {
                                       _pageController.jumpToPage(page - 1);
-                                      setState(() {
-                                        _currentPage = page;
-                                      });
+                                      _currentPageNotifier.value = page;
                                     },
                                   );
                                 },
@@ -283,75 +281,78 @@ class _QuranScreenState extends State<QuranScreen> {
                 child: AnimatedOpacity(
                   duration: const Duration(milliseconds: 300),
                   opacity: _isFullScreen ? 0.0 : 1.0,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 15,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? const Color(0xFF222222).withOpacity(0.9)
-                          : Colors.white.withOpacity(0.9),
-                      borderRadius: BorderRadius.circular(30),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 10,
-                          offset: const Offset(0, 5),
+                  child: ValueListenableBuilder<int>(
+                    valueListenable: _currentPageNotifier,
+                    builder: (context, currentPage, child) {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 15,
                         ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        Text(
-                          '$_currentPage',
-                          style: TextStyle(
-                            fontFamily: 'Tajawal',
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: isDark
-                                ? Colors.white
-                                : AppColors.deepBackground,
-                          ),
-                        ),
-                        Expanded(
-                          child: SliderTheme(
-                            data: SliderThemeData(
-                              activeTrackColor: const Color(0xffD4AF37),
-                              inactiveTrackColor: isDark
-                                  ? Colors.grey[800]
-                                  : const Color(0xffD4AF37).withOpacity(0.3),
-                              thumbColor: const Color(0xffD4AF37),
-                              trackHeight: 4.0,
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? const Color(0xFF222222).withOpacity(0.9)
+                              : Colors.white.withOpacity(0.9),
+                          borderRadius: BorderRadius.circular(30),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 10,
+                              offset: const Offset(0, 5),
                             ),
-                            child: Slider(
-                              value: _currentPage.toDouble(),
-                              min: 1,
-                              max: 604,
-                              onChanged: (value) {
-                                setState(() {
-                                  _currentPage = value.toInt();
-                                });
-                              },
-                              onChangeEnd: (value) {
-                                _pageController.jumpToPage(value.toInt() - 1);
-                              },
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            Text(
+                              '$currentPage',
+                              style: TextStyle(
+                                fontFamily: 'Tajawal',
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: isDark
+                                    ? Colors.white
+                                    : AppColors.deepBackground,
+                              ),
                             ),
-                          ),
+                            Expanded(
+                              child: SliderTheme(
+                                data: SliderThemeData(
+                                  activeTrackColor: const Color(0xffD4AF37),
+                                  inactiveTrackColor: isDark
+                                      ? Colors.grey[800]
+                                      : const Color(0xffD4AF37).withOpacity(0.3),
+                                  thumbColor: const Color(0xffD4AF37),
+                                  trackHeight: 4.0,
+                                ),
+                                child: Slider(
+                                  value: currentPage.toDouble(),
+                                  min: 1,
+                                  max: 604,
+                                  onChanged: (value) {
+                                    _currentPageNotifier.value = value.toInt();
+                                  },
+                                  onChangeEnd: (value) {
+                                    _pageController.jumpToPage(value.toInt() - 1);
+                                  },
+                                ),
+                              ),
+                            ),
+                            Text(
+                              '604',
+                              style: TextStyle(
+                                fontFamily: 'Tajawal',
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: isDark
+                                    ? Colors.white
+                                    : AppColors.deepBackground,
+                              ),
+                            ),
+                          ],
                         ),
-                        Text(
-                          '604',
-                          style: TextStyle(
-                            fontFamily: 'Tajawal',
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: isDark
-                                ? Colors.white
-                                : AppColors.deepBackground,
-                          ),
-                        ),
-                      ],
-                    ),
+                      );
+                    },
                   ),
                 ),
               ),
