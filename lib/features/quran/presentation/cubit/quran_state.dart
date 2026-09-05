@@ -12,6 +12,14 @@ class QuranInitial extends QuranState {}
 
 class QuranLoading extends QuranState {}
 
+class QuranDownloadingFonts extends QuranState {
+  final double progress;
+  const QuranDownloadingFonts(this.progress);
+
+  @override
+  List<Object> get props => [progress];
+}
+
 class QuranPageLoaded extends QuranState {
   final QuranPage page;
   final bool isFontLoaded;

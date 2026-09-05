@@ -148,6 +148,45 @@ class _QuranScreenState extends State<QuranScreen> {
                           );
                         }
 
+                        if (state is QuranDownloadingFonts) {
+                          return Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(24.0),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.cloud_download_rounded, size: 64, color: isDark ? const Color(0xffD4AF37) : AppColors.deepBackground),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'جاري تحميل خطوط المصحف لأول مرة...',
+                                    style: TextStyle(
+                                      color: isDark ? Colors.white : AppColors.deepBackground,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  LinearProgressIndicator(
+                                    value: state.progress,
+                                    color: isDark ? const Color(0xffD4AF37) : AppColors.deepBackground,
+                                    backgroundColor: isDark ? Colors.white24 : Colors.black12,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    '${(state.progress * 100).toStringAsFixed(1)}%',
+                                    style: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'يرجى عدم إغلاق التطبيق. سيتم فك الضغط تلقائياً.',
+                                    style: TextStyle(color: isDark ? Colors.white54 : Colors.black45, fontSize: 12),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }
+
                         return Center(
                           child: CircularProgressIndicator(
                             color: isDark

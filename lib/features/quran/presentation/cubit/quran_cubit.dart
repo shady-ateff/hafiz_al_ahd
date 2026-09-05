@@ -45,19 +45,46 @@ class QuranCubit extends Cubit<QuranState> {
       }
 
       _isUnzipping = true;
-      emit(QuranLoading());
-      log("⏳ Starting Quran fonts extraction in background...");
-
-      // Load zip from assets
-      final ByteData zipBytes = await rootBundle.load('assets/quran/fonts.zip');
-      final Uint8List zipList = zipBytes.buffer.asUint8List();
+      emit(const QuranDownloadingFonts(0.0));
+      log("⏳ Starting Quran fonts download...");
 
       if (!await dir.exists()) {
         await dir.create(recursive: true);
       }
 
+      final zipPath = '${dir.path}/fonts.zip';
+      final file = File(zipPath);
+
+      // Download from internet
+      final url = 'https://github.com/shady-ateff/hafiz_al_ahd/releases/download/v1.0.0/fonts.zip';
+      final httpClient = HttpClient();
+      final request = await httpClient.getUrl(Uri.parse(url));
+      final response = await request.close();
+      
+      if (response.statusCode != 200) {
+        throw Exception('فشل تحميل الخطوط من السيرفر. كود الخطأ: ${response.statusCode}');
+      }
+
+      final raf = file.openSync(mode: FileMode.write);
+      int downloaded = 0;
+      final total = response.contentLength;
+      
+      await response.listen((data) {
+        downloaded += data.length;
+        raf.writeFromSync(data);
+        
+        if (total > 0) {
+          final double progress = downloaded / total;
+          emit(QuranDownloadingFonts(progress));
+        }
+      }).asFuture();
+      
+      raf.closeSync();
+      log("✅ Download complete, extracting...");
+      emit(QuranLoading()); // Switching to extraction mode
+
       // Extract in background isolate to avoid UI freeze
-      await compute(_extractZip, {'zipBytes': zipList, 'destPath': _fontsDir});
+      await compute(_extractZip, {'zipPath': zipPath, 'destPath': _fontsDir});
 
       await prefs.setBool('quran_fonts_extracted', true);
       _fontsReady = true;
@@ -69,15 +96,16 @@ class QuranCubit extends Cubit<QuranState> {
     } catch (e) {
       _isUnzipping = false;
       log("❌ Error extracting fonts: $e");
-      emit(QuranError("فشل في تهيئة خطوط المصحف: $e"));
+      emit(QuranError("فشل في تهيئة خطوط المصحف. تأكد من اتصالك بالإنترنت."));
     }
   }
 
   static void _extractZip(Map<String, dynamic> args) {
-    final Uint8List zipBytes = args['zipBytes'];
+    final String zipPath = args['zipPath'];
     final String destPath = args['destPath'];
     
-    final archive = ZipDecoder().decodeBytes(zipBytes);
+    final bytes = File(zipPath).readAsBytesSync();
+    final archive = ZipDecoder().decodeBytes(bytes);
     for (final file in archive) {
       if (file.isFile) {
         final data = file.content as List<int>;
@@ -86,6 +114,8 @@ class QuranCubit extends Cubit<QuranState> {
           ..writeAsBytesSync(data);
       }
     }
+    // Delete the zip file to save space
+    File(zipPath).deleteSync();
   }
 
   QuranPageLoaded? getCachedPage(int pageNumber) {
