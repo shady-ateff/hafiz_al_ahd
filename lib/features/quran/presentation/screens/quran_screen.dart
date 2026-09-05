@@ -13,6 +13,7 @@ import '../../../../core/DI/service_locator.dart';
 import '../widgets/quran_page_widget.dart';
 import '../../data/datasources/surah_names.dart';
 import '../widgets/surah_juz_bottom_sheet.dart';
+import 'package:hafiz_al_ahd/core/widgets/app_snackbar.dart';
 
 class QuranScreen extends StatefulWidget {
   const QuranScreen({super.key});
@@ -155,6 +156,34 @@ class _QuranScreenState extends State<QuranScreen> {
                         }
 
 
+
+                        if (state is QuranDownloadingFonts || (state is QuranLoading && context.read<QuranCubit>().isUnzipping)) {
+                          final bool isDownloading = state is QuranDownloadingFonts;
+                          final double progress = isDownloading ? state.progress : 1.0;
+                          return Center(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                              child: AppSnackBarWidget(
+                                title: isDownloading ? 'جاري تهيئة المصحف...' : 'جاري فك الضغط...',
+                                subtitle: 'يتم الآن تجهيز الخطوط العثمانية لتعمل بدون إنترنت.',
+                                icon: Icons.cloud_download_rounded,
+                                trailing: Text(
+                                  '${(progress * 100).toStringAsFixed(1)}%',
+                                  style: const TextStyle(
+                                    color: AppColors.lightGold,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                bottom: LinearProgressIndicator(
+                                  value: isDownloading ? progress : null,
+                                  color: AppColors.lightGold,
+                                  backgroundColor: Colors.white24,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                              ),
+                            ),
+                          );
+                        }
 
                         return Center(
                           child: CircularProgressIndicator(

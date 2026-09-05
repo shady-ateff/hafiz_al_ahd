@@ -26,6 +26,7 @@ class QuranCubit extends Cubit<QuranState> {
   int _lastRequestedPage = 1;
 
   bool get fontsReady => _fontsReady;
+  bool get isUnzipping => _isUnzipping;
 
   QuranCubit({required this.getQuranPageUseCase}) : super(QuranInitial()) {
     initFonts();
