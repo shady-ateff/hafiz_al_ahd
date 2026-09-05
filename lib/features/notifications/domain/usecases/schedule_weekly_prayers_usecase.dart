@@ -1,17 +1,11 @@
 import 'dart:developer';
-import 'dart:isolate';
-import 'dart:ui';
-import 'package:flutter/services.dart';
-import 'package:alarm/alarm.dart';
+import 'dart:async';
 import 'package:hafiz_al_ahd/features/home/domain/usecases/get_prayer_times_use_case.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/repos/base_notification_repository.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/usecases/cancel_all_notfication_usecase.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/usecases/schedule_prayer_usecase.dart';
 import 'package:hafiz_al_ahd/features/settings/domain/usecases/get_iqama_delays_usecase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:hafiz_al_ahd/features/notifications/data/repos/notification_repository_impl.dart';
-import 'package:hafiz_al_ahd/features/home/data/datasources/prayer_times_local_data_source.dart';
-import 'package:hafiz_al_ahd/features/home/data/repositories/prayer_times_repo_impl.dart';
 
 class ScheduleWeeklyPrayersUseCase {
   final GetPrayerTimesUseCase getPrayerTimesUseCase;
@@ -21,7 +15,7 @@ class ScheduleWeeklyPrayersUseCase {
   final BaseNotificationRepository notificationRepository;
   final SharedPreferences pref;
 
-  static Isolate? _activeIsolate;
+  static int _scheduleSessionId = 0;
 
   ScheduleWeeklyPrayersUseCase({
     required this.getPrayerTimesUseCase,
@@ -33,89 +27,45 @@ class ScheduleWeeklyPrayersUseCase {
   });
 
   Future<void> execute(double lat, double lng, String city) async {
-    if (_activeIsolate != null) {
-      _activeIsolate!.kill(priority: Isolate.immediate);
-      _activeIsolate = null;
-      log("🛑 Killed previous scheduling isolate to avoid race conditions.");
-    }
+    // 1. إدارة التضارب (Race Conditions)
+    final int currentSession = ++_scheduleSessionId;
+    log("🚀 Starting scheduling session #$currentSession on Main Thread with Throttling...");
 
-    // قراءة الإعدادات بالكامل من الـ Main Thread
+    // 2. قراءة الإعدادات
     final iqamaDelays = await getIqamaDelaysUseCase.execute();
     final adhanVolume = pref.getDouble('adhan_volume') ?? 1.0;
     final isAdhanVibrationEnabled = pref.getBool('isAdhanVibrationEnabled') ?? true;
     final isIqamaEnabled = pref.getBool('isIqamaEnabled') ?? true;
     final isAzkarReminderEnabled = pref.getBool('isAzkarReminderEnabled') ?? true;
-    final dstOffset = pref.getInt('dst_offset_minutes') ?? 0;
 
-    final token = RootIsolateToken.instance!;
-    
-    final isolateData = {
-      'token': token,
-      'lat': lat,
-      'lng': lng,
-      'city': city,
-      'iqamaDelays': iqamaDelays,
-      'adhanVolume': adhanVolume,
-      'isAdhanVibrationEnabled': isAdhanVibrationEnabled,
-      'isIqamaEnabled': isIqamaEnabled,
-      'isAzkarReminderEnabled': isAzkarReminderEnabled,
-      'dstOffset': dstOffset,
-    };
-
-    log("🚀 Spawning background isolate for notification scheduling...");
-    _activeIsolate = await Isolate.spawn(_isolateEntryPoint, isolateData);
-
-    final newTargetDate = DateTime.now().add(const Duration(days: 5));
-    await pref.setString('scheduled_until_date', newTargetDate.toIso8601String());
-  }
-
-  static Future<void> _isolateEntryPoint(Map<String, dynamic> data) async {
-    // 1. Initialization in Background Isolate
-    BackgroundIsolateBinaryMessenger.ensureInitialized(data['token']);
-    DartPluginRegistrant.ensureInitialized();
-    await Alarm.init();
-
-    final notifRepo = NotificationRepositoryImpl();
-    await notifRepo.initialize();
-
-    final prayerLocalSource = PrayerTimesLocalDataSource();
-    final prayerRepo = PrayerTimesRepoImpl(prayerLocalSource);
-
-    // 2. Data extraction
-    final lat = data['lat'] as double;
-    final lng = data['lng'] as double;
-    final city = data['city'] as String;
-    final iqamaDelays = data['iqamaDelays'] as Map<String, int>;
-    final adhanVolume = data['adhanVolume'] as double;
-    final isAdhanVibrationEnabled = data['isAdhanVibrationEnabled'] as bool;
-    final isIqamaEnabled = data['isIqamaEnabled'] as bool;
-    final isAzkarReminderEnabled = data['isAzkarReminderEnabled'] as bool;
-    final dstOffset = data['dstOffset'] as int;
-
-    // 3. Clear old notifications
-    await notifRepo.cancelAllAlarms();
-    await notifRepo.cancelActivePrayerNotification();
-    log("[Isolate] Notifications cleared. Scheduling new notifications for the next 5 days...");
+    // 3. مسح الإشعارات القديمة
+    await notificationRepository.cancelAllAlarms();
+    await notificationRepository.cancelActivePrayerNotification();
+    log("🧹 Notifications cleared. Scheduling new notifications for the next 5 days...");
 
     int notificationId = 1;
     for (int i = 0; i < 5; i++) {
+      // 4. التأكد من عدم وجود جلسة جديدة بدأت أثناء العمل
+      if (_scheduleSessionId != currentSession) {
+        log("🛑 Session #$currentSession cancelled because a newer session started.");
+        return;
+      }
+
       final date = DateTime.now().add(Duration(days: i));
       
-      final result = await prayerRepo.getPrayerTimes(
+      final result = await getPrayerTimesUseCase(
         latitude: lat,
         longitude: lng,
         date: date,
         city: city,
       );
       
-      await result.fold((_) async {}, (prayerTimesEntity) async {
-        final prayerTimes = prayerTimesEntity.applyDstOffset(dstOffset);
-        log("[Isolate] Fetched prayer times for ${date.toLocal()} - scheduling...");
+      await result.fold((_) async {}, (prayerTimes) async {
+        log("📅 Fetched prayer times for ${date.toLocal()} - scheduling...");
         
         notificationId = await _schedulePrayersForDay(
           prayerTimes: prayerTimes,
           currentId: notificationId,
-          notifRepo: notifRepo,
           iqamaDelays: iqamaDelays,
           adhanVolume: adhanVolume,
           isAdhanVibrationEnabled: isAdhanVibrationEnabled,
@@ -124,17 +74,23 @@ class ScheduleWeeklyPrayersUseCase {
         );
       });
       
-      // THROTTLING / CHUNKING
+      // 5. نظام التقطيع (Chunking / Throttling)
+      // هذا السطر السحري يحل مشكلتين:
+      // - يحرر הـ Dart Main Thread ليرسم الواجهة (يمنع الـ UI Lag)
+      // - يمنع اختناق الـ Native Android Thread بكميات هائلة من הـ PendingIntents
       await Future.delayed(const Duration(milliseconds: 150));
     }
     
-    log("[Isolate] Scheduling complete! Isolate will now exit.");
+    if (_scheduleSessionId == currentSession) {
+      final newTargetDate = DateTime.now().add(const Duration(days: 5));
+      await pref.setString('scheduled_until_date', newTargetDate.toIso8601String());
+      log("✅ Scheduling session #$currentSession complete!");
+    }
   }
 
-  static Future<int> _schedulePrayersForDay({
+  Future<int> _schedulePrayersForDay({
     required var prayerTimes, 
     required int currentId,
-    required NotificationRepositoryImpl notifRepo,
     required Map<String, int> iqamaDelays,
     required double adhanVolume,
     required bool isAdhanVibrationEnabled,
@@ -154,8 +110,8 @@ class ScheduleWeeklyPrayersUseCase {
       if (prayer.time == null || prayer.key == 'shurooq') continue;
 
       if (prayer.time!.isAfter(DateTime.now())) {
-        log("[Isolate] ⏲️ Scheduling ALARM for prayer: ${prayer.name} at ${prayer.time} with volume $adhanVolume");
-        await notifRepo.scheduleAdhanAlarm(
+        log("⏲️ Scheduling ALARM for prayer: ${prayer.name} at ${prayer.time}");
+        await notificationRepository.scheduleAdhanAlarm(
           id: currentId++,
           title: 'حان الآن موعد صلاة ${prayer.name}',
           body: prayer.name == 'الفجر' ? 'الصلاة خير من النوم' : 'حي على الصلاة، حي على الفلاح',
@@ -171,8 +127,7 @@ class ScheduleWeeklyPrayersUseCase {
       if (isIqamaEnabled && iqamaDelay > 0) {
         final DateTime iqamaTime = prayer.time!.add(Duration(minutes: iqamaDelay));
         if (iqamaTime.isAfter(DateTime.now())) {
-          log("[Isolate] 📅 Scheduling Iqama for ${prayer.name} at $iqamaTime");
-          await notifRepo.schedulePrayerNotification(
+          await notificationRepository.schedulePrayerNotification(
             id: currentId++,
             title: 'إقامة صلاة ${prayer.name}',
             body: 'تجهز للصلاة، ستقام الصلاة الآن',
@@ -192,8 +147,7 @@ class ScheduleWeeklyPrayersUseCase {
         }
 
         if (azkarAfterPrayerTime.isAfter(DateTime.now())) {
-          log("[Isolate] 📿 Scheduling Azkar (أذكار بعد الصلاة) at $azkarAfterPrayerTime");
-          await notifRepo.schedulePrayerNotification(
+          await notificationRepository.schedulePrayerNotification(
             id: currentId++,
             title: 'أذكار بعد الصلاة',
             body: 'تقبل الله صلاتك، لا تنس أذكار ما بعد صلاة ${prayer.name}.',
@@ -220,8 +174,7 @@ class ScheduleWeeklyPrayersUseCase {
         }
 
         if (specificAzkarTime != null && specificAzkarTime.isAfter(DateTime.now())) {
-          log("[Isolate] 📿 Scheduling Azkar ($specificAzkarTitle) at $specificAzkarTime");
-          await notifRepo.schedulePrayerNotification(
+          await notificationRepository.schedulePrayerNotification(
             id: currentId++,
             title: specificAzkarTitle!,
             body: specificAzkarBody!,
