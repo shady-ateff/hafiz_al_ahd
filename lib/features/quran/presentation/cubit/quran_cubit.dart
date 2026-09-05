@@ -167,12 +167,17 @@ class QuranCubit extends Cubit<QuranState> {
     try {
       final String paddedNumber = pageNumber.toString().padLeft(3, '0');
       final String fontFamily = 'QCF2$paddedNumber';
-      final String fontPath = '$_fontsDir/fonts/$fontFamily.ttf';
-      final File fontFile = File(fontPath);
+      String fontPath = '$_fontsDir/fonts/$fontFamily.ttf';
+      File fontFile = File(fontPath);
 
       if (!await fontFile.exists()) {
-        log("❌ Font file not found at: $fontPath");
-        return false;
+        // Fallback for flattened zip extraction
+        fontPath = '$_fontsDir/$fontFamily.ttf';
+        fontFile = File(fontPath);
+        if (!await fontFile.exists()) {
+          log("❌ Font file not found at: $fontPath");
+          return false;
+        }
       }
 
       final Uint8List fontBytes = await fontFile.readAsBytes();
@@ -247,8 +252,14 @@ class QuranCubit extends Cubit<QuranState> {
 
     for (final p in pages) {
       final String paddedNumber = p.toString().padLeft(3, '0');
-      final String fontPath = '$fontsDir/fonts/QCF2$paddedNumber.ttf';
-      final file = File(fontPath);
+      String fontPath = '$fontsDir/fonts/QCF2$paddedNumber.ttf';
+      File file = File(fontPath);
+
+      if (!file.existsSync()) {
+        fontPath = '$fontsDir/QCF2$paddedNumber.ttf';
+        file = File(fontPath);
+      }
+
       if (file.existsSync()) {
         result[p] = file.readAsBytesSync();
       }
