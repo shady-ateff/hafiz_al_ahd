@@ -29,6 +29,7 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   late int _currentIndex;
+  bool _isDownloadOverlayDismissed = false;
 
   // 👈 1. تعريف الـ PageController
   late PageController _pageController;
@@ -125,6 +126,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             // 👈 5. شريط تقدم تحميل المصحف يظهر فقط في الشاشة الرئيسية وفوق الـ NavBar
             BlocBuilder<QuranCubit, QuranState>(
               builder: (context, state) {
+                if (_isDownloadOverlayDismissed) return const SizedBox.shrink();
+                
                 if (state is QuranDownloadingFonts || state is QuranLoading) {
                   final bool isDownloading = state is QuranDownloadingFonts;
                   final double progress = isDownloading ? state.progress : 1.0;
@@ -133,22 +136,31 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                     bottom: 24,
                     left: 16,
                     right: 16,
-                    child: AppSnackBarWidget(
-                      title: isDownloading ? 'جاري تهيئة المصحف...' : 'جاري فك الضغط...',
-                      subtitle: 'يتم الآن تجهيز الخطوط العثمانية لتعمل بدون إنترنت.',
-                      icon: Icons.cloud_download_rounded,
-                      trailing: Text(
-                        '${(progress * 100).toStringAsFixed(1)}%',
-                        style: const TextStyle(
-                          color: AppColors.lightGold,
-                          fontWeight: FontWeight.bold,
+                    child: Dismissible(
+                      key: const Key('quran_download_overlay'),
+                      direction: DismissDirection.horizontal,
+                      onDismissed: (direction) {
+                        setState(() {
+                          _isDownloadOverlayDismissed = true;
+                        });
+                      },
+                      child: AppSnackBarWidget(
+                        title: isDownloading ? 'جاري تهيئة المصحف...' : 'جاري فك الضغط...',
+                        subtitle: 'يتم الآن تجهيز الخطوط العثمانية لتعمل بدون إنترنت.',
+                        icon: Icons.cloud_download_rounded,
+                        trailing: Text(
+                          '${(progress * 100).toStringAsFixed(1)}%',
+                          style: const TextStyle(
+                            color: AppColors.lightGold,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                      bottom: LinearProgressIndicator(
-                        value: isDownloading ? progress : null,
-                        color: AppColors.lightGold,
-                        backgroundColor: Colors.white24,
-                        borderRadius: BorderRadius.circular(4),
+                        bottom: LinearProgressIndicator(
+                          value: isDownloading ? progress : null,
+                          color: AppColors.lightGold,
+                          backgroundColor: Colors.white24,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
                       ),
                     ),
                   );
