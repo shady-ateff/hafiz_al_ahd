@@ -14,6 +14,9 @@ import 'package:hafiz_al_ahd/features/gamification/presentation/cubit/gamificati
 import 'package:hafiz_al_ahd/features/gamification/presentation/cubit/gamification_state.dart';
 import 'package:hafiz_al_ahd/features/gamification/presentation/widgets/achievement_dialog.dart';
 import 'package:hafiz_al_ahd/features/quran/presentation/screens/quran_screen.dart';
+import 'package:hafiz_al_ahd/features/quran/presentation/cubit/quran_cubit.dart';
+import 'package:hafiz_al_ahd/features/quran/presentation/cubit/quran_state.dart';
+import 'package:hafiz_al_ahd/core/widgets/app_snackbar.dart';
 
 class MainScreen extends StatefulWidget {
   final int initialTab;
@@ -103,18 +106,57 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             AchievementDialog.show(context, state.badge);
           }
         },
-        child: PageView(
-          controller: _pageController,
-          physics:
-              const BouncingScrollPhysics(), // 👈 بتدي تأثير ارتداد ناعم زي الـ iOS
-          onPageChanged: (index) {
-            // 👈 لما اليوزر يعمل Swipe، نحدث الـ GNav واتجاه الشاشة
-            setState(() {
-              _currentIndex = index;
-              _updateOrientation(index);
-            });
-          },
-          children: _screens,
+        child: Stack(
+          children: [
+            PageView(
+              controller: _pageController,
+              physics:
+                  const BouncingScrollPhysics(), // 👈 بتدي تأثير ارتداد ناعم زي الـ iOS
+              onPageChanged: (index) {
+                // 👈 لما اليوزر يعمل Swipe، نحدث الـ GNav واتجاه الشاشة
+                setState(() {
+                  _currentIndex = index;
+                  _updateOrientation(index);
+                });
+              },
+              children: _screens,
+            ),
+            
+            // 👈 5. شريط تقدم تحميل المصحف يظهر فقط في الشاشة الرئيسية وفوق الـ NavBar
+            BlocBuilder<QuranCubit, QuranState>(
+              builder: (context, state) {
+                if (state is QuranDownloadingFonts || state is QuranLoading) {
+                  final bool isDownloading = state is QuranDownloadingFonts;
+                  final double progress = isDownloading ? state.progress : 1.0;
+                  
+                  return Positioned(
+                    bottom: 24,
+                    left: 16,
+                    right: 16,
+                    child: AppSnackBarWidget(
+                      title: isDownloading ? 'جاري تهيئة المصحف...' : 'جاري فك الضغط...',
+                      subtitle: 'يتم الآن تجهيز الخطوط العثمانية لتعمل بدون إنترنت.',
+                      icon: Icons.cloud_download_rounded,
+                      trailing: Text(
+                        '${(progress * 100).toStringAsFixed(1)}%',
+                        style: const TextStyle(
+                          color: AppColors.lightGold,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      bottom: LinearProgressIndicator(
+                        value: isDownloading ? progress : null,
+                        color: AppColors.lightGold,
+                        backgroundColor: Colors.white24,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+          ],
         ),
       ),
 

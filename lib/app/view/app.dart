@@ -13,6 +13,7 @@ import 'package:hafiz_al_ahd/features/azkar/presentation/cubit/azkar_tracker_cub
 import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit/prayer_times_cubit.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/cubit/time_cubit.dart';
 import 'package:hafiz_al_ahd/features/main/presentation/screens/main_screen.dart';
+import 'package:hafiz_al_ahd/features/quran/presentation/cubit/quran_state.dart';
 import 'package:hafiz_al_ahd/main.dart'; // For navigatorKey
 import 'package:hafiz_al_ahd/features/onboarding/presentation/cubit/onboarding_cubit.dart';
 import 'package:hafiz_al_ahd/features/onboarding/presentation/screens/onboarding_screen.dart';
@@ -145,50 +146,7 @@ class _AppState extends State<App> with TrayListener, WindowListener {
             builder: (context, child) {
               return Directionality(
                 textDirection: TextDirection.rtl,
-                child: ScaffoldMessenger(
-                  key: navigatorKey.currentContext != null ? null : GlobalKey<ScaffoldMessengerState>(),
-                  child: Stack(
-                    children: [
-                      if (child != null) child,
-                      BlocBuilder<QuranCubit, QuranState>(
-                        builder: (context, state) {
-                          if (state is QuranDownloadingFonts || state is QuranLoading) {
-                            final bool isDownloading = state is QuranDownloadingFonts;
-                            final double progress = isDownloading ? state.progress : 1.0;
-                            
-                            return Positioned(
-                              bottom: 32,
-                              left: 16,
-                              right: 16,
-                              child: Material(
-                                color: Colors.transparent,
-                                child: AppSnackBarWidget(
-                                  title: isDownloading ? 'جاري تهيئة المصحف...' : 'جاري فك الضغط...',
-                                  subtitle: 'يتم الآن تجهيز الخطوط العثمانية لتعمل بدون إنترنت.',
-                                  icon: Icons.cloud_download_rounded,
-                                  trailing: Text(
-                                    '${(progress * 100).toStringAsFixed(1)}%',
-                                    style: const TextStyle(
-                                      color: AppColors.lightGold,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  bottom: LinearProgressIndicator(
-                                    value: isDownloading ? progress : null,
-                                    color: AppColors.lightGold,
-                                    backgroundColor: Colors.white24,
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                ),
-                              ),
-                            );
-                          }
-                          return const SizedBox.shrink();
-                        },
-                      ),
-                    ],
-                  ),
-                ),
+                child: child ?? const SizedBox.shrink(),
               );
             },
             debugShowCheckedModeBanner: true,
