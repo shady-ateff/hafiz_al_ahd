@@ -9,7 +9,9 @@ import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit
 import 'package:hafiz_al_ahd/features/settings/domain/usecases/get_iqama_delays_usecase.dart';
 import 'package:hafiz_al_ahd/features/settings/domain/usecases/save_iqama_delays_usecase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:hafiz_al_ahd/features/quran/presentation/widgets/quran_theme_bottom_sheet.dart' as hafiz_quran_theme;
+import 'package:hafiz_al_ahd/features/settings/presentation/screens/about_app_screen.dart';
+import 'package:hafiz_al_ahd/features/quran/presentation/widgets/quran_theme_bottom_sheet.dart'
+    as hafiz_quran_theme;
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -58,7 +60,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _isIqamaEnabled = prefs.getBool('isIqamaEnabled') ?? true;
       _isDstEnabled = (prefs.getInt('dst_offset_minutes') ?? 0) > 0;
       _adhanVolume = prefs.getDouble('adhan_volume') ?? 1.0;
-      _isAdhanVibrationEnabled = prefs.getBool('isAdhanVibrationEnabled') ?? true;
+      _isAdhanVibrationEnabled =
+          prefs.getBool('isAdhanVibrationEnabled') ?? true;
       _isAzkarReminderEnabled = prefs.getBool('isAzkarReminderEnabled') ?? true;
       _isLoading = false;
     });
@@ -120,8 +123,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ── Theme Toggle ──────────────────────────────────────────
-                    _buildSectionTitle('المظهر', textColor),
+                    // ── Theme Settings ──────────────────────────────────────────
+                    _buildSectionTitle('المظهر والتخصيص', textColor),
                     const SizedBox(height: 12),
                     Container(
                       decoration: BoxDecoration(
@@ -132,121 +135,400 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           width: 1,
                         ),
                       ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 4,
-                        ),
-                        child: Row(
-                          children: [
-                            // Dark icon
-                            const Icon(
-                              Icons.dark_mode_rounded,
-                              color: AppColors.secondaryGold,
-                              size: 22,
+                      child: Column(
+                        children: [
+                          // App Theme
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 4,
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                isDark ? 'الوضع الليلي' : 'الوضع النهاري',
-                                style: GoogleFonts.cairo(
-                                  color: textColor,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.dark_mode_rounded,
+                                  color: AppColors.secondaryGold,
+                                  size: 22,
                                 ),
-                              ),
-                            ),
-                            // Toggle switch — styled gold
-                            Transform.scale(
-                              scale: 0.85,
-                              child: Switch(
-                                value: isDark,
-                                activeColor: AppColors.secondaryGold,
-                                activeTrackColor: AppColors.secondaryGold
-                                    .withOpacity(0.3),
-                                inactiveThumbColor: const Color(0xFF7A6840),
-                                inactiveTrackColor: const Color(0xFFE8D9B5),
-                                onChanged: (_) {
-                                  context.read<ThemeCubit>().toggleTheme();
-                                },
-                              ),
-                            ),
-                            // Light icon
-                            Icon(
-                              isDark
-                                  ? Icons.nights_stay_rounded
-                                  : Icons.wb_sunny_rounded,
-                              color: isDark
-                                  ? AppColors.silverMarble.withOpacity(0.4)
-                                  : AppColors.secondaryGold,
-                              size: 22,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 28),
-
-                    // ── Quran Theme ──────────────────────────────────────────
-                    _buildSectionTitle('مظهر المصحف', textColor),
-                    const SizedBox(height: 12),
-                    GestureDetector(
-                      onTap: () {
-                        showModalBottomSheet(
-                          context: context,
-                          isScrollControlled: true,
-                          backgroundColor: Colors.transparent,
-                          builder: (context) {
-                            return const hafiz_quran_theme.QuranThemeBottomSheet();
-                          },
-                        );
-                      },
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: cardColor,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: AppColors.secondaryGold.withOpacity(0.3),
-                            width: 1,
-                          ),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 16,
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.menu_book_rounded,
-                                color: AppColors.secondaryGold,
-                                size: 22,
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  'تغيير مظهر خلفية المصحف',
-                                  style: GoogleFonts.cairo(
-                                    color: textColor,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    isDark ? 'الوضع الليلي' : 'الوضع النهاري',
+                                    style: GoogleFonts.cairo(
+                                      color: textColor,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              const Icon(
-                                Icons.arrow_forward_ios_rounded,
-                                color: AppColors.secondaryGold,
-                                size: 16,
-                              ),
-                            ],
+                                Transform.scale(
+                                  scale: 0.85,
+                                  child: Switch(
+                                    value: isDark,
+                                    activeColor: AppColors.secondaryGold,
+                                    activeTrackColor: AppColors.secondaryGold
+                                        .withOpacity(0.3),
+                                    inactiveThumbColor: const Color(0xFF7A6840),
+                                    inactiveTrackColor: const Color(0xFFE8D9B5),
+                                    onChanged: (_) => context
+                                        .read<ThemeCubit>()
+                                        .toggleTheme(),
+                                  ),
+                                ),
+                                Icon(
+                                  isDark
+                                      ? Icons.nights_stay_rounded
+                                      : Icons.wb_sunny_rounded,
+                                  color: isDark
+                                      ? AppColors.silverMarble.withOpacity(0.4)
+                                      : AppColors.secondaryGold,
+                                  size: 22,
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
+                          Divider(color: dividerColor, height: 1),
+                          // Quran Theme
+                          InkWell(
+                            onTap: () {
+                              showModalBottomSheet(
+                                context: context,
+                                isScrollControlled: true,
+                                backgroundColor: Colors.transparent,
+                                builder: (context) =>
+                                    const hafiz_quran_theme.QuranThemeBottomSheet(),
+                              );
+                            },
+                            borderRadius: const BorderRadius.vertical(
+                              bottom: Radius.circular(16),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 16,
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.menu_book_rounded,
+                                    color: AppColors.secondaryGold,
+                                    size: 22,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      'تغيير مظهر خلفية المصحف',
+                                      style: GoogleFonts.cairo(
+                                        color: textColor,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                  const Icon(
+                                    Icons.arrow_forward_ios_rounded,
+                                    color: AppColors.secondaryGold,
+                                    size: 16,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 28),
 
-                    // ── DST Toggle ──────────────────────────────────────────
-                    _buildSectionTitle('التوقيت الصيفي', textColor),
+                    // ── Notifications Settings ──────────────────────────────────────────
+                    _buildSectionTitle('إعدادات الإشعارات', textColor),
+                    const SizedBox(height: 12),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: cardColor,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: AppColors.secondaryGold.withOpacity(0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // -- Subcategory: Adhan --
+                          _buildSubcategoryHeader(
+                            'إعدادات الأذان',
+                            textColor,
+                            dividerColor,
+                          ),
+                          // Adhan Volume
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  _adhanVolume == 0
+                                      ? Icons.volume_off_rounded
+                                      : _adhanVolume < 0.5
+                                      ? Icons.volume_down_rounded
+                                      : Icons.volume_up_rounded,
+                                  color: AppColors.secondaryGold,
+                                  size: 22,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: SliderTheme(
+                                    data: SliderTheme.of(context).copyWith(
+                                      activeTrackColor: AppColors.secondaryGold,
+                                      inactiveTrackColor: AppColors
+                                          .secondaryGold
+                                          .withOpacity(0.3),
+                                      thumbColor: AppColors.secondaryGold,
+                                      overlayColor: AppColors.secondaryGold
+                                          .withOpacity(0.1),
+                                      trackHeight: 4.0,
+                                    ),
+                                    child: Slider(
+                                      value: _adhanVolume,
+                                      min: 0.0,
+                                      max: 1.0,
+                                      divisions: 10,
+                                      label: '${(_adhanVolume * 100).round()}%',
+                                      onChanged: (val) =>
+                                          setState(() => _adhanVolume = val),
+                                      onChangeEnd: (val) => _saveSettings(),
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(
+                                  width: 40,
+                                  child: Text(
+                                    '${(_adhanVolume * 100).round()}%',
+                                    textAlign: TextAlign.end,
+                                    style: GoogleFonts.cairo(
+                                      color: textColor,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Divider(
+                            color: dividerColor,
+                            height: 1,
+                            indent: 16,
+                            endIndent: 16,
+                          ),
+                          // Adhan Vibration
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 4,
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.vibration_rounded,
+                                  color: AppColors.secondaryGold,
+                                  size: 22,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    'الاهتزاز مع الأذان',
+                                    style: GoogleFonts.cairo(
+                                      color: textColor,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                                Transform.scale(
+                                  scale: 0.85,
+                                  child: Switch(
+                                    value: _isAdhanVibrationEnabled,
+                                    activeColor: AppColors.secondaryGold,
+                                    activeTrackColor: AppColors.secondaryGold
+                                        .withOpacity(0.3),
+                                    inactiveThumbColor: const Color(0xFF7A6840),
+                                    inactiveTrackColor: const Color(0xFFE8D9B5),
+                                    onChanged: (val) {
+                                      setState(
+                                        () => _isAdhanVibrationEnabled = val,
+                                      );
+                                      _saveSettings();
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          // -- Subcategory: Iqama --
+                          _buildSubcategoryHeader(
+                            'تنبيهات الإقامة',
+                            textColor,
+                            dividerColor,
+                          ),
+                          // Iqama Toggle
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 4,
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.notifications_active_rounded,
+                                  color: AppColors.secondaryGold,
+                                  size: 22,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    'تفعيل تنبيهات الإقامة',
+                                    style: GoogleFonts.cairo(
+                                      color: textColor,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                                Transform.scale(
+                                  scale: 0.85,
+                                  child: Switch(
+                                    value: _isIqamaEnabled,
+                                    activeColor: AppColors.secondaryGold,
+                                    activeTrackColor: AppColors.secondaryGold
+                                        .withOpacity(0.3),
+                                    inactiveThumbColor: const Color(0xFF7A6840),
+                                    inactiveTrackColor: const Color(0xFFE8D9B5),
+                                    onChanged: (val) {
+                                      setState(() => _isIqamaEnabled = val);
+                                      _saveSettings();
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Divider(
+                            color: dividerColor,
+                            height: 1,
+                            indent: 16,
+                            endIndent: 16,
+                          ),
+                          // Iqama Delays
+                          InkWell(
+                            onTap: _showIqamaDelaysDialog,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 16,
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.edit_calendar_rounded,
+                                    color: AppColors.secondaryGold,
+                                    size: 22,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      'تعديل أوقات تأخير الإقامة',
+                                      style: GoogleFonts.cairo(
+                                        color: textColor,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                  const Icon(
+                                    Icons.arrow_forward_ios_rounded,
+                                    color: AppColors.secondaryGold,
+                                    size: 16,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+
+                          // -- Subcategory: Azkar --
+                          _buildSubcategoryHeader(
+                            'إشعارات الأذكار',
+                            textColor,
+                            dividerColor,
+                          ),
+                          // Azkar Reminder
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 4,
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.notifications_active_rounded,
+                                  color: AppColors.secondaryGold,
+                                  size: 22,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'تفعيل إشعارات الأذكار',
+                                        style: GoogleFonts.cairo(
+                                          color: textColor,
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      Text(
+                                        'أذكار الصباح والمساء وبعد الصلاة',
+                                        style: GoogleFonts.cairo(
+                                          color: textColor.withOpacity(0.6),
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Transform.scale(
+                                  scale: 0.85,
+                                  child: Switch(
+                                    value: _isAzkarReminderEnabled,
+                                    activeColor: AppColors.secondaryGold,
+                                    activeTrackColor: AppColors.secondaryGold
+                                        .withOpacity(0.3),
+                                    inactiveThumbColor: const Color(0xFF7A6840),
+                                    inactiveTrackColor: const Color(0xFFE8D9B5),
+                                    onChanged: (val) {
+                                      setState(
+                                        () => _isAzkarReminderEnabled = val,
+                                      );
+                                      _saveSettings();
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+
+                    // ── Time Settings ──────────────────────────────────────────
+                    _buildSectionTitle('إعدادات الوقت', textColor),
                     const SizedBox(height: 12),
                     Container(
                       decoration: BoxDecoration(
@@ -258,17 +540,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       ),
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 4,
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                         child: Row(
                           children: [
-                            const Icon(
-                              Icons.access_time_rounded,
-                              color: AppColors.secondaryGold,
-                              size: 22,
-                            ),
+                            const Icon(Icons.access_time_rounded, color: AppColors.secondaryGold, size: 22),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Column(
@@ -276,18 +551,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 children: [
                                   Text(
                                     'تقديم ساعة (التوقيت الصيفي)',
-                                    style: GoogleFonts.cairo(
-                                      color: textColor,
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                                    style: GoogleFonts.cairo(color: textColor, fontSize: 15, fontWeight: FontWeight.w600),
                                   ),
                                   Text(
                                     'فعّله إذا كانت المواقيت متأخرة ساعة',
-                                    style: GoogleFonts.cairo(
-                                      color: textColor.withOpacity(0.6),
-                                      fontSize: 12,
-                                    ),
+                                    style: GoogleFonts.cairo(color: textColor.withOpacity(0.6), fontSize: 12),
                                   ),
                                 ],
                               ),
@@ -297,8 +565,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               child: Switch(
                                 value: _isDstEnabled,
                                 activeColor: AppColors.secondaryGold,
-                                activeTrackColor: AppColors.secondaryGold
-                                    .withOpacity(0.3),
+                                activeTrackColor: AppColors.secondaryGold.withOpacity(0.3),
                                 inactiveThumbColor: const Color(0xFF7A6840),
                                 inactiveTrackColor: const Color(0xFFE8D9B5),
                                 onChanged: (val) => _handleDstToggle(val),
@@ -310,267 +577,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     const SizedBox(height: 28),
 
-                    // ── Azkar Reminders Toggle ──────────────────────────────────────────
-                    _buildSectionTitle('تذكير الأذكار', textColor),
+                    // ── About App & Developer ──────────────────────────────────────────
+                    _buildSectionTitle('عن التطبيق', textColor),
                     const SizedBox(height: 12),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: cardColor,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: AppColors.secondaryGold.withOpacity(0.3),
-                          width: 1,
-                        ),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 4,
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.notifications_active_rounded,
-                              color: AppColors.secondaryGold,
-                              size: 22,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'تفعيل إشعارات الأذكار',
-                                    style: GoogleFonts.cairo(
-                                      color: textColor,
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  Text(
-                                    'أذكار الصباح والمساء وبعد الصلاة',
-                                    style: GoogleFonts.cairo(
-                                      color: textColor.withOpacity(0.6),
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Transform.scale(
-                              scale: 0.85,
-                              child: Switch(
-                                value: _isAzkarReminderEnabled,
-                                activeColor: AppColors.secondaryGold,
-                                activeTrackColor: AppColors.secondaryGold
-                                    .withOpacity(0.3),
-                                inactiveThumbColor: const Color(0xFF7A6840),
-                                inactiveTrackColor: const Color(0xFFE8D9B5),
-                                onChanged: (val) {
-                                  setState(() {
-                                    _isAzkarReminderEnabled = val;
-                                  });
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 28),
-
-                    // ── Adhan Volume Slider ──────────────────────────────────────────
-                    _buildSectionTitle('مستوى صوت الأذان', textColor),
-                    const SizedBox(height: 12),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: cardColor,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: AppColors.secondaryGold.withOpacity(0.3),
-                          width: 1,
-                        ),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              _adhanVolume == 0
-                                  ? Icons.volume_off_rounded
-                                  : _adhanVolume < 0.5
-                                  ? Icons.volume_down_rounded
-                                  : Icons.volume_up_rounded,
-                              color: AppColors.secondaryGold,
-                              size: 22,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: SliderTheme(
-                                data: SliderTheme.of(context).copyWith(
-                                  activeTrackColor: AppColors.secondaryGold,
-                                  inactiveTrackColor: AppColors.secondaryGold
-                                      .withOpacity(0.3),
-                                  thumbColor: AppColors.secondaryGold,
-                                  overlayColor: AppColors.secondaryGold
-                                      .withOpacity(0.1),
-                                  trackHeight: 4.0,
-                                ),
-                                child: Slider(
-                                  value: _adhanVolume,
-                                  min: 0.0,
-                                  max: 1.0,
-                                  divisions: 10,
-                                  label: '${(_adhanVolume * 100).round()}%',
-                                  onChanged: (val) {
-                                    setState(() => _adhanVolume = val);
-                                  },
-                                  onChangeEnd: (val) async {
-                                    // final prefs = sl<SharedPreferences>();
-                                    _saveSettings(); // حفظ وإعادة جدولة فوراً
-                                    // await prefs.setDouble('adhan_volume', val);
-                                  },
-                                ),
-                              ),
-                            ),
-                            SizedBox(
-                              width: 40,
-                              child: Text(
-                                '${(_adhanVolume * 100).round()}%',
-                                textAlign: TextAlign.end,
-                                style: GoogleFonts.cairo(
-                                  color: textColor,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 28),
-
-                    // ── Adhan Vibration Toggle ──────────────────────────────────────────
-                    _buildSectionTitle('الاهتزاز (Vibration)', textColor),
-                    const SizedBox(height: 12),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: cardColor,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: AppColors.secondaryGold.withOpacity(0.3),
-                          width: 1,
-                        ),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 4,
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.vibration_rounded,
-                              color: AppColors.secondaryGold,
-                              size: 22,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                'الاهتزاز مع الأذان',
-                                style: GoogleFonts.cairo(
-                                  color: textColor,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                            Transform.scale(
-                              scale: 0.85,
-                              child: Switch(
-                                value: _isAdhanVibrationEnabled,
-                                activeColor: AppColors.secondaryGold,
-                                activeTrackColor: AppColors.secondaryGold
-                                    .withOpacity(0.3),
-                                inactiveThumbColor: const Color(0xFF7A6840),
-                                inactiveTrackColor: const Color(0xFFE8D9B5),
-                                onChanged: (val) {
-                                  setState(() => _isAdhanVibrationEnabled = val);
-                                  _saveSettings(); // حفظ وإعادة جدولة فوراً
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 28),
-
-                    // ── Iqama Toggle ──────────────────────────────────────────
-                    _buildSectionTitle('تفعيل الإقامة', textColor),
-                    const SizedBox(height: 12),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: cardColor,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: AppColors.secondaryGold.withOpacity(0.3),
-                          width: 1,
-                        ),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 4,
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.notifications_active_rounded,
-                              color: AppColors.secondaryGold,
-                              size: 22,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                'تنبيهات الإقامة',
-                                style: GoogleFonts.cairo(
-                                  color: textColor,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                            Transform.scale(
-                              scale: 0.85,
-                              child: Switch(
-                                value: _isIqamaEnabled,
-                                activeColor: AppColors.secondaryGold,
-                                activeTrackColor: AppColors.secondaryGold
-                                    .withOpacity(0.3),
-                                inactiveThumbColor: const Color(0xFF7A6840),
-                                inactiveTrackColor: const Color(0xFFE8D9B5),
-                                onChanged: (val) {
-                                  setState(() => _isIqamaEnabled = val);
-                                  _saveSettings(); // حفظ وإعادة جدولة فوراً
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 28),
-
-                    // ── Iqama Delays Tile ──────────────────────────────────────────
-                    _buildSectionTitle('تأخير الإقامة', textColor),
-                    const SizedBox(height: 12),
-                    GestureDetector(
-                      onTap: _showIqamaDelaysDialog,
+                    InkWell(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const AboutAppScreen(),
+                          ),
+                        );
+                      },
+                      borderRadius: BorderRadius.circular(16),
                       child: Container(
                         decoration: BoxDecoration(
                           color: cardColor,
@@ -588,14 +607,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           child: Row(
                             children: [
                               const Icon(
-                                Icons.edit_calendar_rounded,
+                                Icons.info_outline_rounded,
                                 color: AppColors.secondaryGold,
                                 size: 22,
                               ),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Text(
-                                  'تعديل أوقات تأخير الإقامة',
+                                  'معلومات عن التطبيق والمطور',
                                   style: GoogleFonts.cairo(
                                     color: textColor,
                                     fontSize: 16,
@@ -846,6 +865,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
         fontSize: 18,
         fontWeight: FontWeight.bold,
         color: AppColors.secondaryGold,
+      ),
+    );
+  }
+
+  Widget _buildSubcategoryHeader(
+    String title,
+    Color textColor,
+    Color dividerColor,
+  ) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.secondaryGold.withOpacity(0.05),
+        border: Border(bottom: BorderSide(color: dividerColor, width: 0.5)),
+      ),
+      child: Text(
+        title,
+        style: GoogleFonts.cairo(
+          fontSize: 14,
+          fontWeight: FontWeight.bold,
+          color: AppColors.secondaryGold,
+        ),
       ),
     );
   }
