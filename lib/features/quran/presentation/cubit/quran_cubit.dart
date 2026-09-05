@@ -25,11 +25,13 @@ class QuranCubit extends Cubit<QuranState> {
   String _fontsDir = '';
   int _lastRequestedPage = 1;
 
+  bool get fontsReady => _fontsReady;
+
   QuranCubit({required this.getQuranPageUseCase}) : super(QuranInitial()) {
-    _initFonts();
+    initFonts();
   }
 
-  Future<void> _initFonts() async {
+  Future<void> initFonts() async {
     try {
       final prefs = sl<SharedPreferences>();
       final isExtracted = prefs.getBool('quran_fonts_extracted') ?? false;
