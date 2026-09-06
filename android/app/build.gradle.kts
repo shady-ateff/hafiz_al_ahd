@@ -50,8 +50,8 @@ android {
 
     buildTypes {
         release {
-            // 👈 3. ربطنا نسخة الريليز بالختم الديفولت (debug) مؤقتاً لكي ينجح البناء بدون ملف key.properties
-            signingConfig = signingConfigs.getByName("debug")
+            // استخدام الختم الرسمي (release) بدلاً من الديباج لكي يقبله جوجل بلاي
+            signingConfig = signingConfigs.getByName("release")
             
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
