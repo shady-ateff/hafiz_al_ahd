@@ -20,13 +20,19 @@ class GetPrayerTimesUseCase {
       String? method,
     }
   ) async {
+    final String? prefMethod = pref.getString('calculation_method');
+    final String? prefMadhab = pref.getString('madhab');
+
+    final String finalMethod = (prefMethod != null && prefMethod != 'auto') ? prefMethod : (method ?? '3');
+
     final result = await prayerTimesRepo.getPrayerTimes(
       latitude: latitude,
       longitude: longitude,
       date: date,
       city: city,
       country: country,
-      method: method,
+      method: finalMethod,
+      madhab: prefMadhab,
     );
 
     // تطبيق فرق التوقيت الصيفي لو المستخدم فعّله من الإعدادات

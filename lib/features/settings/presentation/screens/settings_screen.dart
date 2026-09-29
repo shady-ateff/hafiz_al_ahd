@@ -12,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hafiz_al_ahd/features/settings/presentation/screens/about_app_screen.dart';
 import 'package:hafiz_al_ahd/features/quran/presentation/widgets/quran_theme_bottom_sheet.dart'
     as hafiz_quran_theme;
+import 'package:hafiz_al_ahd/core/utils/calculation_method_helper.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -43,6 +44,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   double _adhanVolume = 1.0;
   bool _isAdhanVibrationEnabled = true;
   bool _isAzkarReminderEnabled = true;
+  String _calculationMethod = 'auto';
+  String _madhab = 'shafi';
 
   @override
   void initState() {
@@ -63,6 +66,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _isAdhanVibrationEnabled =
           prefs.getBool('isAdhanVibrationEnabled') ?? true;
       _isAzkarReminderEnabled = prefs.getBool('isAzkarReminderEnabled') ?? true;
+      _calculationMethod = prefs.getString('calculation_method') ?? 'auto';
+      _madhab = prefs.getString('madhab') ?? 'shafi';
       _isLoading = false;
     });
   }
@@ -76,6 +81,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await prefs.setDouble('adhan_volume', _adhanVolume);
     await prefs.setBool('isAdhanVibrationEnabled', _isAdhanVibrationEnabled);
     await prefs.setBool('isAzkarReminderEnabled', _isAzkarReminderEnabled);
+    await prefs.setString('calculation_method', _calculationMethod);
+    await prefs.setString('madhab', _madhab);
 
     // مسح الكاش ده هيخلي الـ Cubit يعتبر إنه مفيش إشعارات متجدولة، فيمسح القديم ويـ schedule من الأول
     await prefs.remove('scheduled_until_date');
@@ -527,6 +534,95 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     const SizedBox(height: 28),
 
+                    // ── Prayer Calculation Settings ──────────────────────────────────────────
+                    _buildSectionTitle('إعدادات حساب أوقات الصلاة', textColor),
+                    const SizedBox(height: 12),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: cardColor,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: AppColors.secondaryGold.withOpacity(0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          InkWell(
+                            onTap: _showCalculationMethodDialog,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.calculate_rounded, color: AppColors.secondaryGold, size: 22),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'طريقة الحساب',
+                                          style: GoogleFonts.cairo(color: textColor, fontSize: 15, fontWeight: FontWeight.w600),
+                                        ),
+                                        Text(
+                                          CalculationMethodHelper.methodsMap[_calculationMethod] ?? '',
+                                          style: GoogleFonts.cairo(color: textColor.withOpacity(0.6), fontSize: 13),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const Icon(
+                                    Icons.arrow_forward_ios_rounded,
+                                    color: AppColors.secondaryGold,
+                                    size: 16,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          Divider(color: dividerColor, height: 1, indent: 16, endIndent: 16),
+                          InkWell(
+                            onTap: _showMadhabDialog,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.account_balance_rounded, color: AppColors.secondaryGold, size: 22),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'المذهب الفقهي (لصلاة العصر)',
+                                          style: GoogleFonts.cairo(color: textColor, fontSize: 15, fontWeight: FontWeight.w600),
+                                        ),
+                                        Text(
+                                          CalculationMethodHelper.madhabsMap[_madhab] ?? '',
+                                          style: GoogleFonts.cairo(color: textColor.withOpacity(0.6), fontSize: 13),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const Icon(
+                                    Icons.arrow_forward_ios_rounded,
+                                    color: AppColors.secondaryGold,
+                                    size: 16,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+
                     // ── Time Settings ──────────────────────────────────────────
                     _buildSectionTitle('إعدادات الوقت', textColor),
                     const SizedBox(height: 12),
@@ -889,6 +985,122 @@ class _SettingsScreenState extends State<SettingsScreen> {
           color: AppColors.secondaryGold,
         ),
       ),
+    );
+  }
+
+  void _showCalculationMethodDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final isDark = context.watch<ThemeCubit>().state.isDark;
+            final textColor = isDark ? AppColors.silverMarble : const Color(0xFF1A1208);
+            final cardColor = isDark ? AppColors.deepBackground : const Color(0xFFFFF8EC);
+
+            return AlertDialog(
+              backgroundColor: cardColor,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+              title: Center(
+                child: Text(
+                  'طريقة حساب مواقيت الصلاة',
+                  style: GoogleFonts.cairo(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.secondaryGold,
+                    fontSize: 18,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: ListView(
+                  shrinkWrap: true,
+                  children: CalculationMethodHelper.methodsMap.entries.map((entry) {
+                    return RadioListTile<String>(
+                      activeColor: AppColors.secondaryGold,
+                      title: Text(
+                        entry.value,
+                        style: GoogleFonts.cairo(fontSize: 14, color: textColor),
+                      ),
+                      value: entry.key,
+                      groupValue: _calculationMethod,
+                      onChanged: (val) {
+                        if (val != null) {
+                          setDialogState(() => _calculationMethod = val);
+                          setState(() => _calculationMethod = val);
+                          _saveSettings();
+                          Navigator.pop(context);
+                        }
+                      },
+                    );
+                  }).toList(),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showMadhabDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final isDark = context.watch<ThemeCubit>().state.isDark;
+            final textColor = isDark ? AppColors.silverMarble : const Color(0xFF1A1208);
+            final cardColor = isDark ? AppColors.deepBackground : const Color(0xFFFFF8EC);
+
+            return AlertDialog(
+              backgroundColor: cardColor,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+              title: Center(
+                child: Text(
+                  'المذهب الفقهي (لصلاة العصر)',
+                  style: GoogleFonts.cairo(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.secondaryGold,
+                    fontSize: 18,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: CalculationMethodHelper.madhabsMap.entries.map((entry) {
+                    return RadioListTile<String>(
+                      activeColor: AppColors.secondaryGold,
+                      title: Text(
+                        entry.value,
+                        style: GoogleFonts.cairo(fontSize: 15, color: textColor),
+                      ),
+                      value: entry.key,
+                      groupValue: _madhab,
+                      onChanged: (val) {
+                        if (val != null) {
+                          setDialogState(() => _madhab = val);
+                          setState(() => _madhab = val);
+                          _saveSettings();
+                          Navigator.pop(context);
+                        }
+                      },
+                    );
+                  }).toList(),
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

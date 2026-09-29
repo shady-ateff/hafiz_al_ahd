@@ -21,7 +21,7 @@ graph TD
 
 ## 3. Core Features
 - **Responsive UI**: Custom adaptive layouts for different devices.
-- **Precise Prayer Times Calculation**: Offline calculation of prayer times based on exact GPS coordinates without relying on internet APIs.
+- **Precise Prayer Times Calculation**: Offline calculation of prayer times based on exact GPS coordinates, featuring dynamic location-based method selection and manual overrides for calculation methods and Madhab (Shafi/Hanafi) without relying on internet APIs.
 - **Accurate Islamic Calendar**: Hijri date calculation corresponding to the calculated prayer times.
 - **Desktop Automation**: Windows system tray integration, window management (hiding/resizing), and launch at startup functionality.
 - **Offline Reliability**: Saves user location and settings locally to reduce network/GPS dependencies.

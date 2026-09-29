@@ -10,7 +10,7 @@ abstract class PrayerTimesRepo {
     String? city,
     String? country,
     String? method, //UMM Al-Qura or Egyptian General
-
+    String? madhab,
     //parameters
     //* Get prayer times for a specific date and location */
   });

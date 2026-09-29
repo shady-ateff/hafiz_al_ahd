@@ -18,12 +18,15 @@ class PrayerTimesRepoImpl implements PrayerTimesRepo {
     String? city,
     String? country,
     String? method,
+    String? madhab,
   }) async {
     try {
       final coordinates = Coordinates(latitude, longitude);
       final prayerTimesModel = await localDataSource.getPrayerTimes(
         coordinates: coordinates,
         date: date,
+        method: method,
+        madhab: madhab,
       );
       return Right(prayerTimesModel);
     } catch (e) {
