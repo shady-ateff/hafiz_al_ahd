@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit/prayer_times_cubit.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit/prayer_times_states.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/widgets/manual_location_dialog.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/widgets/prayer_times_grid.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/widgets/time_date_section.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/widgets/continue_reading_card.dart';
@@ -66,7 +67,8 @@ class _HomeScreenState extends State<HomeScreen>
           builder: (context, state) {
             return Row(
               mainAxisSize: MainAxisSize.max,
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              mainAxisAlignment: MainAxisAlignment.start,
+              spacing: 5,
               children: [
                 const Icon(
                   Icons.location_on_outlined,
@@ -74,16 +76,27 @@ class _HomeScreenState extends State<HomeScreen>
                   size: 20,
                 ),
                 Flexible(
-                  child: Text(
-                    state is PrayerTimesLoaded
-                        ? state.city ?? "غير معروف"
-                        : "جار التحميل...",
-                    style: GoogleFonts.cairo(
-                      color: AppColors.secondaryGold,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  child: state is PrayerTimesLoaded
+                      ? Text(
+                          state.city ?? "غير معروف",
+                          style: GoogleFonts.cairo(
+                            color: AppColors.secondaryGold,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        )
+                      : Shimmer.fromColors(
+                          baseColor: AppColors.secondaryGold.withValues(alpha: 0.5),
+                          highlightColor: AppColors.secondaryGold,
+                          child: Text(
+                            "جار التحميل...",
+                            style: GoogleFonts.cairo(
+                              color: AppColors.secondaryGold,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
                 ),
               ],
             );
@@ -156,7 +169,12 @@ class _HomeScreenState extends State<HomeScreen>
               flex: 4,
               child: Column(
                 children: [
-                  Expanded(child: TimeDateSection(isLandscape: false, isTabletDesktop: true)),
+                  Expanded(
+                    child: TimeDateSection(
+                      isLandscape: false,
+                      isTabletDesktop: true,
+                    ),
+                  ),
                   ContinueReadingCard(),
                 ],
               ),

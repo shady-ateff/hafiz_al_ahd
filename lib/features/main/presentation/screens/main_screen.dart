@@ -31,9 +31,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   late int _currentIndex;
   bool _isDownloadOverlayDismissed = false;
 
-  // 👈 1. تعريف الـ PageController
-  late PageController _pageController;
-
   late final List<Widget> _screens;
 
   @override
@@ -47,15 +44,14 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       AzkarScreen(initialCategory: widget.initialAzkarCategory),
       const SettingsScreen(),
     ];
-    // 👈 2. تهيئة الـ Controller وإعطاؤه الصفحة الافتراضية
-    _pageController = PageController(initialPage: _currentIndex);
+    // 👈 2. تهيئة الاتجاه الافتراضي
+    _updateOrientation(_currentIndex);
     WidgetsBinding.instance.addObserver(this);
   }
 
   @override
   void dispose() {
-    // 👈 3. تنظيف الـ الميموري لما نخرج من الشاشة
-    _pageController.dispose();
+
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -109,17 +105,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         },
         child: Stack(
           children: [
-            PageView(
-              controller: _pageController,
-              physics:
-                  const BouncingScrollPhysics(), // 👈 بتدي تأثير ارتداد ناعم زي الـ iOS
-              onPageChanged: (index) {
-                // 👈 لما اليوزر يعمل Swipe، نحدث الـ GNav واتجاه الشاشة
-                setState(() {
-                  _currentIndex = index;
-                  _updateOrientation(index);
-                });
-              },
+            IndexedStack(
+              index: _currentIndex,
               children: _screens,
             ),
             
@@ -237,11 +224,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                     ],
                     selectedIndex: _currentIndex,
                     onTabChange: (index) {
-                      _pageController.animateToPage(
-                        index,
-                        duration: const Duration(milliseconds: 400),
-                        curve: Curves.easeOutQuad,
-                      );
+                      setState(() {
+                        _currentIndex = index;
+                        _updateOrientation(index);
+                      });
                     },
                   ),
                 ),

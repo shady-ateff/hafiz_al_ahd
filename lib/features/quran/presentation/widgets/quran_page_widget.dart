@@ -7,6 +7,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../../data/datasources/surah_names.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../cubit/quran_settings_cubit.dart';
+import 'package:hafiz_al_ahd/features/quran/presentation/widgets/quran_page_shimmer.dart';
 
 class QuranPageWidget extends StatelessWidget {
   final QuranPage page;
@@ -107,7 +108,7 @@ class QuranPageWidget extends StatelessWidget {
                           );
                         },
                       )
-                    : CircularProgressIndicator(color: primaryTextColor),
+                    : const QuranPageShimmer(),
               ),
             ),
             // Footer Page Number

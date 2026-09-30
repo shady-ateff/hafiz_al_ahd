@@ -7,8 +7,10 @@ import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit
 import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit/prayer_times_states.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/cubit/time_cubit.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/widgets/prayer_card_widget.dart';
+import 'package:hafiz_al_ahd/core/theme/theme_helper.dart';
 
 import 'package:hafiz_al_ahd/features/settings/domain/usecases/get_iqama_delays_usecase.dart';
+import 'package:shimmer/shimmer.dart';
 
 class PrayerTimesGrid extends StatelessWidget {
   final int crossAxisCount;
@@ -27,9 +29,7 @@ class PrayerTimesGrid extends StatelessWidget {
     return BlocBuilder<PrayerTimesCubit, PrayerTimesStates>(
       builder: (context, state) {
         if (state is! PrayerTimesLoaded) {
-          return const Center(
-            child: CircularProgressIndicator(color: AppColors.secondaryGold),
-          );
+          return _buildShimmerGrid(context);
         }
 
         final prayers = _getPrayersList(state.prayerTimes);
@@ -164,5 +164,124 @@ class PrayerTimesGrid extends StatelessWidget {
       {'name': 'المغرب', 'time': times.maghrib, 'icon': Icons.wb_twilight},
       {'name': 'العشاء', 'time': times.isha, 'icon': Icons.nights_stay},
     ];
+  }
+
+  Widget _buildShimmerGrid(BuildContext context) {
+    int rowCount = (6 / crossAxisCount).ceil();
+
+    Widget shimmerCard(bool isWide) {
+      final isDark = Theme.of(context).brightness == Brightness.dark;
+      return Container(
+        margin: const EdgeInsets.all(6),
+        constraints: const BoxConstraints(minHeight: 70, minWidth: 100),
+        decoration: BoxDecoration(
+          color: context.cardBg,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: context.borderSubtle, width: 1.0),
+        ),
+        child: Shimmer.fromColors(
+          baseColor: AppColors.secondaryGold.withValues(alpha: isDark ? 0.15 : 0.05),
+          highlightColor: AppColors.secondaryGold.withValues(alpha: isDark ? 0.35 : 0.2),
+          child: Center(
+            child: Flex(
+              direction: isWide ? Axis.horizontal : Axis.vertical,
+              mainAxisAlignment: isWide ? MainAxisAlignment.spaceBetween : MainAxisAlignment.center,
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Flex(
+                      direction: isWide ? Axis.horizontal : Axis.vertical,
+                      spacing: isWide ? 12.0 : 6.0,
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 28,
+                          height: 28,
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        Container(
+                          width: 50,
+                          height: 20,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Flexible(
+                  fit: FlexFit.loose,
+                  flex: isWide ? 3 : 1,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Flex(
+                      direction: isWide ? Axis.horizontal : Axis.vertical,
+                      spacing: isWide ? 12.0 : 6.0,
+                      children: [
+                        Container(
+                          width: 60,
+                          height: 20,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (isScrollable) {
+      return Column(
+        children: List.generate(rowCount, (rowIndex) {
+          return SizedBox(
+            height: 110, // Approximate height of the prayer card
+            child: Row(
+              children: List.generate(crossAxisCount, (colIndex) {
+                int itemIndex = (rowIndex * crossAxisCount) + colIndex;
+                if (itemIndex < 6) {
+                  return Expanded(child: shimmerCard(crossAxisCount == 1));
+                } else {
+                  return const Spacer();
+                }
+              }),
+            ),
+          );
+        }),
+      );
+    }
+
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(rowCount, (rowIndex) {
+        return Expanded(
+          child: Row(
+            children: List.generate(crossAxisCount, (colIndex) {
+              int itemIndex = (rowIndex * crossAxisCount) + colIndex;
+              if (itemIndex < 6) {
+                return Expanded(
+                  child: shimmerCard(forceVerticalCardLayout ? !forceVerticalCardLayout : crossAxisCount == 1),
+                );
+              } else {
+                return const Spacer();
+              }
+            }),
+          ),
+        );
+      }),
+    );
   }
 }

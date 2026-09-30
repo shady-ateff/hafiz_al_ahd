@@ -35,6 +35,7 @@ class ScheduleWeeklyPrayersUseCase {
     final iqamaDelays = await getIqamaDelaysUseCase.execute();
     final adhanVolume = pref.getDouble('adhan_volume') ?? 1.0;
     final isAdhanVibrationEnabled = pref.getBool('isAdhanVibrationEnabled') ?? true;
+    final adhanStyle = pref.getString('adhanStyle') ?? 'alarm';
     final isIqamaEnabled = pref.getBool('isIqamaEnabled') ?? true;
     final isAzkarReminderEnabled = pref.getBool('isAzkarReminderEnabled') ?? true;
 
@@ -69,6 +70,7 @@ class ScheduleWeeklyPrayersUseCase {
           iqamaDelays: iqamaDelays,
           adhanVolume: adhanVolume,
           isAdhanVibrationEnabled: isAdhanVibrationEnabled,
+          adhanStyle: adhanStyle,
           isIqamaEnabled: isIqamaEnabled,
           isAzkarReminderEnabled: isAzkarReminderEnabled,
         );
@@ -94,6 +96,7 @@ class ScheduleWeeklyPrayersUseCase {
     required Map<String, int> iqamaDelays,
     required double adhanVolume,
     required bool isAdhanVibrationEnabled,
+    required String adhanStyle,
     required bool isIqamaEnabled,
     required bool isAzkarReminderEnabled,
   }) async {
@@ -109,17 +112,29 @@ class ScheduleWeeklyPrayersUseCase {
     for (var prayer in prayers) {
       if (prayer.time == null || prayer.key == 'shurooq') continue;
 
-      if (prayer.time!.isAfter(DateTime.now())) {
-        log("⏲️ Scheduling ALARM for prayer: ${prayer.name} at ${prayer.time}");
-        await notificationRepository.scheduleAdhanAlarm(
-          id: currentId++,
-          title: 'حان الآن موعد صلاة ${prayer.name}',
-          body: prayer.name == 'الفجر' ? 'الصلاة خير من النوم' : 'حي على الصلاة، حي على الفلاح',
-          scheduledTime: prayer.time!,
-          assetAudioPath: prayer.name == 'الفجر' ? 'assets/sounds/fajr_azan.mp3' : 'assets/sounds/adhan.mp3',
-          volume: adhanVolume,
-          enableVibration: isAdhanVibrationEnabled,
-        );
+      if (prayer.time!.isAfter(DateTime.now()) && adhanStyle != 'none') {
+        if (adhanStyle == 'alarm') {
+          log("⏲️ Scheduling ALARM for prayer: ${prayer.name} at ${prayer.time}");
+          await notificationRepository.scheduleAdhanAlarm(
+            id: currentId++,
+            title: 'حان الآن موعد صلاة ${prayer.name}',
+            body: prayer.name == 'الفجر' ? 'الصلاة خير من النوم' : 'حي على الصلاة، حي على الفلاح',
+            scheduledTime: prayer.time!,
+            assetAudioPath: prayer.name == 'الفجر' ? 'assets/sounds/fajr_azan.mp3' : 'assets/sounds/adhan.mp3',
+            volume: adhanVolume,
+            enableVibration: isAdhanVibrationEnabled,
+          );
+        } else if (adhanStyle == 'notification') {
+          log("⏲️ Scheduling NOTIFICATION for prayer: ${prayer.name} at ${prayer.time}");
+          await notificationRepository.schedulePrayerNotification(
+            id: currentId++,
+            title: 'حان الآن موعد صلاة ${prayer.name}',
+            body: prayer.name == 'الفجر' ? 'الصلاة خير من النوم' : 'حي على الصلاة، حي على الفلاح',
+            scheduledTime: prayer.time!,
+            soundName: prayer.name == 'الفجر' ? 'fajr_azan' : 'adhan',
+            payload: 'adhan_simple_${prayer.key}',
+          );
+        }
       }
 
       final int iqamaDelay = iqamaDelays[prayer.key] ?? -1;

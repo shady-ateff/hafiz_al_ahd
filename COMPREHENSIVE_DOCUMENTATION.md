@@ -23,6 +23,9 @@ graph TD
 - **Responsive UI**: Custom adaptive layouts for different devices.
 - **Precise Prayer Times Calculation**: Offline calculation of prayer times based on exact GPS coordinates, featuring dynamic location-based method selection and manual overrides for calculation methods and Madhab (Shafi/Hanafi) without relying on internet APIs.
 - **Accurate Islamic Calendar**: Hijri date calculation corresponding to the calculated prayer times.
+- **Enhanced UI/UX**: Features elegant golden `Shimmer` loading effects across the app (Prayer Times, Quran) for a premium user experience.
+- **State Preservation**: Utilizes `IndexedStack` in the main navigation to retain user state (like Quran reading position and Azkar counters) seamlessly across tabs.
+- **Advanced Quran Reader**: Includes offline Ottoman font support, swipe-to-turn mechanics, and an interactive jump-to-page dialog for fast navigation.
 - **Desktop Automation**: Windows system tray integration, window management (hiding/resizing), and launch at startup functionality.
 - **Offline Reliability**: Saves user location and settings locally to reduce network/GPS dependencies.
 - **Local Notifications**: Background alerts scheduled precisely for prayer times.

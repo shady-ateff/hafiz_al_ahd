@@ -103,50 +103,28 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
     String? soundName,
     String? payload,
   }) async {
-    bool isAdhan = (soundName == 'adhan' || soundName == 'fajr_azan');
-    List<AndroidNotificationAction>? actions;
-    if (isAdhan) {
-      actions = [
-        const AndroidNotificationAction(
-          'stop_adhan_action', // ID الخاص بالأكشن
-          'إيقاف الأذان',
-          showsUserInterface:
-              false, // لا يفتح التطبيق، فقط ينفذ الكود في الخلفية
-          cancelNotification: true,
-        ),
-      ];
-    }
     String channelId = soundName != null
-        ? 'prayer_channel_v9_$soundName'
-        : 'prayer_channel_v9_default';
+        ? 'prayer_channel_v10_$soundName'
+        : 'prayer_channel_v10_default';
     AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
       channelId,
-      'مواقيت الصلاة',
-      channelDescription: 'إشعارات التنبيه بأوقات الصلاة والأذان',
+      'إشعارات الصلاة',
+      channelDescription: 'إشعارات التنبيه بأوقات الصلاة والإقامة',
       importance: Importance.max,
       priority: Priority.high,
       playSound: true,
       sound: soundName != null
           ? RawResourceAndroidNotificationSound(soundName)
           : null,
-      audioAttributesUsage: isAdhan
-          ? AudioAttributesUsage.alarm
-          : AudioAttributesUsage.notification,
-      category: isAdhan
-          ? AndroidNotificationCategory.alarm
-          : AndroidNotificationCategory.reminder,
-      fullScreenIntent:
-          isAdhan, // لو الأذان، نخليها fullScreen عشان تفتح الشاشة حتى لو التليفون مقفول
+      audioAttributesUsage: AudioAttributesUsage.notification,
+      category: AndroidNotificationCategory.reminder,
+      fullScreenIntent: false,
       ticker: 'مواقيت الصلاة',
       largeIcon: const DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
       timeoutAfter: 30 * 60 * 1000, // 30 دقيقة عشان لو ما انضغطش يختفي
       visibility: NotificationVisibility.public,
       enableVibration: true,
       enableLights: true,
-      groupKey: 'adhan_group',
-      ongoing: isAdhan, // 👈 بتخليه زي إشعار المكالمة مبيتمسحش بالسحب
-      autoCancel: !isAdhan, // 👈 تمنع مسحه بمجرد اللمس
-      actions: actions, // 👈 إضافة الأكشن لزر إيقاف الأذان
     );
 
     DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
@@ -163,8 +141,7 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
       windows: windowsDetails,
     );
 
-    String payloadData =
-        payload ?? (isAdhan ? 'adhan_${id}_$title' : 'iqama_${id}_$title');
+    String payloadData = payload ?? 'notification_${id}_$title';
 
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       final delay = scheduledTime.difference(DateTime.now());

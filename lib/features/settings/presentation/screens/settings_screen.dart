@@ -46,6 +46,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isAzkarReminderEnabled = true;
   String _calculationMethod = 'auto';
   String _madhab = 'shafi';
+  String _adhanStyle = 'alarm';
 
   @override
   void initState() {
@@ -68,6 +69,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _isAzkarReminderEnabled = prefs.getBool('isAzkarReminderEnabled') ?? true;
       _calculationMethod = prefs.getString('calculation_method') ?? 'auto';
       _madhab = prefs.getString('madhab') ?? 'shafi';
+      _adhanStyle = prefs.getString('adhanStyle') ?? 'alarm';
       _isLoading = false;
     });
   }
@@ -83,6 +85,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await prefs.setBool('isAzkarReminderEnabled', _isAzkarReminderEnabled);
     await prefs.setString('calculation_method', _calculationMethod);
     await prefs.setString('madhab', _madhab);
+    await prefs.setString('adhanStyle', _adhanStyle);
 
     // مسح الكاش ده هيخلي الـ Cubit يعتبر إنه مفيش إشعارات متجدولة، فيمسح القديم ويـ schedule من الأول
     await prefs.remove('scheduled_until_date');
@@ -372,6 +375,57 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   ),
                                 ),
                               ],
+                            ),
+                          ),
+                          Divider(
+                            color: dividerColor,
+                            height: 1,
+                            indent: 16,
+                            endIndent: 16,
+                          ),
+                          InkWell(
+                            onTap: _showAdhanStyleDialog,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 16,
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.notifications_active,
+                                    color: AppColors.secondaryGold,
+                                    size: 22,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'طريقة تنبيه الأذان',
+                                          style: GoogleFonts.cairo(
+                                            color: textColor,
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        Text(
+                                          _adhanStyle == 'notification' ? 'إشعار بسيط (مثل الإقامة)' : _adhanStyle == 'none' ? 'إيقاف التنبيه' : 'منبه بكامل الشاشة',
+                                          style: GoogleFonts.cairo(color: textColor.withOpacity(0.6), fontSize: 13),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const Icon(
+                                    Icons.arrow_forward_ios_rounded,
+                                    color: AppColors.secondaryGold,
+                                    size: 16,
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
 
@@ -1095,6 +1149,98 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       },
                     );
                   }).toList(),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showAdhanStyleDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final isDark = context.watch<ThemeCubit>().state.isDark;
+            final textColor = isDark ? AppColors.silverMarble : const Color(0xFF1A1208);
+            final cardColor = isDark ? AppColors.deepBackground : const Color(0xFFFFF8EC);
+
+            return AlertDialog(
+              backgroundColor: cardColor,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+              title: Center(
+                child: Text(
+                  'طريقة تنبيه الأذان',
+                  style: GoogleFonts.cairo(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.secondaryGold,
+                    fontSize: 18,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    RadioListTile<String>(
+                      activeColor: AppColors.secondaryGold,
+                      title: Text(
+                        'منبه بكامل الشاشة (الافتراضي)',
+                        style: GoogleFonts.cairo(fontSize: 15, color: textColor),
+                      ),
+                      value: 'alarm',
+                      groupValue: _adhanStyle,
+                      onChanged: (val) {
+                        if (val != null) {
+                          setDialogState(() => _adhanStyle = val);
+                          setState(() => _adhanStyle = val);
+                          _saveSettings();
+                          Navigator.pop(context);
+                        }
+                      },
+                    ),
+                    RadioListTile<String>(
+                      activeColor: AppColors.secondaryGold,
+                      title: Text(
+                        'إشعار بسيط (مثل الإقامة)',
+                        style: GoogleFonts.cairo(fontSize: 15, color: textColor),
+                      ),
+                      value: 'notification',
+                      groupValue: _adhanStyle,
+                      onChanged: (val) {
+                        if (val != null) {
+                          setDialogState(() => _adhanStyle = val);
+                          setState(() => _adhanStyle = val);
+                          _saveSettings();
+                          Navigator.pop(context);
+                        }
+                      },
+                    ),
+                    RadioListTile<String>(
+                      activeColor: AppColors.secondaryGold,
+                      title: Text(
+                        'إيقاف التنبيه',
+                        style: GoogleFonts.cairo(fontSize: 15, color: textColor),
+                      ),
+                      value: 'none',
+                      groupValue: _adhanStyle,
+                      onChanged: (val) {
+                        if (val != null) {
+                          setDialogState(() => _adhanStyle = val);
+                          setState(() => _adhanStyle = val);
+                          _saveSettings();
+                          Navigator.pop(context);
+                        }
+                      },
+                    ),
+                  ],
                 ),
               ),
             );

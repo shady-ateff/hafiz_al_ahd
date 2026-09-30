@@ -14,6 +14,8 @@ import '../widgets/quran_page_widget.dart';
 import '../../data/datasources/surah_names.dart';
 import '../widgets/surah_juz_bottom_sheet.dart';
 import 'package:hafiz_al_ahd/core/widgets/app_snackbar.dart';
+import 'package:shimmer/shimmer.dart';
+import 'package:hafiz_al_ahd/features/quran/presentation/widgets/quran_page_shimmer.dart';
 
 class QuranScreen extends StatefulWidget {
   const QuranScreen({super.key});
@@ -65,6 +67,75 @@ class _QuranScreenState extends State<QuranScreen> {
     setState(() {
       _isFullScreen = !_isFullScreen;
     });
+  }
+
+  void _showPageJumpDialog() {
+    final TextEditingController controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text(
+            'الانتقال إلى صفحة',
+            style: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold),
+          ),
+          content: TextField(
+            controller: controller,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(
+              hintText: 'رقم الصفحة (1 - 604)',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.secondaryGold, width: 2),
+              ),
+            ),
+            autofocus: true,
+            onSubmitted: (value) {
+              _jumpToPage(value);
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text(
+                'إلغاء',
+                style: TextStyle(color: Colors.grey, fontFamily: 'Cairo', fontWeight: FontWeight.bold),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                _jumpToPage(controller.text);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.secondaryGold,
+                foregroundColor: AppColors.primaryBlack,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text(
+                'انتقال',
+                style: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _jumpToPage(String value) {
+    int? page = int.tryParse(value);
+    if (page != null && page >= 1 && page <= 604) {
+      _pageController.jumpToPage(page - 1);
+      _currentPageNotifier.value = page;
+      Navigator.pop(context);
+    }
   }
 
   bool _isDarkMode(BuildContext context, ThemeMode mode) {
@@ -215,13 +286,7 @@ class _QuranScreenState extends State<QuranScreen> {
                           );
                         }
 
-                        return Center(
-                          child: CircularProgressIndicator(
-                            color: isDark
-                                ? const Color(0xffD4AF37)
-                                : AppColors.deepBackground,
-                          ),
-                        );
+                        return const QuranPageShimmer();
                       },
                     );
                   },
@@ -371,15 +436,38 @@ class _QuranScreenState extends State<QuranScreen> {
                         ),
                         child: Row(
                           children: [
-                            Text(
-                              '$currentPage',
-                              style: TextStyle(
-                                fontFamily: 'Tajawal',
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: isDark
-                                    ? Colors.white
-                                    : AppColors.deepBackground,
+                            InkWell(
+                              onTap: _showPageJumpDialog,
+                              borderRadius: BorderRadius.circular(8),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: AppColors.secondaryGold.withValues(alpha: 0.15),
+                                  border: Border.all(color: AppColors.secondaryGold.withValues(alpha: 0.5)),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.edit_rounded,
+                                      size: 14,
+                                      color: isDark ? Colors.white70 : AppColors.deepBackground,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      '$currentPage',
+                                      style: TextStyle(
+                                        fontFamily: 'Tajawal',
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                        color: isDark
+                                            ? Colors.white
+                                            : AppColors.deepBackground,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                             Expanded(
