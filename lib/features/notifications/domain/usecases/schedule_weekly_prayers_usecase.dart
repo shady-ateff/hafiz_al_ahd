@@ -26,7 +26,7 @@ class ScheduleWeeklyPrayersUseCase {
     required this.pref,
   });
 
-  Future<void> execute(double lat, double lng, String city) async {
+  Future<void> execute(double lat, double lng, String city, [String? country]) async {
     // 1. إدارة التضارب (Race Conditions)
     final int currentSession = ++_scheduleSessionId;
     log("🚀 Starting scheduling session #$currentSession on Main Thread with Throttling...");
@@ -59,6 +59,7 @@ class ScheduleWeeklyPrayersUseCase {
         longitude: lng,
         date: date,
         city: city,
+        country: country,
       );
       
       await result.fold((_) async {}, (prayerTimes) async {

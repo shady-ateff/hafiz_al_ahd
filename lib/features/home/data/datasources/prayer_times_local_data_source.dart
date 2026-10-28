@@ -1,6 +1,8 @@
 import 'package:adhan/adhan.dart'; // مكتبة الحسابات الفلكية
 import 'package:hafiz_al_ahd/core/utils/calculation_method_helper.dart';
-import '../models/prayer_time_model.dart'; // تأكد إن اسم الملف هنا مطابق للي عندك
+import 'package:timezone/data/latest_all.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
+import '../models/prayer_time_model.dart';
 
 class PrayerTimesLocalDataSource {
   
@@ -10,19 +12,89 @@ class PrayerTimesLocalDataSource {
     required DateTime date,
     String? method,
     String? madhab,
+    String? countryCode,
   }) async {
-    
+    // التأكد من تهيئة المناطق الزمنية
+    _ensureTimezonesInitialized();
+
     // 1. تحديد طريقة الحساب
-    final params = method != null 
-        ? CalculationMethodHelper.getParametersFromMethodId(method)
-        : CalculationMethod.egyptian.getParameters();
-        
+    // لو الدولة المغرب أو تم تمرير الطريقة 14، نستخدم إعدادات وزارة الأوقاف المغربية
+    String resolvedMethod = method ?? '3';
+    if (CalculationMethodHelper.isMorocco(countryCode)) {
+      resolvedMethod = '14';
+    }
+
+    final params = CalculationMethodHelper.getParametersFromMethodId(resolvedMethod);
     params.madhab = (madhab == 'hanafi') ? Madhab.hanafi : Madhab.shafi;
 
-    // 2. حساب المواقيت باستخدام المكتبة
-    final prayerTimes = PrayerTimes(coordinates, DateComponents.from(date), params);
+    // 2. حساب المواقيت الفلكية باستخدام باكدج adhan
+    // مخرجات adhan تمثل أوقات فلكية محددة بـ UTC
+    final prayerTimes = PrayerTimes(
+      coordinates,
+      DateComponents.from(date),
+      params,
+    );
 
-    // 3. تحويل النتيجة للموديل بتاعنا وإرجاعها
-    return PrayerTimesModel.fromAdhanObject(prayerTimes);
+    // 3. تحديد المنطقة الزمنية الصحيحة (IANA Timezone)
+    final bool isMorocco = CalculationMethodHelper.isMorocco(countryCode) || resolvedMethod == '14';
+
+    String? timezoneId = CalculationMethodHelper.getTimezoneForCountry(countryCode);
+    if (timezoneId == null && isMorocco) {
+      timezoneId = 'Africa/Casablanca';
+    }
+
+    final tz.Location targetLocation = timezoneId != null
+        ? tz.getLocation(timezoneId)
+        : tz.local;
+
+    // 4. التحويل النهائي (Mapping to UI / Cubit):
+    // ----------------------------------------------------------------------
+    // للمغرب فقطططططط:
+    // وزارة الأوقاف المغربية تعتمد توقيت غرينتش (GMT 0) لحساب ونشر مواقيت الصلاة،
+    // بينما التوقيت الافتراضي لساعة الهاتف في المغرب هو (GMT+1) خارج رمضان.
+    // نقوم بطرح فرق الساعة (1 ساعة) لضبط وقت الصلاة مع غرينتش
+    // مع الحفاظ على التايم زون الأصلي للجهاز (targetLocation) لثبات العداد والإشعارات.
+    // وفي رمضان يعود المغرب لـ (GMT 0) تلقائياً فلا يتم خصم شيء.
+    // ----------------------------------------------------------------------
+    if (isMorocco) {
+      return PrayerTimesModel(
+        fajr: _adjustForMorocco(prayerTimes.fajr, targetLocation),
+        sunrise: _adjustForMorocco(prayerTimes.sunrise, targetLocation),
+        dhuhr: _adjustForMorocco(prayerTimes.dhuhr, targetLocation),
+        asr: _adjustForMorocco(prayerTimes.asr, targetLocation),
+        maghrib: _adjustForMorocco(prayerTimes.maghrib, targetLocation),
+        isha: _adjustForMorocco(prayerTimes.isha, targetLocation),
+      );
+    }
+
+    // باقي الدول: التحويل المباشر بالمنطقة الزمنية المحددة للدولة
+    return PrayerTimesModel(
+      fajr: tz.TZDateTime.from(prayerTimes.fajr.toUtc(), targetLocation),
+      sunrise: tz.TZDateTime.from(prayerTimes.sunrise.toUtc(), targetLocation),
+      dhuhr: tz.TZDateTime.from(prayerTimes.dhuhr.toUtc(), targetLocation),
+      asr: tz.TZDateTime.from(prayerTimes.asr.toUtc(), targetLocation),
+      maghrib: tz.TZDateTime.from(prayerTimes.maghrib.toUtc(), targetLocation),
+      isha: tz.TZDateTime.from(prayerTimes.isha.toUtc(), targetLocation),
+    );
+  }
+
+  /// دالة مخصصة للمغرب فقط:
+  /// تخصم ساعة واحدة إذا كان التوقيت الصيفي/الإضافي مفعلاً (UTC+1) ليطابق توقيت غرينتش (0 GMT)،
+  /// مع تثبيت الـ TZDateTime في منطقة المغرب للحفاظ على توافق العداد والإشعارات مع ساعة الهاتف.
+  DateTime _adjustForMorocco(DateTime prayerTimeUtc, tz.Location targetLocation) {
+    final tzDateTime = tz.TZDateTime.from(prayerTimeUtc.toUtc(), targetLocation);
+    final int offsetHours = tzDateTime.timeZoneOffset.inHours;
+    if (offsetHours > 0) {
+      return tzDateTime.subtract(Duration(hours: offsetHours));
+    }
+    return tzDateTime;
+  }
+
+  void _ensureTimezonesInitialized() {
+    try {
+      tz.getLocation('Africa/Casablanca');
+    } catch (_) {
+      tz.initializeTimeZones();
+    }
   }
 }

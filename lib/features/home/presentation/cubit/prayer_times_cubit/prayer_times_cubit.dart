@@ -48,7 +48,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
          PrayerTimesInitial(),
        ); // شيلنا الـ initialState من الـ constructor عشان ملهاش لازمة تتبعت من الـ locator
 
-  void _checkBackgroundScheduling(double lat, double lng, String city) async {
+  void _checkBackgroundScheduling(double lat, double lng, String city, [String? country]) async {
     final locationChanged = await checkLocationChangeUseCase.execute();
     if (locationChanged) emit(PrayerTimesLocationChanged());
 
@@ -56,7 +56,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
       "[prayer_cubit]Checking if we need to schedule background notifications...",
     );
     if (checkIfSchedulingNeededUseCase.execute()) {
-      scheduleWeeklyPrayersUseCase.execute(lat, lng, city);
+      scheduleWeeklyPrayersUseCase.execute(lat, lng, city, country);
     }
   }
 
@@ -169,7 +169,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
     final locResult = await getCachedLocationUseCase();
     locResult.fold((l) => null, (loc) {
       locationName = '${loc.city}، ${loc.country}';
-      _checkBackgroundScheduling(loc.latitude, loc.longitude, loc.city);
+      _checkBackgroundScheduling(loc.latitude, loc.longitude, loc.city, loc.country);
     });
     final hijriDate = HijriCalendar.now().toFormat("dd MMMM yyyy");
 
@@ -196,6 +196,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
           location.latitude,
           location.longitude,
           location.city,
+          location.country,
         );
         
         restoreStickyNotificationIfNeeded();

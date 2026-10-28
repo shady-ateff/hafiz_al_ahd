@@ -27,6 +27,7 @@ class PrayerTimesRepoImpl implements PrayerTimesRepo {
         date: date,
         method: method,
         madhab: madhab,
+        countryCode: country,
       );
       return Right(prayerTimesModel);
     } catch (e) {
