@@ -182,7 +182,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
   }
 
   // -------------------------------------------------------------------
-  // عملية الجدولة الفورية (تستخدم عند تغيير إعدادات الإقامة أو الإشعارات)
+  // عملية الجدولة الفورية (تستخدم عند تغيير إعدادات الإقامة أو الإشعارات أو المواقيت)
   // -------------------------------------------------------------------
   Future<void> forceReschedule() async {
     final locationResult = await getCachedLocationUseCase();
@@ -198,8 +198,14 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
           location.city,
           location.country,
         );
-        
-        restoreStickyNotificationIfNeeded();
+
+        // تحديث المواقيت الحالية والـ UI فوراً من الكاش
+        await _handleFetchResult(
+          location.latitude,
+          location.longitude,
+          location.city,
+          location.country,
+        );
       },
     );
   }
@@ -273,4 +279,3 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
     }
   }
 }
-

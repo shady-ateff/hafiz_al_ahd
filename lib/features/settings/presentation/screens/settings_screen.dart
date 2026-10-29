@@ -5,7 +5,9 @@ import 'package:hafiz_al_ahd/core/theme/cubit/theme_cubit.dart';
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
 import 'package:hafiz_al_ahd/core/widgets/gradient_text.dart';
 import 'package:hafiz_al_ahd/core/DI/service_locator.dart';
+import 'package:hafiz_al_ahd/features/home/domain/usecases/get_cached_location_usecase.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit/prayer_times_cubit.dart';
+import 'package:hafiz_al_ahd/features/home/presentation/widgets/manual_location_dialog.dart';
 import 'package:hafiz_al_ahd/features/settings/domain/usecases/get_iqama_delays_usecase.dart';
 import 'package:hafiz_al_ahd/features/settings/domain/usecases/save_iqama_delays_usecase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -38,6 +40,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
     'isha': 'العشاء',
   };
 
+  final Map<String, int> _offsets = {
+    'fajr': 0,
+    'sunrise': 0,
+    'dhuhr': 0,
+    'asr': 0,
+    'maghrib': 0,
+    'isha': 0,
+  };
+
+  final Map<String, String> _allPrayerNames = {
+    'fajr': 'الفجر',
+    'sunrise': 'الشروق',
+    'dhuhr': 'الظهر',
+    'asr': 'العصر',
+    'maghrib': 'المغرب',
+    'isha': 'العشاء',
+  };
+
   bool _isLoading = true;
   bool _isIqamaEnabled = true;
   bool _isDstEnabled = false;
@@ -47,6 +67,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String _calculationMethod = 'auto';
   String _madhab = 'shafi';
   String _adhanStyle = 'alarm';
+
+  // زوايا الحساب المخصصة
+  double _customFajrAngle = 18.0;
+  double _customIshaAngle = 17.0;
+
+  // الموقع الجغرافي المخزن
+  String? _cachedCity;
+  String? _cachedCountry;
+  double? _cachedLat;
+  double? _cachedLng;
 
   @override
   void initState() {
@@ -59,19 +89,52 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final prefs = sl<SharedPreferences>();
     final savedDelays = await getUseCase.execute();
 
-    setState(() {
-      _delays.addAll(savedDelays);
-      _isIqamaEnabled = prefs.getBool('isIqamaEnabled') ?? true;
-      _isDstEnabled = (prefs.getInt('dst_offset_minutes') ?? 0) > 0;
-      _adhanVolume = prefs.getDouble('adhan_volume') ?? 1.0;
-      _isAdhanVibrationEnabled =
-          prefs.getBool('isAdhanVibrationEnabled') ?? true;
-      _isAzkarReminderEnabled = prefs.getBool('isAzkarReminderEnabled') ?? true;
-      _calculationMethod = prefs.getString('calculation_method') ?? 'auto';
-      _madhab = prefs.getString('madhab') ?? 'shafi';
-      _adhanStyle = prefs.getString('adhanStyle') ?? 'alarm';
-      _isLoading = false;
-    });
+    String? city;
+    String? country;
+    double? lat;
+    double? lng;
+    try {
+      final getCachedLocationUseCase = sl<GetCachedLocationUseCase>();
+      final locResult = await getCachedLocationUseCase();
+      locResult.fold((_) => null, (loc) {
+        city = loc.city;
+        country = loc.country;
+        lat = loc.latitude;
+        lng = loc.longitude;
+      });
+    } catch (_) {}
+
+    if (mounted) {
+      setState(() {
+        _delays.addAll(savedDelays);
+        _isIqamaEnabled = prefs.getBool('isIqamaEnabled') ?? true;
+        _isDstEnabled = (prefs.getInt('dst_offset_minutes') ?? 0) > 0;
+        _adhanVolume = prefs.getDouble('adhan_volume') ?? 1.0;
+        _isAdhanVibrationEnabled =
+            prefs.getBool('isAdhanVibrationEnabled') ?? true;
+        _isAzkarReminderEnabled =
+            prefs.getBool('isAzkarReminderEnabled') ?? true;
+        _calculationMethod = prefs.getString('calculation_method') ?? 'auto';
+        _madhab = prefs.getString('madhab') ?? 'shafi';
+        _adhanStyle = prefs.getString('adhanStyle') ?? 'alarm';
+
+        _customFajrAngle = prefs.getDouble('custom_fajr_angle') ?? 18.0;
+        _customIshaAngle = prefs.getDouble('custom_isha_angle') ?? 17.0;
+
+        _offsets['fajr'] = prefs.getInt('prayer_offset_fajr') ?? 0;
+        _offsets['sunrise'] = prefs.getInt('prayer_offset_sunrise') ?? 0;
+        _offsets['dhuhr'] = prefs.getInt('prayer_offset_dhuhr') ?? 0;
+        _offsets['asr'] = prefs.getInt('prayer_offset_asr') ?? 0;
+        _offsets['maghrib'] = prefs.getInt('prayer_offset_maghrib') ?? 0;
+        _offsets['isha'] = prefs.getInt('prayer_offset_isha') ?? 0;
+
+        _cachedCity = city;
+        _cachedCountry = country;
+        _cachedLat = lat;
+        _cachedLng = lng;
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _saveSettings() async {
@@ -87,6 +150,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await prefs.setString('madhab', _madhab);
     await prefs.setString('adhanStyle', _adhanStyle);
 
+    // حفظ زوايا الحساب المخصصة
+    await prefs.setDouble('custom_fajr_angle', _customFajrAngle);
+    await prefs.setDouble('custom_isha_angle', _customIshaAngle);
+
+    // حفظ إزاحات دقائق الصلوات
+    await prefs.setInt('prayer_offset_fajr', _offsets['fajr'] ?? 0);
+    await prefs.setInt('prayer_offset_sunrise', _offsets['sunrise'] ?? 0);
+    await prefs.setInt('prayer_offset_dhuhr', _offsets['dhuhr'] ?? 0);
+    await prefs.setInt('prayer_offset_asr', _offsets['asr'] ?? 0);
+    await prefs.setInt('prayer_offset_maghrib', _offsets['maghrib'] ?? 0);
+    await prefs.setInt('prayer_offset_isha', _offsets['isha'] ?? 0);
+
     // مسح الكاش ده هيخلي الـ Cubit يعتبر إنه مفيش إشعارات متجدولة، فيمسح القديم ويـ schedule من الأول
     await prefs.remove('scheduled_until_date');
 
@@ -94,7 +169,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'تم حفظ الإعدادات وسيتم إعادة جدولة الإشعارات!',
+            'تم حفظ الإعدادات وتحديث مواقيت الصلاة فوراً!',
             style: GoogleFonts.cairo(),
           ),
           backgroundColor: AppColors.secondaryGold,
@@ -103,6 +178,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
       // نستدعي الدالة الصريحة اللي بتمسح وتجدول من الكاش فوراً بذكاء
       context.read<PrayerTimesCubit>().forceReschedule();
     }
+  }
+
+  String _getOffsetsSummary() {
+    final nonZero = _offsets.values.where((v) => v != 0).length;
+    if (nonZero == 0) return 'الافتراضي (0 دقيقة)';
+    return 'تم تعديل $nonZero أوقات';
+  }
+
+  /// إرجاع اسم طريقة الحساب المعروضة في الشاشة مع كشف الطريقة التلقائية بين قوسين
+  String _getCalculationMethodDisplay() {
+    final baseName =
+        CalculationMethodHelper.methodsMap[_calculationMethod] ??
+        _calculationMethod;
+    if (_calculationMethod == 'auto') {
+      final detected = _getAutoDetectedMethodName();
+      if (detected != null && detected.isNotEmpty) {
+        return '$baseName ($detected)';
+      }
+    }
+    return baseName;
+  }
+
+  /// معرفة الطريقة التي يختارها التطبيق تلقائياً بناءً على الدولة أو الإحداثيات الحالية
+  String? _getAutoDetectedMethodName() {
+    final String? effectiveCountry = CalculationMethodHelper.resolveCountryCode(
+      _cachedCountry,
+      _cachedLat,
+      _cachedLng,
+    );
+    if (effectiveCountry != null && effectiveCountry.isNotEmpty) {
+      final methodId = CalculationMethodHelper.getMethodForCountry(
+        effectiveCountry,
+      );
+      return CalculationMethodHelper.methodsMap[methodId];
+    }
+    return null;
   }
 
   @override
@@ -116,7 +227,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: GradientText(
+        title: Text(
           'الإعدادات',
           style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
         ),
@@ -400,7 +511,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           'طريقة تنبيه الأذان',
@@ -411,8 +523,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                           ),
                                         ),
                                         Text(
-                                          _adhanStyle == 'notification' ? 'إشعار بسيط (مثل الإقامة)' : _adhanStyle == 'none' ? 'إيقاف التنبيه' : 'منبه بكامل الشاشة',
-                                          style: GoogleFonts.cairo(color: textColor.withOpacity(0.6), fontSize: 13),
+                                          _adhanStyle == 'notification'
+                                              ? 'إشعار بسيط (مثل الإقامة)'
+                                              : _adhanStyle == 'none'
+                                              ? 'إيقاف التنبيه'
+                                              : 'منبه بكامل الشاشة',
+                                          style: GoogleFonts.cairo(
+                                            color: textColor.withOpacity(0.6),
+                                            fontSize: 13,
+                                          ),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),
@@ -588,6 +707,208 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     const SizedBox(height: 28),
 
+                    // ── Geographic Location Settings ──────────────────────────────
+                    _buildSectionTitle('الموقع الجغرافي', textColor),
+                    const SizedBox(height: 12),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: cardColor,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: AppColors.secondaryGold.withOpacity(0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.place_rounded,
+                                  color: AppColors.secondaryGold,
+                                  size: 24,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'الموقع الحالي لحساب المواقيت',
+                                        style: GoogleFonts.cairo(
+                                          color: textColor,
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      Text(
+                                        (_cachedCity != null &&
+                                                _cachedCity!.isNotEmpty)
+                                            ? '$_cachedCity${_cachedCountry != null && _cachedCountry!.isNotEmpty ? "، $_cachedCountry" : ""}'
+                                            : 'جاري تحديد الموقع...',
+                                        style: GoogleFonts.cairo(
+                                          color: AppColors.secondaryGold,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Divider(
+                            color: dividerColor,
+                            height: 1,
+                            indent: 16,
+                            endIndent: 16,
+                          ),
+                          // Manual Pick Tile
+                          // GPS Auto Detect Tile
+                          InkWell(
+                            onTap: () async {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'جاري جلب الموقع تلقائيًا عبر GPS...',
+                                    style: GoogleFonts.cairo(),
+                                  ),
+                                  backgroundColor: AppColors.secondaryGold,
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                              await context
+                                  .read<PrayerTimesCubit>()
+                                  .fetchPrayerTimesByLocation();
+                              if (mounted) _loadSettings();
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 14,
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.my_location_rounded,
+                                    color: AppColors.secondaryGold,
+                                    size: 22,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      'استخدام التحديد التلقائي (GPS)',
+                                      style: GoogleFonts.cairo(
+                                        color: textColor,
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          Divider(
+                            color: dividerColor,
+                            height: 1,
+                            indent: 16,
+                            endIndent: 16,
+                          ),
+
+                          // Warning Note inside Location Card
+                          InkWell(
+                            onTap: () async {
+                              final changed = await showDialog<bool>(
+                                context: context,
+                                builder: (context) =>
+                                    const ManualLocationDialog(
+                                      isFromSettings: true,
+                                    ),
+                              );
+                              if (changed == true || mounted) {
+                                _loadSettings();
+                              }
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 14,
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.edit_location_alt_rounded,
+                                    color: AppColors.secondaryGold,
+                                    size: 22,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      'اختيار بلد الإقامة والمدينة يدويًا',
+                                      style: GoogleFonts.cairo(
+                                        color: textColor,
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                  const Icon(
+                                    Icons.arrow_forward_ios_rounded,
+                                    color: AppColors.secondaryGold,
+                                    size: 16,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+
+                          Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.amber.withOpacity(0.08),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Colors.amber.withOpacity(0.3),
+                                ),
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Icon(
+                                    Icons.warning_amber_rounded,
+                                    color: Colors.amber,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'تنبيه: عند تحديد الموقع يدويًا، يتم تثبيت حساب المواقيت على هذه المدينة. في حال السفر أو الانتقال لبلد آخر، يجب تحديث الموقع يدويًا أو تفعيل التحديد التلقائي (GPS).',
+                                      style: GoogleFonts.cairo(
+                                        color: textColor.withOpacity(0.75),
+                                        fontSize: 12,
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+
                     // ── Prayer Calculation Settings ──────────────────────────────────────────
                     _buildSectionTitle('إعدادات حساب أوقات الصلاة', textColor),
                     const SizedBox(height: 12),
@@ -606,22 +927,150 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           InkWell(
                             onTap: _showCalculationMethodDialog,
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 16,
+                              ),
                               child: Row(
                                 children: [
-                                  const Icon(Icons.calculate_rounded, color: AppColors.secondaryGold, size: 22),
+                                  const Icon(
+                                    Icons.calculate_rounded,
+                                    color: AppColors.secondaryGold,
+                                    size: 22,
+                                  ),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           'طريقة الحساب',
-                                          style: GoogleFonts.cairo(color: textColor, fontSize: 15, fontWeight: FontWeight.w600),
+                                          style: GoogleFonts.cairo(
+                                            color: textColor,
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                         ),
                                         Text(
-                                          CalculationMethodHelper.methodsMap[_calculationMethod] ?? '',
-                                          style: GoogleFonts.cairo(color: textColor.withOpacity(0.6), fontSize: 13),
+                                          _getCalculationMethodDisplay(),
+                                          style: GoogleFonts.cairo(
+                                            color: textColor.withOpacity(0.6),
+                                            fontSize: 13,
+                                          ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const Icon(
+                                    Icons.arrow_forward_ios_rounded,
+                                    color: AppColors.secondaryGold,
+                                    size: 16,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          // خيار تعديل الزوايا المخصصة (يظهر إذا كانت الطريقة 'custom')
+                          if (_calculationMethod == 'custom') ...[
+                            Divider(
+                              color: dividerColor,
+                              height: 1,
+                              indent: 16,
+                              endIndent: 16,
+                            ),
+                            InkWell(
+                              onTap: _showCustomAnglesDialog,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 16,
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.straighten_rounded,
+                                      color: AppColors.secondaryGold,
+                                      size: 22,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'زوايا الفجر والعشاء المخصصة',
+                                            style: GoogleFonts.cairo(
+                                              color: textColor,
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                          Text(
+                                            'الفجر: ${_customFajrAngle.toStringAsFixed(1)}° | العشاء: ${_customIshaAngle.toStringAsFixed(1)}°',
+                                            style: GoogleFonts.cairo(
+                                              color: AppColors.secondaryGold,
+                                              fontSize: 13,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const Icon(
+                                      Icons.arrow_forward_ios_rounded,
+                                      color: AppColors.secondaryGold,
+                                      size: 16,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                          Divider(
+                            color: dividerColor,
+                            height: 1,
+                            indent: 16,
+                            endIndent: 16,
+                          ),
+                          InkWell(
+                            onTap: _showMadhabDialog,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 16,
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.account_balance_rounded,
+                                    color: AppColors.secondaryGold,
+                                    size: 22,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'المذهب الفقهي (لصلاة العصر)',
+                                          style: GoogleFonts.cairo(
+                                            color: textColor,
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        Text(
+                                          CalculationMethodHelper
+                                                  .madhabsMap[_madhab] ??
+                                              '',
+                                          style: GoogleFonts.cairo(
+                                            color: textColor.withOpacity(0.6),
+                                            fontSize: 13,
+                                          ),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),
@@ -637,26 +1086,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               ),
                             ),
                           ),
-                          Divider(color: dividerColor, height: 1, indent: 16, endIndent: 16),
+                          Divider(
+                            color: dividerColor,
+                            height: 1,
+                            indent: 16,
+                            endIndent: 16,
+                          ),
+                          // خيار تعديل دقائق الصلوات (الإزاحة)
                           InkWell(
-                            onTap: _showMadhabDialog,
+                            onTap: _showPrayerOffsetsDialog,
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 16,
+                              ),
                               child: Row(
                                 children: [
-                                  const Icon(Icons.account_balance_rounded, color: AppColors.secondaryGold, size: 22),
+                                  const Icon(
+                                    Icons.tune_rounded,
+                                    color: AppColors.secondaryGold,
+                                    size: 22,
+                                  ),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          'المذهب الفقهي (لصلاة العصر)',
-                                          style: GoogleFonts.cairo(color: textColor, fontSize: 15, fontWeight: FontWeight.w600),
+                                          'تعديل دقائق الصلوات (الإزاحة)',
+                                          style: GoogleFonts.cairo(
+                                            color: textColor,
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                         ),
                                         Text(
-                                          CalculationMethodHelper.madhabsMap[_madhab] ?? '',
-                                          style: GoogleFonts.cairo(color: textColor.withOpacity(0.6), fontSize: 13),
+                                          _getOffsetsSummary(),
+                                          style: GoogleFonts.cairo(
+                                            color: textColor.withOpacity(0.6),
+                                            fontSize: 13,
+                                          ),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),
@@ -690,10 +1160,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       ),
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
                         child: Row(
                           children: [
-                            const Icon(Icons.access_time_rounded, color: AppColors.secondaryGold, size: 22),
+                            const Icon(
+                              Icons.access_time_rounded,
+                              color: AppColors.secondaryGold,
+                              size: 22,
+                            ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Column(
@@ -701,11 +1178,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 children: [
                                   Text(
                                     'تقديم ساعة (التوقيت الصيفي)',
-                                    style: GoogleFonts.cairo(color: textColor, fontSize: 15, fontWeight: FontWeight.w600),
+                                    style: GoogleFonts.cairo(
+                                      color: textColor,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
                                   Text(
                                     'فعّله إذا كانت المواقيت متأخرة ساعة',
-                                    style: GoogleFonts.cairo(color: textColor.withOpacity(0.6), fontSize: 12),
+                                    style: GoogleFonts.cairo(
+                                      color: textColor.withOpacity(0.6),
+                                      fontSize: 12,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -715,7 +1199,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               child: Switch(
                                 value: _isDstEnabled,
                                 activeColor: AppColors.secondaryGold,
-                                activeTrackColor: AppColors.secondaryGold.withOpacity(0.3),
+                                activeTrackColor: AppColors.secondaryGold
+                                    .withOpacity(0.3),
                                 inactiveThumbColor: const Color(0xFF7A6840),
                                 inactiveTrackColor: const Color(0xFFE8D9B5),
                                 onChanged: (val) => _handleDstToggle(val),
@@ -917,7 +1402,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   /// معالجة تبديل التوقيت الصيفي مع AlertDialog تحذيري عند التفعيل
   void _handleDstToggle(bool newValue) {
     if (newValue) {
-      // عند التفعيل: نعرض تحذير الـ Double DST
       showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
@@ -980,7 +1464,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       );
     } else {
-      // عند الإيقاف: نطبق مباشرة بدون تحذير
       _applyDstChange(false);
     }
   }
@@ -1042,6 +1525,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  /// حوار اختيار طريقة حساب مواقيت الصلاة
   void _showCalculationMethodDialog() {
     showDialog(
       context: context,
@@ -1049,8 +1533,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             final isDark = context.watch<ThemeCubit>().state.isDark;
-            final textColor = isDark ? AppColors.silverMarble : const Color(0xFF1A1208);
-            final cardColor = isDark ? AppColors.deepBackground : const Color(0xFFFFF8EC);
+            final textColor = isDark
+                ? AppColors.silverMarble
+                : const Color(0xFF1A1208);
+            final cardColor = isDark
+                ? AppColors.deepBackground
+                : const Color(0xFFFFF8EC);
 
             return AlertDialog(
               backgroundColor: cardColor,
@@ -1072,12 +1560,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 width: double.maxFinite,
                 child: ListView(
                   shrinkWrap: true,
-                  children: CalculationMethodHelper.methodsMap.entries.map((entry) {
+                  children: CalculationMethodHelper.methodsMap.entries.map((
+                    entry,
+                  ) {
+                    String title = entry.value;
+                    if (entry.key == 'auto') {
+                      final autoDetected = _getAutoDetectedMethodName();
+                      if (autoDetected != null && autoDetected.isNotEmpty) {
+                        title = '${entry.value} ($autoDetected)';
+                      }
+                    }
                     return RadioListTile<String>(
                       activeColor: AppColors.secondaryGold,
                       title: Text(
-                        entry.value,
-                        style: GoogleFonts.cairo(fontSize: 14, color: textColor),
+                        title,
+                        style: GoogleFonts.cairo(
+                          fontSize: 14,
+                          color: textColor,
+                        ),
                       ),
                       value: entry.key,
                       groupValue: _calculationMethod,
@@ -1087,12 +1587,384 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           setState(() => _calculationMethod = val);
                           _saveSettings();
                           Navigator.pop(context);
+                          if (val == 'custom') {
+                            _showCustomAnglesDialog();
+                          }
                         }
                       },
                     );
                   }).toList(),
                 ),
               ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  /// حوار إدخال زوايا الفجر والعشاء المخصصة
+  void _showCustomAnglesDialog() {
+    final fajrController = TextEditingController(
+      text: _customFajrAngle.toString(),
+    );
+    final ishaController = TextEditingController(
+      text: _customIshaAngle.toString(),
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        final isDark = context.watch<ThemeCubit>().state.isDark;
+        final textColor = isDark
+            ? AppColors.silverMarble
+            : const Color(0xFF1A1208);
+        final cardColor = isDark
+            ? AppColors.deepBackground
+            : const Color(0xFFFFF8EC);
+
+        return AlertDialog(
+          backgroundColor: cardColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          title: Center(
+            child: Text(
+              'زوايا الفجر والعشاء المخصصة',
+              style: GoogleFonts.cairo(
+                fontWeight: FontWeight.bold,
+                color: AppColors.secondaryGold,
+                fontSize: 18,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'زاوية الفجر (بالدرجات - الافتراضي 18.0°):',
+                  style: GoogleFonts.cairo(
+                    color: textColor,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: fajrController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  style: GoogleFonts.cairo(color: textColor),
+                  decoration: InputDecoration(
+                    suffixText: '°',
+                    suffixStyle: GoogleFonts.cairo(
+                      color: AppColors.secondaryGold,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: AppColors.secondaryGold,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'زاوية العشاء (بالدرجات - الافتراضي 17.0°):',
+                  style: GoogleFonts.cairo(
+                    color: textColor,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: ishaController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  style: GoogleFonts.cairo(color: textColor),
+                  decoration: InputDecoration(
+                    suffixText: '°',
+                    suffixStyle: GoogleFonts.cairo(
+                      color: AppColors.secondaryGold,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: AppColors.secondaryGold,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.amber.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(
+                        Icons.warning_amber_rounded,
+                        color: Colors.amber,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'تنبيه: زوايا الفجر والعشاء تحدد لحظة دخول الوقت شرعاً وفلكياً بناءً على انخفاض الشمس. هذه الزوايا محددة بدقة من قِبل الهيئات الرسمية لكل دولة. إذا انتقلت لدولة أخرى، يُنصح باختيار الطريقة التلقائية أو المعيار الرسمي لتلك الدولة.',
+                          style: GoogleFonts.cairo(
+                            color: textColor.withOpacity(0.75),
+                            fontSize: 11,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'إلغاء',
+                style: GoogleFonts.cairo(color: textColor.withOpacity(0.6)),
+              ),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.secondaryGold,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onPressed: () {
+                final fajr = double.tryParse(fajrController.text.trim());
+                final isha = double.tryParse(ishaController.text.trim());
+                if (fajr != null && isha != null && fajr > 0 && isha > 0) {
+                  setState(() {
+                    _customFajrAngle = fajr;
+                    _customIshaAngle = isha;
+                  });
+                  _saveSettings();
+                  Navigator.pop(context);
+                }
+              },
+              child: Text(
+                'حفظ وتطبيق',
+                style: GoogleFonts.cairo(
+                  color: AppColors.primaryBlack,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// حوار تعديل دقائق الصلوات (الإزاحة)
+  void _showPrayerOffsetsDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final isDark = context.watch<ThemeCubit>().state.isDark;
+            final textColor = isDark
+                ? AppColors.silverMarble
+                : const Color(0xFF1A1208);
+            final cardColor = isDark
+                ? AppColors.deepBackground
+                : const Color(0xFFFFF8EC);
+
+            return AlertDialog(
+              backgroundColor: cardColor,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+              title: Center(
+                child: Text(
+                  'تعديل دقائق الصلوات (الإزاحة)',
+                  style: GoogleFonts.cairo(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.secondaryGold,
+                    fontSize: 18,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.amber.withOpacity(0.3),
+                          ),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(
+                              Icons.warning_amber_rounded,
+                              color: Colors.amber,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'تنبيه: يتم حساب هذه الدقائق كإزاحة إضافية عن وقت الصلاة الفلكي المحسوب. إذا انتقلت لمدينة أو دولة أخرى، قد تحتاج لتحديث هذه القيم أو إرجاعها إلى الصفر.',
+                                style: GoogleFonts.cairo(
+                                  color: textColor.withOpacity(0.75),
+                                  fontSize: 11,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      ..._allPrayerNames.entries.map((entry) {
+                        final key = entry.key;
+                        final name = entry.value;
+                        final val = _offsets[key] ?? 0;
+                        final displayVal = val > 0
+                            ? '+$val د'
+                            : val < 0
+                            ? '$val د'
+                            : '0 د';
+
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  name,
+                                  style: GoogleFonts.cairo(
+                                    color: textColor,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.remove_circle_outline,
+                                  color: AppColors.secondaryGold,
+                                ),
+                                onPressed: () {
+                                  if (val > -30) {
+                                    setDialogState(
+                                      () => _offsets[key] = val - 1,
+                                    );
+                                    setState(() => _offsets[key] = val - 1);
+                                  }
+                                },
+                              ),
+                              SizedBox(
+                                width: 50,
+                                child: Text(
+                                  displayVal,
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.cairo(
+                                    color: val != 0
+                                        ? AppColors.secondaryGold
+                                        : textColor.withOpacity(0.6),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.add_circle_outline,
+                                  color: AppColors.secondaryGold,
+                                ),
+                                onPressed: () {
+                                  if (val < 30) {
+                                    setDialogState(
+                                      () => _offsets[key] = val + 1,
+                                    );
+                                    setState(() => _offsets[key] = val + 1);
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    setDialogState(() {
+                      for (final k in _offsets.keys) {
+                        _offsets[k] = 0;
+                      }
+                    });
+                    setState(() {
+                      for (final k in _offsets.keys) {
+                        _offsets[k] = 0;
+                      }
+                    });
+                    _saveSettings();
+                    Navigator.pop(context);
+                  },
+                  child: Text(
+                    'تصفير الكل',
+                    style: GoogleFonts.cairo(color: Colors.redAccent),
+                  ),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.secondaryGold,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: () {
+                    _saveSettings();
+                    Navigator.pop(context);
+                  },
+                  child: Text(
+                    'حفظ',
+                    style: GoogleFonts.cairo(
+                      color: AppColors.primaryBlack,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
             );
           },
         );
@@ -1107,8 +1979,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             final isDark = context.watch<ThemeCubit>().state.isDark;
-            final textColor = isDark ? AppColors.silverMarble : const Color(0xFF1A1208);
-            final cardColor = isDark ? AppColors.deepBackground : const Color(0xFFFFF8EC);
+            final textColor = isDark
+                ? AppColors.silverMarble
+                : const Color(0xFF1A1208);
+            final cardColor = isDark
+                ? AppColors.deepBackground
+                : const Color(0xFFFFF8EC);
 
             return AlertDialog(
               backgroundColor: cardColor,
@@ -1130,12 +2006,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 width: double.maxFinite,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
-                  children: CalculationMethodHelper.madhabsMap.entries.map((entry) {
+                  children: CalculationMethodHelper.madhabsMap.entries.map((
+                    entry,
+                  ) {
                     return RadioListTile<String>(
                       activeColor: AppColors.secondaryGold,
                       title: Text(
                         entry.value,
-                        style: GoogleFonts.cairo(fontSize: 15, color: textColor),
+                        style: GoogleFonts.cairo(
+                          fontSize: 15,
+                          color: textColor,
+                        ),
                       ),
                       value: entry.key,
                       groupValue: _madhab,
@@ -1165,8 +2046,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             final isDark = context.watch<ThemeCubit>().state.isDark;
-            final textColor = isDark ? AppColors.silverMarble : const Color(0xFF1A1208);
-            final cardColor = isDark ? AppColors.deepBackground : const Color(0xFFFFF8EC);
+            final textColor = isDark
+                ? AppColors.silverMarble
+                : const Color(0xFF1A1208);
+            final cardColor = isDark
+                ? AppColors.deepBackground
+                : const Color(0xFFFFF8EC);
 
             return AlertDialog(
               backgroundColor: cardColor,
@@ -1193,7 +2078,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       activeColor: AppColors.secondaryGold,
                       title: Text(
                         'منبه بكامل الشاشة (الافتراضي)',
-                        style: GoogleFonts.cairo(fontSize: 15, color: textColor),
+                        style: GoogleFonts.cairo(
+                          fontSize: 15,
+                          color: textColor,
+                        ),
                       ),
                       value: 'alarm',
                       groupValue: _adhanStyle,
@@ -1210,7 +2098,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       activeColor: AppColors.secondaryGold,
                       title: Text(
                         'إشعار بسيط (مثل الإقامة)',
-                        style: GoogleFonts.cairo(fontSize: 15, color: textColor),
+                        style: GoogleFonts.cairo(
+                          fontSize: 15,
+                          color: textColor,
+                        ),
                       ),
                       value: 'notification',
                       groupValue: _adhanStyle,
@@ -1227,7 +2118,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       activeColor: AppColors.secondaryGold,
                       title: Text(
                         'إيقاف التنبيه',
-                        style: GoogleFonts.cairo(fontSize: 15, color: textColor),
+                        style: GoogleFonts.cairo(
+                          fontSize: 15,
+                          color: textColor,
+                        ),
                       ),
                       value: 'none',
                       groupValue: _adhanStyle,

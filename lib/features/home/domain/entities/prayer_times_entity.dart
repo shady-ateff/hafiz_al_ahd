@@ -31,6 +31,33 @@ class PrayerTimesEntity {
     );
   }
 
+  /// تطبيق إزاحة مخصصة بالدقائق على كل صلاة على حدة.
+  PrayerTimesEntity applyOffsets({
+    int fajr = 0,
+    int sunrise = 0,
+    int dhuhr = 0,
+    int asr = 0,
+    int maghrib = 0,
+    int isha = 0,
+  }) {
+    if (fajr == 0 &&
+        sunrise == 0 &&
+        dhuhr == 0 &&
+        asr == 0 &&
+        maghrib == 0 &&
+        isha == 0) {
+      return this;
+    }
+    return PrayerTimesEntity(
+      fajr: this.fajr?.add(Duration(minutes: fajr)),
+      sunrise: this.sunrise?.add(Duration(minutes: sunrise)),
+      dhuhr: this.dhuhr?.add(Duration(minutes: dhuhr)),
+      asr: this.asr?.add(Duration(minutes: asr)),
+      maghrib: this.maghrib?.add(Duration(minutes: maghrib)),
+      isha: this.isha?.add(Duration(minutes: isha)),
+    );
+  }
+
   // دالة ذكية لمعرفة الصلاة القادمة والوقت المتبقي لها
   // بترجع Record فيه: اسم الصلاة، وقتها، والوقت المتبقي
   NextPrayerTime getNextPrayer(

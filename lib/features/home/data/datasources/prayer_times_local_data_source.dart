@@ -13,6 +13,8 @@ class PrayerTimesLocalDataSource {
     String? method,
     String? madhab,
     String? countryCode,
+    double? customFajrAngle,
+    double? customIshaAngle,
   }) async {
     // التأكد من تهيئة المناطق الزمنية
     _ensureTimezonesInitialized();
@@ -25,13 +27,18 @@ class PrayerTimesLocalDataSource {
     );
 
     // 1. تحديد طريقة الحساب
-    // لو الدولة المغرب نستخدم إعدادات وزارة الأوقاف المغربية (طريقة 14)
+    // لو الدولة المغرب والمستخدم لم يختر طريقة محددة يدوياً، نستخدم إعدادات وزارة الأوقاف المغربية (طريقة 14)
     String resolvedMethod = method ?? '3';
-    if (CalculationMethodHelper.isMorocco(effectiveCountry)) {
+    if (CalculationMethodHelper.isMorocco(effectiveCountry) &&
+        (method == null || method == 'auto' || method == '14')) {
       resolvedMethod = '14';
     }
 
-    final params = CalculationMethodHelper.getParametersFromMethodId(resolvedMethod);
+    final params = CalculationMethodHelper.getParametersFromMethodId(
+      resolvedMethod,
+      customFajrAngle: customFajrAngle,
+      customIshaAngle: customIshaAngle,
+    );
     params.madhab = (madhab == 'hanafi') ? Madhab.hanafi : Madhab.shafi;
 
     // 2. حساب المواقيت الفلكية باستخدام باكدج adhan

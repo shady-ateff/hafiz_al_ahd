@@ -19,6 +19,8 @@ class PrayerTimesRepoImpl implements PrayerTimesRepo {
     String? country,
     String? method,
     String? madhab,
+    double? customFajrAngle,
+    double? customIshaAngle,
   }) async {
     try {
       final coordinates = Coordinates(latitude, longitude);
@@ -28,6 +30,8 @@ class PrayerTimesRepoImpl implements PrayerTimesRepo {
         method: method,
         madhab: madhab,
         countryCode: country,
+        customFajrAngle: customFajrAngle,
+        customIshaAngle: customIshaAngle,
       );
       return Right(prayerTimesModel);
     } catch (e) {

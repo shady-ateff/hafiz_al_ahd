@@ -9,9 +9,9 @@ abstract class PrayerTimesRepo {
     required DateTime date,
     String? city,
     String? country,
-    String? method, //UMM Al-Qura or Egyptian General
+    String? method,
     String? madhab,
-    //parameters
-    //* Get prayer times for a specific date and location */
+    double? customFajrAngle,
+    double? customIshaAngle,
   });
 }

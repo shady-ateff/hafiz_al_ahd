@@ -48,6 +48,8 @@ class GetPrayerTimesUseCase {
 
     final String? prefMethod = pref.getString('calculation_method');
     final String? prefMadhab = pref.getString('madhab');
+    final double? customFajrAngle = pref.getDouble('custom_fajr_angle');
+    final double? customIshaAngle = pref.getDouble('custom_isha_angle');
 
     String defaultMethod = method ?? '3';
     if (method == null && effectiveCountry != null) {
@@ -67,10 +69,32 @@ class GetPrayerTimesUseCase {
       country: effectiveCountry,
       method: finalMethod,
       madhab: prefMadhab,
+      customFajrAngle: customFajrAngle,
+      customIshaAngle: customIshaAngle,
     );
 
     // تطبيق فرق التوقيت الصيفي لو المستخدم فعّله يدوياً من الإعدادات
     final int dstOffset = pref.getInt('dst_offset_minutes') ?? 0;
-    return result.map((entity) => entity.applyDstOffset(dstOffset));
+
+    // تطبيق إزاحات دقائق الصلوات المخصصة (+/- دقائق)
+    final int fajrOffset = pref.getInt('prayer_offset_fajr') ?? 0;
+    final int sunriseOffset = pref.getInt('prayer_offset_sunrise') ?? 0;
+    final int dhuhrOffset = pref.getInt('prayer_offset_dhuhr') ?? 0;
+    final int asrOffset = pref.getInt('prayer_offset_asr') ?? 0;
+    final int maghribOffset = pref.getInt('prayer_offset_maghrib') ?? 0;
+    final int ishaOffset = pref.getInt('prayer_offset_isha') ?? 0;
+
+    return result.map(
+      (entity) => entity
+          .applyDstOffset(dstOffset)
+          .applyOffsets(
+            fajr: fajrOffset,
+            sunrise: sunriseOffset,
+            dhuhr: dhuhrOffset,
+            asr: asrOffset,
+            maghrib: maghribOffset,
+            isha: ishaOffset,
+          ),
+    );
   }
 }

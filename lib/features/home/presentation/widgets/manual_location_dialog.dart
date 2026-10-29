@@ -4,10 +4,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/utils/app_colors.dart';
+import '../../../../core/utils/calculation_method_helper.dart';
 import '../cubit/prayer_times_cubit/prayer_times_cubit.dart';
 
 class ManualLocationDialog extends StatefulWidget {
-  const ManualLocationDialog({super.key});
+  final bool isFromSettings;
+  const ManualLocationDialog({super.key, this.isFromSettings = false});
 
   @override
   State<ManualLocationDialog> createState() => _ManualLocationDialogState();
@@ -49,28 +51,28 @@ class _ManualLocationDialogState extends State<ManualLocationDialog> {
         addressQuery = '$stateValue, $countryValue';
       }
 
-      // We still need to geocode because the package doesn't return lat/lng directly
       List<Location> locations = await locationFromAddress(addressQuery);
 
       if (locations.isNotEmpty) {
         Location location = locations.first;
 
-        // Extract Country code from the name (Usually the picker returns something like 'Egypt', we will just pass 'EG' or use the helper later)
-        // For simplicity, we just pass the country name and let the helper try its best, or we pass null and it defaults to 3
         if (mounted) {
-          Navigator.pop(context);
-          // Here we pass the city/state name as the 'city' parameter for the UI
+          Navigator.pop(context, true);
           String displayCity = cityValue != null && cityValue != 'Choose City'
               ? cityValue!
               : stateValue!;
 
-          // A more advanced Country Code extraction would map country Value to ISO code.
-          // For now, we pass the raw countryValue. The CalculationMethodHelper might need an update to handle full country names.
+          // تطبيع كود الدولة
+          final String resolvedCountry =
+              CalculationMethodHelper.normalizeToIsoCountryCode(countryValue) ??
+              countryValue ??
+              '';
+
           context.read<PrayerTimesCubit>().fetchPrayerTimesManually(
             location.latitude,
             location.longitude,
             displayCity,
-            countryValue, // Passing the full name. The helper currently expects 'EG', 'SA' etc. We'll update the helper next!
+            resolvedCountry,
           );
         }
       } else {
@@ -112,13 +114,19 @@ class _ManualLocationDialogState extends State<ManualLocationDialog> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                Icons.location_off_rounded,
-                color: AppColors.errorColor,
+                widget.isFromSettings
+                    ? Icons.location_on_rounded
+                    : Icons.location_off_rounded,
+                color: widget.isFromSettings
+                    ? AppColors.secondaryGold
+                    : AppColors.errorColor,
                 size: 40,
               ),
               const SizedBox(height: 12),
               Text(
-                'تعذر تحديد الموقع!',
+                widget.isFromSettings
+                    ? 'تحديد الموقع يدويًا'
+                    : 'تعذر تحديد الموقع!',
                 style: GoogleFonts.cairo(
                   color: Colors.white,
                   fontSize: 22,
@@ -127,7 +135,9 @@ class _ManualLocationDialogState extends State<ManualLocationDialog> {
               ),
               const SizedBox(height: 8),
               Text(
-                'يرجى البحث واختيار مدينتك يدوياً لحساب مواقيت الصلاة بدقة.',
+                widget.isFromSettings
+                    ? 'اختر الدولة والمحافظة/المدينة لحساب مواقيت الصلاة بدقة.'
+                    : 'يرجى البحث واختيار مدينتك يدوياً لحساب مواقيت الصلاة بدقة.',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.cairo(
                   color: AppColors.silverMarble,
@@ -158,12 +168,45 @@ class _ManualLocationDialogState extends State<ManualLocationDialog> {
                       cityValue = value;
                     });
                   },
-                  style: TextStyle(color: Colors.white, fontFamily: 'Cairo'),
+                  style: const TextStyle(color: Colors.white, fontFamily: 'Cairo'),
                   dropdownColor: AppColors.primaryBlack,
                 ),
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
+
+              // صندوق التحذير والتنبيه
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.amber.withOpacity(0.4)),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(
+                      Icons.warning_amber_rounded,
+                      color: Colors.amber,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'تنبيه: اختيار الموقع يدويًا يثبت حساب المواقيت على هذه المدينة. في حال السفر أو الانتقال لبلد آخر، يجب تحديث الموقع يدويًا أو تفعيل التحديد التلقائي.',
+                        style: GoogleFonts.cairo(
+                          color: Colors.white70,
+                          fontSize: 12,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
