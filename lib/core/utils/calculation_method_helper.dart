@@ -1,4 +1,4 @@
-import 'package:adhan/adhan.dart';
+import 'package:adhan_dart/adhan_dart.dart';
 
 class CalculationMethodHelper {
   /// التحقق مما إذا كان المعرف يمثل المملكة المغربية
@@ -334,86 +334,67 @@ class CalculationMethodHelper {
   }
 
   /// إرجاع معايير الحساب الدقيقة لطريقة الحساب المحددة
-  /// يدعم كل طرق مكتبة adhan بالإضافة لوزارة الأوقاف المغربية والطريقة المخصصة
+  /// يدعم كل طرق مكتبة adhan_dart بالإضافة لوزارة الأوقاف المغربية والطريقة المخصصة
   static CalculationParameters getParametersFromMethodId(
     String methodId, {
     double? customFajrAngle,
     double? customIshaAngle,
   }) {
     if (methodId == 'custom') {
-      final customParams = CalculationMethod.other.getParameters();
+      final customParams = CalculationMethodParameters.other();
       customParams.fajrAngle = customFajrAngle ?? 18.0;
       customParams.ishaAngle = customIshaAngle ?? 17.0;
       return customParams;
     }
 
-    if (methodId == '14' || methodId == 'morocco') {
-      // ----------------------------------------------------------------------
-      // معايير وزارة الأوقاف والشؤون الإسلامية بالمملكة المغربية:
-      // - زاوية الفجر: 18.0° وزاوية العشاء: 17.0°
-      // - المذهب: المالكي (يتطابق برمجياً مع Madhab.shafi لظل القامة = 1)
-      // - دقائق الاحتياط والتضاريس الرسمية المعتمدة لدى الوزارة:
-      //   * الفجر (-1 د): ضبط تقريب الثواني ليتطابق مع روزنامة الوزارة.
-      //   * الشروق (-5 د): تصحيح الانكسار وتضاريس الأفق الميدانية.
-      //   * الظهر (+5 د): احتياط الزوال الشرعي للخروج بيقين من وقت كراهة الاستواء.
-      //   * العصر (+1 د): ضبط تقريب الثواني لظل القامة.
-      //   * المغرب (+6 د): احتياط الغروب لضمان براءة ذمة الصائمين والمصلين بمغيب كامل القرص.
-      //   * العشاء (0 د): تطابق تام مع الحساب الفلكي.
-      // ----------------------------------------------------------------------
-      final moroccoParams = CalculationParameters(
-        fajrAngle: 19.0,
-        ishaAngle: 17.0,
-        madhab: Madhab.shafi,
-      );
-      moroccoParams.adjustments = PrayerAdjustments(
-        fajr: 0,
-        sunrise: -4,
-        dhuhr: 5,
-        asr: 1,
-        maghrib: 6,
-        isha: 0,
-      );
-      return moroccoParams;
-    }
-
     switch (methodId) {
       case '5':
       case 'egyptian':
-        return CalculationMethod.egyptian.getParameters();
+        return CalculationMethodParameters.egyptian();
       case '4':
       case 'umm_al_qura':
-        return CalculationMethod.umm_al_qura.getParameters();
+        return CalculationMethodParameters.ummAlQura();
       case '8':
       case 'dubai':
-        return CalculationMethod.dubai.getParameters();
+        return CalculationMethodParameters.dubai();
       case '9':
       case 'kuwait':
-        return CalculationMethod.kuwait.getParameters();
+        return CalculationMethodParameters.kuwait();
       case '10':
       case 'qatar':
-        return CalculationMethod.qatar.getParameters();
+        return CalculationMethodParameters.qatar();
       case 'moon_sighting':
       case 'moon_sighting_committee':
-        return CalculationMethod.moon_sighting_committee.getParameters();
+        return CalculationMethodParameters.moonsightingCommittee();
       case 'singapore':
       case '11':
-        return CalculationMethod.singapore.getParameters();
+        return CalculationMethodParameters.singapore();
       case 'turkey':
       case '13':
-        return CalculationMethod.turkey.getParameters();
+        return CalculationMethodParameters.turkiye();
+      case '14':
+        var morocoPar = CalculationMethodParameters.morocco();
+        morocoPar.adjustments = {
+          Prayer.fajr: -1,
+          Prayer.sunrise:-2,
+          Prayer.asr: 1,
+          Prayer.maghrib: 1,
+          Prayer.isha: 0,
+        };
+        return morocoPar;
       case 'tehran':
       case '7':
-        return CalculationMethod.tehran.getParameters();
+        return CalculationMethodParameters.tehran();
       case '2':
       case 'north_america':
-        return CalculationMethod.north_america.getParameters();
+        return CalculationMethodParameters.northAmerica();
       case '1':
       case 'karachi':
-        return CalculationMethod.karachi.getParameters();
+        return CalculationMethodParameters.karachi();
       case '3':
       case 'muslim_world_league':
       default:
-        return CalculationMethod.muslim_world_league.getParameters();
+        return CalculationMethodParameters.muslimWorldLeague();
     }
   }
 

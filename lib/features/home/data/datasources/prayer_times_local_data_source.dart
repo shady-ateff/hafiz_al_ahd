@@ -1,4 +1,4 @@
-import 'package:adhan/adhan.dart'; // مكتبة الحسابات الفلكية
+import 'package:adhan_dart/adhan_dart.dart'; // مكتبة الحسابات الفلكية
 import 'package:hafiz_al_ahd/core/utils/calculation_method_helper.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
@@ -41,12 +41,12 @@ class PrayerTimesLocalDataSource {
     );
     params.madhab = (madhab == 'hanafi') ? Madhab.hanafi : Madhab.shafi;
 
-    // 2. حساب المواقيت الفلكية باستخدام باكدج adhan
-    // مخرجات adhan تمثل أوقات فلكية محددة بـ UTC
+    // 2. حساب المواقيت الفلكية باستخدام باكدج adhan_dart
+    // مخرجات adhan_dart تمثل أوقات فلكية محددة بـ UTC
     final prayerTimes = PrayerTimes(
-      coordinates,
-      DateComponents.from(date),
-      params,
+      date: date,
+      coordinates: coordinates,
+      calculationParameters: params,
     );
 
     // 3. تحديد المنطقة الزمنية الصحيحة (IANA Timezone)

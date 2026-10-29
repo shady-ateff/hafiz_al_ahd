@@ -1,4 +1,4 @@
-import 'package:adhan/adhan.dart';
+import 'package:adhan_dart/adhan_dart.dart';
 import 'package:hafiz_al_ahd/features/home/domain/entities/prayer_times_entity.dart';
 
 class PrayerTimesModel extends PrayerTimesEntity {
