@@ -17,10 +17,17 @@ class PrayerTimesLocalDataSource {
     // التأكد من تهيئة المناطق الزمنية
     _ensureTimezonesInitialized();
 
+    // استنتاج كود الدولة الفعلي مع التحقق المزدوج من الإحداثيات لمنع تضارب الكاش
+    final String? effectiveCountry = CalculationMethodHelper.resolveCountryCode(
+      countryCode,
+      coordinates.latitude,
+      coordinates.longitude,
+    );
+
     // 1. تحديد طريقة الحساب
-    // لو الدولة المغرب أو تم تمرير الطريقة 14، نستخدم إعدادات وزارة الأوقاف المغربية
+    // لو الدولة المغرب نستخدم إعدادات وزارة الأوقاف المغربية (طريقة 14)
     String resolvedMethod = method ?? '3';
-    if (CalculationMethodHelper.isMorocco(countryCode)) {
+    if (CalculationMethodHelper.isMorocco(effectiveCountry)) {
       resolvedMethod = '14';
     }
 
@@ -36,10 +43,11 @@ class PrayerTimesLocalDataSource {
     );
 
     // 3. تحديد المنطقة الزمنية الصحيحة (IANA Timezone)
-    final bool isMorocco = CalculationMethodHelper.isMorocco(countryCode) || resolvedMethod == '14';
+    // ⚠️ خصوصية التوقيت الصيفي للمغرب تطبق فقط إذا كان الموقع الجغرافي الفعلي بالمغرب
+    final bool isMoroccoLocation = CalculationMethodHelper.isMorocco(effectiveCountry);
 
-    String? timezoneId = CalculationMethodHelper.getTimezoneForCountry(countryCode);
-    if (timezoneId == null && isMorocco) {
+    String? timezoneId = CalculationMethodHelper.getTimezoneForCountry(effectiveCountry);
+    if (timezoneId == null && isMoroccoLocation) {
       timezoneId = 'Africa/Casablanca';
     }
 
@@ -49,14 +57,14 @@ class PrayerTimesLocalDataSource {
 
     // 4. التحويل النهائي (Mapping to UI / Cubit):
     // ----------------------------------------------------------------------
-    // للمغرب فقطططططط:
+    // للمغرب فقطططططط (إذا كان الموقع الجغرافي بالمغرب):
     // وزارة الأوقاف المغربية تعتمد توقيت غرينتش (GMT 0) لحساب ونشر مواقيت الصلاة،
     // بينما التوقيت الافتراضي لساعة الهاتف في المغرب هو (GMT+1) خارج رمضان.
     // نقوم بطرح فرق الساعة (1 ساعة) لضبط وقت الصلاة مع غرينتش
     // مع الحفاظ على التايم زون الأصلي للجهاز (targetLocation) لثبات العداد والإشعارات.
     // وفي رمضان يعود المغرب لـ (GMT 0) تلقائياً فلا يتم خصم شيء.
     // ----------------------------------------------------------------------
-    if (isMorocco) {
+    if (isMoroccoLocation) {
       return PrayerTimesModel(
         fajr: _adjustForMorocco(prayerTimes.fajr, targetLocation),
         sunrise: _adjustForMorocco(prayerTimes.sunrise, targetLocation),
@@ -67,7 +75,7 @@ class PrayerTimesLocalDataSource {
       );
     }
 
-    // باقي الدول: التحويل المباشر بالمنطقة الزمنية المحددة للدولة
+    // باقي الدول (مصر، الخليج، إلخ): التحويل المباشر بالمنطقة الزمنية الصحيحة للدولة
     return PrayerTimesModel(
       fajr: tz.TZDateTime.from(prayerTimes.fajr.toUtc(), targetLocation),
       sunrise: tz.TZDateTime.from(prayerTimes.sunrise.toUtc(), targetLocation),

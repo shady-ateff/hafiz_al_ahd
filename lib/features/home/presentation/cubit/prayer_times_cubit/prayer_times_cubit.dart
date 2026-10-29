@@ -186,7 +186,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
   // -------------------------------------------------------------------
   Future<void> forceReschedule() async {
     final locationResult = await getCachedLocationUseCase();
-    fetchPrayerTimesByLocation();
+
     locationResult.fold(
       (failure) => log("No cached location found to reschedule!"),
       (location) async {

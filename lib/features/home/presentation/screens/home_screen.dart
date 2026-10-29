@@ -45,7 +45,7 @@ class _HomeScreenState extends State<HomeScreen>
               ),
             ),
             onPressed: () {
-              context.read<PrayerTimesCubit>().forceReschedule();
+              context.read<PrayerTimesCubit>().fetchPrayerTimesByLocation();
             },
           ),
         ],

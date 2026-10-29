@@ -2,6 +2,7 @@ import 'dart:developer';
 
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:hafiz_al_ahd/core/utils/calculation_method_helper.dart';
 import 'package:hafiz_al_ahd/features/home/domain/entities/location_entity.dart';
 
 class LocationService {
@@ -56,30 +57,49 @@ class LocationService {
       if (placemarks.isNotEmpty) {
         Placemark placemark = placemarks.first;
         log(placemark.toString());
-        // administrativeArea بتجيب المحافظة (زي القاهرة أو الجيزة)، و locality بتجيب المنطقة
         log(placemark.administrativeArea ?? "غير معروف");
         log(placemark.locality ?? "غير معروف");
 
         String cityName =
-            '${placemark.subAdministrativeArea} , ${placemark.country}';
+            '${placemark.subAdministrativeArea ?? placemark.administrativeArea ?? placemark.locality ?? "غير معروف"} , ${placemark.country ?? ""}';
+        
+        final resolvedCountry = CalculationMethodHelper.resolveCountryCode(
+          placemark.isoCountryCode,
+          position.latitude,
+          position.longitude,
+        );
+
         return LocationEntity(
           latitude: position.latitude,
           longitude: position.longitude,
           city: cityName,
-          country: placemark.isoCountryCode,
+          country: resolvedCountry,
         );
       }
+
+      final resolvedCountry = CalculationMethodHelper.resolveCountryCode(
+        null,
+        position.latitude,
+        position.longitude,
+      );
       return LocationEntity(
         latitude: position.latitude,
         longitude: position.longitude,
         city: "غير معروف",
+        country: resolvedCountry,
       );
     } catch (e) {
-      // لو مفيش نت أو الخدمة مش شغالة
+      // لو مفيش نت أو Geocoding في الإيميوليتور فشل: نستنتج الدولة من الإحداثيات مباشرة
+      final resolvedCountry = CalculationMethodHelper.resolveCountryCode(
+        null,
+        position.latitude,
+        position.longitude,
+      );
       return LocationEntity(
         latitude: position.latitude,
         longitude: position.longitude,
         city: "غير معروف",
+        country: resolvedCountry,
       );
     }
   }

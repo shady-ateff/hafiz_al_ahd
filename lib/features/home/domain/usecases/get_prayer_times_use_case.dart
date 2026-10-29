@@ -19,14 +19,29 @@ class GetPrayerTimesUseCase {
     String? country,
     String? method,
   }) async {
-    // محاولة استخراج الدولة من الكاش لو مش مبعوثة مباشرة
-    String? effectiveCountry = country;
+    // 1. استخراج الدولة بناءً على الكود أو الإحداثيات الجغرافية الفعلية
+    String? effectiveCountry = CalculationMethodHelper.resolveCountryCode(
+      country,
+      latitude,
+      longitude,
+    );
+
+    // 2. إذا لم تُعرف الدولة، نفحص الكاش فقط إذا كانت الإحداثيات متوافقة معه
     if (effectiveCountry == null || effectiveCountry.trim().isEmpty) {
       final cachedJson = pref.getString('CACHED_LOCATION');
       if (cachedJson != null) {
         try {
           final decoded = json.decode(cachedJson);
-          effectiveCountry = decoded['country'] as String?;
+          final double? cachedLat = (decoded['lat'] as num?)?.toDouble();
+          final double? cachedLng = (decoded['lng'] as num?)?.toDouble();
+          if (cachedLat != null && cachedLng != null) {
+            final latDiff = (cachedLat - latitude).abs();
+            final lngDiff = (cachedLng - longitude).abs();
+            // التحقق من أن الكاش لنفس المنطقة الجغرافية (أقل من 3 درجات)
+            if (latDiff < 3.0 && lngDiff < 3.0) {
+              effectiveCountry = decoded['country'] as String?;
+            }
+          }
         } catch (_) {}
       }
     }
