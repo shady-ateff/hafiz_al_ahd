@@ -3,18 +3,28 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 /// A Cubit that emits the current [DateTime] every second.
 ///
-/// This is used to update the UI with the current time.
+/// Also monitors day changes (midnight transition) and notifies [onDayChanged]
+/// without forcing unnecessary widget rebuilds in the UI layer.
 class TimeCubit extends Cubit<DateTime> {
   Timer? _timer;
+  int _lastDay;
+  final void Function(DateTime newTime)? onDayChanged;
 
-  TimeCubit() : super(DateTime.now()) {
+  TimeCubit({this.onDayChanged})
+      : _lastDay = DateTime.now().day,
+        super(DateTime.now()) {
     _startTimer();
   }
 
   void _startTimer() {
-    // Every second, update the time
+    // Every second, update the time and check for day change
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      emit(DateTime.now());
+      final now = DateTime.now();
+      if (now.day != _lastDay) {
+        _lastDay = now.day;
+        onDayChanged?.call(now);
+      }
+      emit(now);
     });
   }
 

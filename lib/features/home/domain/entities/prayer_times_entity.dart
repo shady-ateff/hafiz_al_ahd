@@ -7,6 +7,8 @@ class PrayerTimesEntity {
   DateTime? asr;
   DateTime? maghrib;
   DateTime? isha;
+  DateTime? tomorrowFajr; // فجر الغد المحسوب فلكياً وفق تواريخ وتوقيت اليوم التالي بدقة
+
   PrayerTimesEntity({
     this.fajr,
     this.sunrise,
@@ -14,6 +16,7 @@ class PrayerTimesEntity {
     this.asr,
     this.maghrib,
     this.isha,
+    this.tomorrowFajr,
   });
 
   /// تطبيق فرق التوقيت الصيفي (DST) على كل المواقيت.
@@ -28,6 +31,7 @@ class PrayerTimesEntity {
       asr: asr?.add(offset),
       maghrib: maghrib?.add(offset),
       isha: isha?.add(offset),
+      tomorrowFajr: tomorrowFajr?.add(offset),
     );
   }
 
@@ -55,6 +59,7 @@ class PrayerTimesEntity {
       asr: this.asr?.add(Duration(minutes: asr)),
       maghrib: this.maghrib?.add(Duration(minutes: maghrib)),
       isha: this.isha?.add(Duration(minutes: isha)),
+      tomorrowFajr: this.tomorrowFajr?.add(Duration(minutes: fajr)),
     );
   }
 
@@ -99,9 +104,9 @@ class PrayerTimesEntity {
       }
     }
 
-    // 3. الفخ: لو اللوب خلص ومفيش صلاة، معناه إننا بعد العشاء
-    // إذن الصلاة القادمة هي "فجر اليوم التالي"
-    final nextFajr = fajr?.add(const Duration(days: 1));
+    // 3. لو اللوب خلص ومفيش صلاة، معناه إننا بعد العشاء
+    // إذن الصلاة القادمة هي "فجر اليوم التالي" المحسوب فلكياً بدقة لتاريخ الغد
+    final nextFajr = tomorrowFajr ?? fajr?.add(const Duration(days: 1));
     return NextPrayerTime(
       name: 'الفجر',
       time: nextFajr,

@@ -102,7 +102,13 @@ class _AppState extends State<App> with TrayListener, WindowListener {
           create: (context) =>
               sl<PrayerTimesCubit>()..fetchPrayerTimesByLocation(),
         ),
-        BlocProvider(create: (context) => TimeCubit()),
+        BlocProvider(
+          create: (context) => TimeCubit(
+            onDayChanged: (newDate) {
+              context.read<PrayerTimesCubit>().loadPrayerTimesFromCache();
+            },
+          ),
+        ),
         BlocProvider(
           create: (context) => AzkarCubit(
             getAzkarUseCase: GetAzkarUseCase(

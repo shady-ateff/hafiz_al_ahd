@@ -7,6 +7,17 @@ class CheckIfSchedulingNeededUseCase {
   CheckIfSchedulingNeededUseCase({required this.pref});
 
   bool execute() {
+    // 1. فحص تغير التوقيت الصيفي/الشتوي للجهاز فوراً
+    final currentOffset = DateTime.now().timeZoneOffset.inMinutes;
+    final lastKnownOffset = pref.getInt('last_known_timezone_offset_minutes');
+    if (lastKnownOffset != null && lastKnownOffset != currentOffset) {
+      log(
+        "⚠️ [CheckIfSchedulingNeeded] تغير فرق التوقيت للجهاز من $lastKnownOffset دقيقة إلى $currentOffset دقيقة (DST Change). يجب إعادة الجدولة فوراً!",
+      );
+      return true;
+    }
+
+    // 2. فحص كاش الجدولة للأيام القادمة
     final String? scheduledUntilStr = pref.getString('scheduled_until_date');
 
     if (scheduledUntilStr != null) {
@@ -20,9 +31,9 @@ class CheckIfSchedulingNeededUseCase {
         return false; // يعني مش محتاجين نجدول
       }
     }
-      log(
-        "⚠️ الإشعارات غير مجدولة أو قربت تنتهي. نحتاج نجدد الجدولة! (Last scheduled until: ${scheduledUntilStr ?? "None"})",
-      );
+    log(
+      "⚠️ الإشعارات غير مجدولة أو قربت تنتهي. نحتاج نجدد الجدولة! (Last scheduled until: ${scheduledUntilStr ?? "None"})",
+    );
     return true; // يعني محتاجين نجدول
   }
 }

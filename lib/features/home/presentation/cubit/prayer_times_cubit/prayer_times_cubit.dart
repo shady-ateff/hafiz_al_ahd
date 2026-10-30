@@ -85,15 +85,51 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
     });
   }
 
-  Future<void> fetchPrayerTimesByLocation() async {
+  /// فحص تغير التوقيت الصيفي/الشتوي (Timezone Offset) للجهاز وإعادة الجدولة وتحديث الواجهة فوراً
+  Future<bool> checkTimezoneOffsetChange() async {
+    final prefs = sl<SharedPreferences>();
+    final currentOffsetMinutes = DateTime.now().timeZoneOffset.inMinutes;
+    final lastKnownOffset = prefs.getInt('last_known_timezone_offset_minutes');
+
+    if (lastKnownOffset != null && lastKnownOffset != currentOffsetMinutes) {
+      log("🕒 [DST Guard] تغير فرق التوقيت للجهاز من $lastKnownOffset إلى $currentOffsetMinutes دقيقة! إعادة الجدولة وتحديث الواجهة...");
+      await prefs.setInt('last_known_timezone_offset_minutes', currentOffsetMinutes);
+      await prefs.remove('scheduled_until_date');
+      await forceReschedule();
+      return true;
+    } else if (lastKnownOffset == null) {
+      await prefs.setInt('last_known_timezone_offset_minutes', currentOffsetMinutes);
+    }
+    return false;
+  }
+
+  Future<void> fetchPrayerTimesByLocation({bool forceRescheduleAlarms = false}) async {
     try {
       emit(PrayerTimesLoading());
+
+      // 1. التحقق من أي تغير في التوقيت الصيفي/الشتوي للجهاز
+      final tzChanged = await checkTimezoneOffsetChange();
+
       final position = await LocationService.determinePosition();
       final details = await LocationService.getLocationDetails(position);
 
       log(
         "Fetching prayer times for location: ${details.city}, ${details.country} (lat: ${position.latitude}, lng: ${position.longitude})",
       );
+
+      // 2. إذا ضغط المستخدم على زر التحديث، نفرغ كاش الجدولة ونلغي أي منبهات سابقة ونعيد جدولتها
+      if (forceRescheduleAlarms && !tzChanged) {
+        final prefs = sl<SharedPreferences>();
+        await prefs.remove('scheduled_until_date');
+        await cancelAllNotificationsUseCase.execute();
+        await scheduleWeeklyPrayersUseCase.execute(
+          position.latitude,
+          position.longitude,
+          details.city,
+          details.country,
+        );
+      }
+
       await _handleFetchResult(
         position.latitude,
         position.longitude,
@@ -112,6 +148,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
     String? country,
   ]) async {
     emit(PrayerTimesLoading());
+    await checkTimezoneOffsetChange();
     log(
       "Fetching prayer times for manually entered location: $city, $country (lat: $lat, lng: $lng)",
     );
@@ -120,6 +157,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
 
   Future<void> loadPrayerTimesFromCache() async {
     emit(PrayerTimesLoading());
+    await checkTimezoneOffsetChange();
     final result = await getCachedLocationUseCase();
 
     result.fold((failure) => emit(PrayerTimesNeedsManualLocation()), (loc) {
@@ -212,6 +250,10 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
 
   // داخل PrayerTimesCubit
   Future<void> restoreStickyNotificationIfNeeded() async {
+    // 0. التحقق من تغير التوقيت الصيفي/الشتوي للجهاز عند استئناف التطبيق
+    final tzChanged = await checkTimezoneOffsetChange();
+    if (tzChanged) return;
+
     // 1. هل المواقيت موجودة أصلاً في الشاشة؟ (التطبيق كان في الخلفية ورجع)
     if (state is PrayerTimesLoaded) {
       final currentPrayerTimes = (state as PrayerTimesLoaded).prayerTimes;

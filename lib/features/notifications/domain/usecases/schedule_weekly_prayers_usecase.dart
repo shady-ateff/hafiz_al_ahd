@@ -52,7 +52,8 @@ class ScheduleWeeklyPrayersUseCase {
         return;
       }
 
-      final date = DateTime.now().add(Duration(days: i));
+      final now = DateTime.now();
+      final date = DateTime(now.year, now.month, now.day + i);
       
       final result = await getPrayerTimesUseCase(
         latitude: lat,
@@ -79,7 +80,7 @@ class ScheduleWeeklyPrayersUseCase {
       
       // 5. نظام التقطيع (Chunking / Throttling)
       // هذا السطر السحري يحل مشكلتين:
-      // - يحرر הـ Dart Main Thread ليرسم الواجهة (يمنع الـ UI Lag)
+      // - يحرر الـ Dart Main Thread ليرسم الواجهة (يمنع الـ UI Lag)
       // - يمنع اختناق الـ Native Android Thread بكميات هائلة من הـ PendingIntents
       await Future.delayed(const Duration(milliseconds: 150));
     }
@@ -87,6 +88,7 @@ class ScheduleWeeklyPrayersUseCase {
     if (_scheduleSessionId == currentSession) {
       final newTargetDate = DateTime.now().add(const Duration(days: 5));
       await pref.setString('scheduled_until_date', newTargetDate.toIso8601String());
+      await pref.setInt('last_known_timezone_offset_minutes', DateTime.now().timeZoneOffset.inMinutes);
       log("✅ Scheduling session #$currentSession complete!");
     }
   }

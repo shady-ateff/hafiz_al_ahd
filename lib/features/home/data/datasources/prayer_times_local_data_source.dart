@@ -27,10 +27,15 @@ class PrayerTimesLocalDataSource {
     );
 
     // 1. تحديد طريقة الحساب
-    // لو الدولة المغرب والمستخدم لم يختر طريقة محددة يدوياً، نستخدم إعدادات وزارة الأوقاف المغربية (طريقة 14)
+    // إذا لم يحدد المستخدم طريقة يدوية خاصة، يتم الاعتماد على طريقة الحساب الرسمية للدولة
     String resolvedMethod = method ?? '3';
-    if (CalculationMethodHelper.isMorocco(effectiveCountry) &&
-        (method == null || method == 'auto' || method == '14')) {
+    if (method == null || method == 'auto') {
+      if (effectiveCountry != null) {
+        resolvedMethod = CalculationMethodHelper.getMethodForCountry(effectiveCountry);
+      } else {
+        resolvedMethod = '3';
+      }
+    } else if (CalculationMethodHelper.isMorocco(effectiveCountry) && method == '14') {
       resolvedMethod = '14';
     }
 
@@ -45,6 +50,15 @@ class PrayerTimesLocalDataSource {
     // مخرجات adhan_dart تمثل أوقات فلكية محددة بـ UTC
     final prayerTimes = PrayerTimes(
       date: date,
+      coordinates: coordinates,
+      calculationParameters: params,
+    );
+
+    // حساب مواقيت الغد فلكياً لضمان دقة وقت فجر اليوم التالي عند تغير التوقيت
+    // استخدام DateTime(year, month, day + 1) بدلاً من add(Duration(days: 1))
+    // لأن اليوم الذي يتغير فيه التوقيت الشتوي يحتوي على 25 ساعة فإضافة 24 ساعة تبقيك في نفس اليوم!
+    final tomorrowPrayerTimes = PrayerTimes(
+      date: DateTime(date.year, date.month, date.day + 1),
       coordinates: coordinates,
       calculationParameters: params,
     );
@@ -79,6 +93,7 @@ class PrayerTimesLocalDataSource {
         asr: _adjustForMorocco(prayerTimes.asr, targetLocation),
         maghrib: _adjustForMorocco(prayerTimes.maghrib, targetLocation),
         isha: _adjustForMorocco(prayerTimes.isha, targetLocation),
+        tomorrowFajr: _adjustForMorocco(tomorrowPrayerTimes.fajr, targetLocation),
       );
     }
 
@@ -90,6 +105,7 @@ class PrayerTimesLocalDataSource {
       asr: tz.TZDateTime.from(prayerTimes.asr.toUtc(), targetLocation),
       maghrib: tz.TZDateTime.from(prayerTimes.maghrib.toUtc(), targetLocation),
       isha: tz.TZDateTime.from(prayerTimes.isha.toUtc(), targetLocation),
+      tomorrowFajr: tz.TZDateTime.from(tomorrowPrayerTimes.fajr.toUtc(), targetLocation),
     );
   }
 

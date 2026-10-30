@@ -9,9 +9,10 @@ class PrayerTimesModel extends PrayerTimesEntity {
     required super.asr,
     required super.maghrib,
     required super.isha,
+    super.tomorrowFajr,
   });
 
-  factory PrayerTimesModel.fromAdhanObject(PrayerTimes obj) {
+  factory PrayerTimesModel.fromAdhanObject(PrayerTimes obj, [DateTime? tomorrowFajr]) {
     return PrayerTimesModel(
       fajr: obj.fajr,
       sunrise: obj.sunrise,
