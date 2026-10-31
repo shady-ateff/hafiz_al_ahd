@@ -18,14 +18,79 @@ class QuranAyah extends Equatable {
     required this.uthmaniText,
     required this.wordsCount,
     required List<AyahSegment> segments,
-  })  : assert(pageNumber >= 1 && pageNumber <= 604,
-            'pageNumber must be between 1 and 604'),
-        assert(endPageNumber >= pageNumber && endPageNumber <= 604,
-            'endPageNumber must be >= pageNumber and <= 604'),
-        assert(uthmaniText.isNotEmpty, 'uthmaniText cannot be empty'),
-        assert(wordsCount > 0, 'wordsCount must be greater than 0'),
-        assert(segments.isNotEmpty, 'segments cannot be empty'),
-        segments = List.unmodifiable(segments);
+  })  : segments = List<AyahSegment>.unmodifiable(segments) {
+    if (pageNumber < 1 || pageNumber > 604) {
+      throw ArgumentError.value(
+        pageNumber,
+        'pageNumber',
+        'pageNumber must be between 1 and 604 (received: $pageNumber)',
+      );
+    }
+    if (endPageNumber < pageNumber || endPageNumber > 604) {
+      throw ArgumentError.value(
+        endPageNumber,
+        'endPageNumber',
+        'endPageNumber must be between pageNumber ($pageNumber) and 604 (received: $endPageNumber)',
+      );
+    }
+    if (uthmaniText.trim().isEmpty) {
+      throw ArgumentError.value(
+        uthmaniText,
+        'uthmaniText',
+        'uthmaniText cannot be empty',
+      );
+    }
+    if (wordsCount < 1) {
+      throw ArgumentError.value(
+        wordsCount,
+        'wordsCount',
+        'wordsCount must be greater than 0 (received: $wordsCount)',
+      );
+    }
+    if (segments.isEmpty) {
+      throw ArgumentError.value(
+        segments,
+        'segments',
+        'segments cannot be empty for Ayah $id',
+      );
+    }
+
+    // Consistency Rule 1: pageNumber must equal the first segment's pageNumber
+    if (pageNumber != segments.first.pageNumber) {
+      throw ArgumentError(
+        'Inconsistent pageNumber: ayah pageNumber ($pageNumber) must equal first segment page (${segments.first.pageNumber}) for Ayah $id',
+      );
+    }
+
+    // Consistency Rule 2: endPageNumber must equal the last segment's pageNumber
+    if (endPageNumber != segments.last.pageNumber) {
+      throw ArgumentError(
+        'Inconsistent endPageNumber: ayah endPageNumber ($endPageNumber) must equal last segment page (${segments.last.pageNumber}) for Ayah $id',
+      );
+    }
+
+    // Consistency Rule 3: wordsCount must match the sum of words across segments
+    final totalSegmentWords =
+        segments.fold<int>(0, (sum, s) => sum + s.wordCount);
+    if (wordsCount != totalSegmentWords) {
+      throw ArgumentError(
+        'Inconsistent wordsCount: ayah wordsCount ($wordsCount) does not match sum of segment words ($totalSegmentWords) for Ayah $id',
+      );
+    }
+
+    // Consistency Rule 4: Segments must be strictly ordered by page, then line
+    for (int i = 1; i < segments.length; i++) {
+      final prev = segments[i - 1];
+      final curr = segments[i];
+      if (curr.pageNumber < prev.pageNumber ||
+          (curr.pageNumber == prev.pageNumber &&
+              curr.lineNumber <= prev.lineNumber)) {
+        throw ArgumentError(
+          'Segments must be strictly ordered by page and line: segment[$i] (${curr.pageNumber}:${curr.lineNumber}) does not follow segment[${i - 1}] (${prev.pageNumber}:${prev.lineNumber}) for Ayah $id',
+        );
+      }
+    }
+  }
 
   int get surahNumber => id.surahNumber;
   int get ayahNumber => id.ayahNumber;
@@ -44,4 +109,3 @@ class QuranAyah extends Equatable {
   List<Object?> get props =>
       [id, pageNumber, endPageNumber, uthmaniText, wordsCount, segments];
 }
-

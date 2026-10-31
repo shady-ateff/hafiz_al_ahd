@@ -4,10 +4,10 @@ import 'package:hafiz_al_ahd/features/quran/domain/entities/quran_mapping_entiti
 void main() {
   group('AyahId Unit Tests', () {
     test('Value equality works correctly', () {
-      const id1 = AyahId(surahNumber: 2, ayahNumber: 255);
-      const id2 = AyahId(surahNumber: 2, ayahNumber: 255);
-      const id3 = AyahId(surahNumber: 2, ayahNumber: 256);
-      const id4 = AyahId(surahNumber: 3, ayahNumber: 255);
+      final id1 = AyahId(surahNumber: 2, ayahNumber: 255);
+      final id2 = AyahId(surahNumber: 2, ayahNumber: 255);
+      final id3 = AyahId(surahNumber: 2, ayahNumber: 256);
+      final id4 = AyahId(surahNumber: 3, ayahNumber: 255);
 
       expect(id1, equals(id2));
       expect(id1.hashCode, equals(id2.hashCode));
@@ -16,7 +16,7 @@ void main() {
     });
 
     test('String formatting and parsing', () {
-      const id = AyahId(surahNumber: 114, ayahNumber: 6);
+      final id = AyahId(surahNumber: 114, ayahNumber: 6);
       expect(id.formatted, equals('114:6'));
       expect(id.toString(), equals('114:6'));
 
@@ -26,11 +26,11 @@ void main() {
       expect(parsed.ayahNumber, equals(6));
     });
 
-    test('Throws on invalid constructor arguments', () {
-      expect(() => AyahId(surahNumber: 0, ayahNumber: 1), throwsAssertionError);
-      expect(() => AyahId(surahNumber: 115, ayahNumber: 1), throwsAssertionError);
-      expect(() => AyahId(surahNumber: 1, ayahNumber: 0), throwsAssertionError);
-      expect(() => AyahId(surahNumber: 1, ayahNumber: -1), throwsAssertionError);
+    test('Throws ArgumentError on invalid constructor arguments', () {
+      expect(() => AyahId(surahNumber: 0, ayahNumber: 1), throwsArgumentError);
+      expect(() => AyahId(surahNumber: 115, ayahNumber: 1), throwsArgumentError);
+      expect(() => AyahId(surahNumber: 1, ayahNumber: 0), throwsArgumentError);
+      expect(() => AyahId(surahNumber: 1, ayahNumber: -1), throwsArgumentError);
     });
 
     test('Throws ArgumentError on malformed strings', () {
@@ -43,9 +43,9 @@ void main() {
 
   group('WordLocation Unit Tests', () {
     test('Value equality works correctly', () {
-      const loc1 = WordLocation(surahNumber: 1, ayahNumber: 1, wordIndex: 2);
-      const loc2 = WordLocation(surahNumber: 1, ayahNumber: 1, wordIndex: 2);
-      const loc3 = WordLocation(surahNumber: 1, ayahNumber: 1, wordIndex: 3);
+      final loc1 = WordLocation(surahNumber: 1, ayahNumber: 1, wordIndex: 2);
+      final loc2 = WordLocation(surahNumber: 1, ayahNumber: 1, wordIndex: 2);
+      final loc3 = WordLocation(surahNumber: 1, ayahNumber: 1, wordIndex: 3);
 
       expect(loc1, equals(loc2));
       expect(loc1.hashCode, equals(loc2.hashCode));
@@ -53,7 +53,7 @@ void main() {
     });
 
     test('Factories and parent AyahId getter', () {
-      const ayahId = AyahId(surahNumber: 18, ayahNumber: 10);
+      final ayahId = AyahId(surahNumber: 18, ayahNumber: 10);
       final loc = WordLocation.fromAyahId(ayahId: ayahId, wordIndex: 5);
 
       expect(loc.surahNumber, equals(18));
@@ -67,10 +67,10 @@ void main() {
       expect(parsed, equals(loc));
     });
 
-    test('Throws on invalid constructor arguments and malformed strings', () {
-      expect(() => WordLocation(surahNumber: 0, ayahNumber: 1, wordIndex: 1), throwsAssertionError);
-      expect(() => WordLocation(surahNumber: 1, ayahNumber: 0, wordIndex: 1), throwsAssertionError);
-      expect(() => WordLocation(surahNumber: 1, ayahNumber: 1, wordIndex: 0), throwsAssertionError);
+    test('Throws ArgumentError on invalid constructor arguments and malformed strings', () {
+      expect(() => WordLocation(surahNumber: 0, ayahNumber: 1, wordIndex: 1), throwsArgumentError);
+      expect(() => WordLocation(surahNumber: 1, ayahNumber: 0, wordIndex: 1), throwsArgumentError);
+      expect(() => WordLocation(surahNumber: 1, ayahNumber: 1, wordIndex: 0), throwsArgumentError);
       expect(() => WordLocation.fromString('1:1'), throwsArgumentError);
       expect(() => WordLocation.fromString('1:1:foo'), throwsArgumentError);
     });
@@ -78,18 +78,18 @@ void main() {
 
   group('QuranWord Unit Tests', () {
     test('Correctly exposes location properties and value equality', () {
-      const loc = WordLocation(surahNumber: 112, ayahNumber: 1, wordIndex: 1);
-      const word1 = QuranWord(
+      final loc = WordLocation(surahNumber: 112, ayahNumber: 1, wordIndex: 1);
+      final word1 = QuranWord(
         location: loc,
         uthmaniText: 'قُلْ',
         qcfText: 'ﱁ',
       );
-      const word2 = QuranWord(
+      final word2 = QuranWord(
         location: loc,
         uthmaniText: 'قُلْ',
         qcfText: 'ﱁ',
       );
-      const word3 = QuranWord(
+      final word3 = QuranWord(
         location: loc,
         uthmaniText: 'هُوَ',
         qcfText: 'ﱂ',
@@ -99,29 +99,29 @@ void main() {
       expect(word1.hashCode, equals(word2.hashCode));
       expect(word1, isNot(equals(word3)));
 
-      expect(word1.ayahId, equals(const AyahId(surahNumber: 112, ayahNumber: 1)));
+      expect(word1.ayahId, equals(AyahId(surahNumber: 112, ayahNumber: 1)));
       expect(word1.surahNumber, equals(112));
       expect(word1.ayahNumber, equals(1));
       expect(word1.wordIndex, equals(1));
     });
 
-    test('Throws on empty text strings', () {
-      const loc = WordLocation(surahNumber: 1, ayahNumber: 1, wordIndex: 1);
+    test('Throws ArgumentError on empty text strings', () {
+      final loc = WordLocation(surahNumber: 1, ayahNumber: 1, wordIndex: 1);
       expect(
         () => QuranWord(location: loc, uthmaniText: '', qcfText: 'ﱁ'),
-        throwsAssertionError,
+        throwsArgumentError,
       );
       expect(
         () => QuranWord(location: loc, uthmaniText: 'بِسْمِ', qcfText: ''),
-        throwsAssertionError,
+        throwsArgumentError,
       );
     });
   });
 
   group('AyahSegment Unit Tests', () {
     test('Calculates wordCount correctly and supports equality', () {
-      const ayahId = AyahId(surahNumber: 2, ayahNumber: 282);
-      const seg1 = AyahSegment(
+      final ayahId = AyahId(surahNumber: 2, ayahNumber: 282);
+      final seg1 = AyahSegment(
         ayahId: ayahId,
         pageNumber: 48,
         lineNumber: 1,
@@ -129,7 +129,7 @@ void main() {
         wordEnd: 8,
         qcfText: 'ﮪ ﮫ ﮬ ﮭ ﮮ ﮯ ﮰ ﮱ ﯓ',
       );
-      const seg2 = AyahSegment(
+      final seg2 = AyahSegment(
         ayahId: ayahId,
         pageNumber: 48,
         lineNumber: 1,
@@ -144,8 +144,8 @@ void main() {
       expect(seg1.ayahNumber, equals(282));
     });
 
-    test('Throws on invalid boundary constraints', () {
-      const ayahId = AyahId(surahNumber: 1, ayahNumber: 1);
+    test('Throws ArgumentError on invalid boundary constraints', () {
+      final ayahId = AyahId(surahNumber: 1, ayahNumber: 1);
       // wordEnd < wordStart
       expect(
         () => AyahSegment(
@@ -156,7 +156,7 @@ void main() {
           wordEnd: 4,
           qcfText: 'test',
         ),
-        throwsAssertionError,
+        throwsArgumentError,
       );
 
       // wordStart < 0
@@ -169,7 +169,7 @@ void main() {
           wordEnd: 2,
           qcfText: 'test',
         ),
-        throwsAssertionError,
+        throwsArgumentError,
       );
 
       // pageNumber out of range
@@ -182,7 +182,7 @@ void main() {
           wordEnd: 1,
           qcfText: 'test',
         ),
-        throwsAssertionError,
+        throwsArgumentError,
       );
 
       // lineNumber out of range
@@ -195,24 +195,24 @@ void main() {
           wordEnd: 1,
           qcfText: 'test',
         ),
-        throwsAssertionError,
+        throwsArgumentError,
       );
     });
   });
 
   group('QuranLineMapping Unit Tests', () {
     final wordA1 = QuranWord(
-      location: const WordLocation(surahNumber: 112, ayahNumber: 1, wordIndex: 1),
+      location: WordLocation(surahNumber: 112, ayahNumber: 1, wordIndex: 1),
       uthmaniText: 'قُلْ',
       qcfText: 'ﱁ',
     );
     final wordA2 = QuranWord(
-      location: const WordLocation(surahNumber: 112, ayahNumber: 1, wordIndex: 2),
+      location: WordLocation(surahNumber: 112, ayahNumber: 1, wordIndex: 2),
       uthmaniText: 'هُوَ',
       qcfText: 'ﱂ',
     );
     final wordB1 = QuranWord(
-      location: const WordLocation(surahNumber: 112, ayahNumber: 2, wordIndex: 1),
+      location: WordLocation(surahNumber: 112, ayahNumber: 2, wordIndex: 1),
       uthmaniText: 'ٱللَّهُ',
       qcfText: 'ﱃ',
     );
@@ -229,16 +229,16 @@ void main() {
       expect(
         lineMapping.ayahIds,
         equals({
-          const AyahId(surahNumber: 112, ayahNumber: 1),
-          const AyahId(surahNumber: 112, ayahNumber: 2),
+          AyahId(surahNumber: 112, ayahNumber: 1),
+          AyahId(surahNumber: 112, ayahNumber: 2),
         }),
       );
-      expect(lineMapping.containsAyah(const AyahId(surahNumber: 112, ayahNumber: 1)), isTrue);
-      expect(lineMapping.containsAyah(const AyahId(surahNumber: 112, ayahNumber: 2)), isTrue);
-      expect(lineMapping.containsAyah(const AyahId(surahNumber: 112, ayahNumber: 3)), isFalse);
+      expect(lineMapping.containsAyah(AyahId(surahNumber: 112, ayahNumber: 1)), isTrue);
+      expect(lineMapping.containsAyah(AyahId(surahNumber: 112, ayahNumber: 2)), isTrue);
+      expect(lineMapping.containsAyah(AyahId(surahNumber: 112, ayahNumber: 3)), isFalse);
     });
 
-    test('Enforces immutable list of words', () {
+    test('Enforces immutable list of words and immutable set of ayahIds', () {
       final wordsList = [wordA1, wordA2];
       final lineMapping = QuranLineMapping(
         pageNumber: 1,
@@ -247,27 +247,28 @@ void main() {
       );
 
       expect(() => (lineMapping.words as dynamic).add(wordB1), throwsUnsupportedError);
+      expect(() => (lineMapping.ayahIds as dynamic).add(AyahId(surahNumber: 1, ayahNumber: 1)), throwsUnsupportedError);
     });
 
-    test('Throws on empty word list or invalid bounds', () {
+    test('Throws ArgumentError on empty word list or invalid bounds', () {
       expect(
         () => QuranLineMapping(pageNumber: 1, lineNumber: 1, words: []),
-        throwsAssertionError,
+        throwsArgumentError,
       );
       expect(
         () => QuranLineMapping(pageNumber: 0, lineNumber: 1, words: [wordA1]),
-        throwsAssertionError,
+        throwsArgumentError,
       );
       expect(
         () => QuranLineMapping(pageNumber: 1, lineNumber: 0, words: [wordA1]),
-        throwsAssertionError,
+        throwsArgumentError,
       );
     });
   });
 
   group('QuranAyah Unit Tests', () {
-    const ayahId = AyahId(surahNumber: 1, ayahNumber: 1);
-    const seg = AyahSegment(
+    final ayahId = AyahId(surahNumber: 1, ayahNumber: 1);
+    final seg = AyahSegment(
       ayahId: ayahId,
       pageNumber: 1,
       lineNumber: 2,
@@ -294,12 +295,12 @@ void main() {
     });
 
     test('Represents multi-line ayah correctly', () {
-      const seg2 = AyahSegment(
+      final seg2 = AyahSegment(
         ayahId: ayahId,
         pageNumber: 1,
         lineNumber: 3,
-        wordStart: 4,
-        wordEnd: 6,
+        wordStart: 0,
+        wordEnd: 2,
         qcfText: 'ﱆ ﱇ ﱈ',
       );
       final multiLineAyah = QuranAyah(
@@ -307,7 +308,7 @@ void main() {
         pageNumber: 1,
         endPageNumber: 1,
         uthmaniText: 'text',
-        wordsCount: 7,
+        wordsCount: 7, // 4 + 3 = 7
         segments: [seg, seg2],
       );
 
@@ -337,7 +338,7 @@ void main() {
           wordsCount: 4,
           segments: [seg],
         ),
-        throwsAssertionError,
+        throwsArgumentError,
       );
 
       expect(
@@ -349,9 +350,65 @@ void main() {
           wordsCount: 4,
           segments: [seg],
         ),
-        throwsAssertionError,
+        throwsArgumentError,
+      );
+    });
+
+    test('Enforces strict consistency rules', () {
+      // Rule 1: pageNumber must equal segments.first.pageNumber
+      expect(
+        () => QuranAyah(
+          id: ayahId,
+          pageNumber: 2,
+          endPageNumber: 2,
+          uthmaniText: 'text',
+          wordsCount: 4,
+          segments: [seg], // seg is on page 1
+        ),
+        throwsArgumentError,
+      );
+
+      // Rule 2: wordsCount must equal sum of segment words
+      expect(
+        () => QuranAyah(
+          id: ayahId,
+          pageNumber: 1,
+          endPageNumber: 1,
+          uthmaniText: 'text',
+          wordsCount: 5, // actual is 4
+          segments: [seg],
+        ),
+        throwsArgumentError,
+      );
+
+      // Rule 3: segments ordering
+      final segA = AyahSegment(
+        ayahId: ayahId,
+        pageNumber: 1,
+        lineNumber: 5,
+        wordStart: 0,
+        wordEnd: 1,
+        qcfText: 'text',
+      );
+      final segB = AyahSegment(
+        ayahId: ayahId,
+        pageNumber: 1,
+        lineNumber: 3,
+        wordStart: 0,
+        wordEnd: 1,
+        qcfText: 'text',
+      );
+      expect(
+        () => QuranAyah(
+          id: ayahId,
+          pageNumber: 1,
+          endPageNumber: 1,
+          uthmaniText: 'text',
+          wordsCount: 4,
+          segments: [segA, segB], // Line 5 followed by Line 3: unordered!
+        ),
+        throwsArgumentError,
       );
     });
   });
 }
-

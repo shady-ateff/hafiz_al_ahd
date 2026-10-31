@@ -7,14 +7,33 @@ class WordLocation extends Equatable {
   final int ayahNumber;
   final int wordIndex;
 
-  const WordLocation({
+  WordLocation({
     required this.surahNumber,
     required this.ayahNumber,
     required this.wordIndex,
-  })  : assert(surahNumber >= 1 && surahNumber <= 114,
-            'surahNumber must be between 1 and 114'),
-        assert(ayahNumber >= 1, 'ayahNumber must be at least 1'),
-        assert(wordIndex >= 1, 'wordIndex must be at least 1');
+  }) {
+    if (surahNumber < 1 || surahNumber > 114) {
+      throw ArgumentError.value(
+        surahNumber,
+        'surahNumber',
+        'surahNumber must be between 1 and 114 (received: $surahNumber)',
+      );
+    }
+    if (ayahNumber < 1) {
+      throw ArgumentError.value(
+        ayahNumber,
+        'ayahNumber',
+        'ayahNumber must be at least 1 (received: $ayahNumber)',
+      );
+    }
+    if (wordIndex < 1) {
+      throw ArgumentError.value(
+        wordIndex,
+        'wordIndex',
+        'wordIndex must be at least 1 (received: $wordIndex)',
+      );
+    }
+  }
 
   /// Creates a [WordLocation] from an existing [AyahId] and word index.
   factory WordLocation.fromAyahId({
@@ -68,4 +87,3 @@ class WordLocation extends Equatable {
   @override
   List<Object?> get props => [surahNumber, ayahNumber, wordIndex];
 }
-

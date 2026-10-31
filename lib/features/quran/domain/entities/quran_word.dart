@@ -8,12 +8,26 @@ class QuranWord extends Equatable {
   final String uthmaniText;
   final String qcfText;
 
-  const QuranWord({
+  QuranWord({
     required this.location,
     required this.uthmaniText,
     required this.qcfText,
-  })  : assert(uthmaniText.length > 0, 'uthmaniText cannot be empty'),
-        assert(qcfText.length > 0, 'qcfText cannot be empty');
+  }) {
+    if (uthmaniText.trim().isEmpty) {
+      throw ArgumentError.value(
+        uthmaniText,
+        'uthmaniText',
+        'uthmaniText cannot be empty',
+      );
+    }
+    if (qcfText.trim().isEmpty) {
+      throw ArgumentError.value(
+        qcfText,
+        'qcfText',
+        'qcfText cannot be empty',
+      );
+    }
+  }
 
   /// Convenience getter for the parent [AyahId].
   AyahId get ayahId => location.ayahId;
@@ -34,4 +48,3 @@ class QuranWord extends Equatable {
   @override
   List<Object?> get props => [location, uthmaniText, qcfText];
 }
-

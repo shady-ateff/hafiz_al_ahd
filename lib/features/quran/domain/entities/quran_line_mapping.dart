@@ -12,15 +12,32 @@ class QuranLineMapping extends Equatable {
     required this.pageNumber,
     required this.lineNumber,
     required List<QuranWord> words,
-  })  : assert(pageNumber >= 1 && pageNumber <= 604,
-            'pageNumber must be between 1 and 604'),
-        assert(lineNumber >= 1 && lineNumber <= 15,
-            'lineNumber must be between 1 and 15'),
-        assert(words.isNotEmpty, 'Line mapping words cannot be empty'),
-        words = List.unmodifiable(words);
+  })  : words = List<QuranWord>.unmodifiable(words) {
+    if (pageNumber < 1 || pageNumber > 604) {
+      throw ArgumentError.value(
+        pageNumber,
+        'pageNumber',
+        'pageNumber must be between 1 and 604 (received: $pageNumber)',
+      );
+    }
+    if (lineNumber < 1 || lineNumber > 15) {
+      throw ArgumentError.value(
+        lineNumber,
+        'lineNumber',
+        'lineNumber must be between 1 and 15 (received: $lineNumber)',
+      );
+    }
+    if (words.isEmpty) {
+      throw ArgumentError.value(
+        words,
+        'words',
+        'QuranLineMapping words list cannot be empty for page $pageNumber line $lineNumber',
+      );
+    }
+  }
 
-  /// Returns the set of distinct [AyahId]s that have words on this line.
-  Set<AyahId> get ayahIds => words.map((w) => w.ayahId).toSet();
+  /// Returns an unmodifiable set of distinct [AyahId]s that have words on this line.
+  Set<AyahId> get ayahIds => Set<AyahId>.unmodifiable(words.map((w) => w.ayahId));
 
   /// Checks whether a given [AyahId] has any words on this line.
   bool containsAyah(AyahId ayahId) => words.any((w) => w.ayahId == ayahId);
@@ -38,4 +55,3 @@ class QuranLineMapping extends Equatable {
   @override
   List<Object?> get props => [pageNumber, lineNumber, words];
 }
-

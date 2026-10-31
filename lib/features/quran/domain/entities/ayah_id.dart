@@ -5,12 +5,25 @@ class AyahId extends Equatable {
   final int surahNumber;
   final int ayahNumber;
 
-  const AyahId({
+  AyahId({
     required this.surahNumber,
     required this.ayahNumber,
-  })  : assert(surahNumber >= 1 && surahNumber <= 114,
-            'surahNumber must be between 1 and 114'),
-        assert(ayahNumber >= 1, 'ayahNumber must be at least 1');
+  }) {
+    if (surahNumber < 1 || surahNumber > 114) {
+      throw ArgumentError.value(
+        surahNumber,
+        'surahNumber',
+        'surahNumber must be between 1 and 114 (received: $surahNumber)',
+      );
+    }
+    if (ayahNumber < 1) {
+      throw ArgumentError.value(
+        ayahNumber,
+        'ayahNumber',
+        'ayahNumber must be at least 1 (received: $ayahNumber)',
+      );
+    }
+  }
 
   /// Creates an [AyahId] from a standard colon-separated string (e.g., "1:1", "2:255").
   factory AyahId.fromString(String value) {
@@ -43,4 +56,3 @@ class AyahId extends Equatable {
   @override
   List<Object?> get props => [surahNumber, ayahNumber];
 }
-
