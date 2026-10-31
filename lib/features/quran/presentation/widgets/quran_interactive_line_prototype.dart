@@ -112,3 +112,4 @@ class _QuranInteractiveLinePrototypeState
     );
   }
 }
+
