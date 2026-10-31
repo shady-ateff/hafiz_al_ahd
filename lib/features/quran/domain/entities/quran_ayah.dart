@@ -92,6 +92,7 @@ class QuranAyah extends Equatable {
     }
   }
 
+  AyahId get ayahId => id;
   int get surahNumber => id.surahNumber;
   int get ayahNumber => id.ayahNumber;
 

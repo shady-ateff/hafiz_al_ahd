@@ -8,11 +8,14 @@ import 'package:path_provider/path_provider.dart';
 import 'package:archive/archive.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/DI/service_locator.dart';
+import '../../domain/entities/quran_line_mapping.dart';
+import '../../domain/repositories/base_quran_mapping_repository.dart';
 import '../../domain/usecases/get_quran_page_use_case.dart';
 import 'quran_state.dart';
 
 class QuranCubit extends Cubit<QuranState> {
   final GetQuranPageUseCase getQuranPageUseCase;
+  final BaseQuranMappingRepository? mappingRepository;
 
   // Cache loaded pages to avoid reloading from DB
   final Map<int, QuranState> _pagesCache = {};
@@ -28,7 +31,10 @@ class QuranCubit extends Cubit<QuranState> {
   bool get fontsReady => _fontsReady;
   bool get isUnzipping => _isUnzipping;
 
-  QuranCubit({required this.getQuranPageUseCase}) : super(QuranInitial()) {
+  QuranCubit({
+    required this.getQuranPageUseCase,
+    this.mappingRepository,
+  }) : super(QuranInitial()) {
     initFonts();
   }
 
@@ -81,42 +87,51 @@ class QuranCubit extends Cubit<QuranState> {
           emit(QuranDownloadingFonts(progress));
         }
       }).asFuture();
-      
-      raf.closeSync();
-      log("✅ Download complete, extracting...");
-      emit(QuranLoading()); // Switching to extraction mode
 
-      // Extract in background isolate to avoid UI freeze
-      await compute(_extractZip, {'zipPath': zipPath, 'destPath': _fontsDir});
+      await raf.close();
+      log("✅ Download finished. Now extracting fonts in background...");
 
-      await prefs.setBool('quran_fonts_extracted', true);
+      emit(QuranLoading()); // Change state while extracting
+
+      // Extract ZIP in background isolate to prevent UI freezing
+      await compute(_extractZipFile, {
+        'zipPath': zipPath,
+        'destPath': dir.path,
+      });
+
       _fontsReady = true;
       _isUnzipping = false;
-      log("✅ Quran fonts extracted successfully!");
-      
-      // Reload the requested page
+      await prefs.setBool('quran_fonts_extracted', true);
+      log("✅ Extraction complete! Fonts are ready.");
+
+      // Reload the last page after fonts are ready
       loadPage(_lastRequestedPage);
     } catch (e) {
       _isUnzipping = false;
-      log("❌ Error extracting fonts: $e");
-      emit(QuranError("فشل في تهيئة خطوط المصحف. تأكد من اتصالك بالإنترنت."));
+      log("❌ Error initializing Quran fonts: $e");
+      emit(QuranError('حدث خطأ أثناء تحميل خطوط المصحف: $e'));
     }
   }
 
-  static void _extractZip(Map<String, dynamic> args) {
-    final String zipPath = args['zipPath'];
-    final String destPath = args['destPath'];
-    
+  static void _extractZipFile(Map<String, dynamic> args) {
+    final zipPath = args['zipPath'] as String;
+    final destPath = args['destPath'] as String;
+
     final bytes = File(zipPath).readAsBytesSync();
     final archive = ZipDecoder().decodeBytes(bytes);
+
     for (final file in archive) {
+      final filename = file.name;
       if (file.isFile) {
         final data = file.content as List<int>;
-        File('$destPath/${file.name}')
-          ..createSync(recursive: true)
-          ..writeAsBytesSync(data);
+        final outFile = File('$destPath/$filename');
+        outFile.createSync(recursive: true);
+        outFile.writeAsBytesSync(data);
+      } else {
+        Directory('$destPath/$filename').createSync(recursive: true);
       }
     }
+
     // Delete the zip file to save space
     File(zipPath).deleteSync();
   }
@@ -140,8 +155,8 @@ class QuranCubit extends Cubit<QuranState> {
 
     final failureOrPage = await getQuranPageUseCase(pageNumber);
 
-    failureOrPage.fold(
-      (failure) {
+    await failureOrPage.fold(
+      (failure) async {
         emit(QuranError(failure.message));
       },
       (page) async {
@@ -150,8 +165,24 @@ class QuranCubit extends Cubit<QuranState> {
         
         // Also always ensure QCF2001 is loaded, because we use it for the Basmalah!
         await _loadFontForPage(1);
+
+        // Fetch page mappings if mapping repository is provided
+        List<QuranLineMapping>? lineMappings;
+        if (mappingRepository != null) {
+          try {
+            await mappingRepository!.init();
+            final mappingResult = await mappingRepository!.getPageMapping(pageNumber);
+            lineMappings = mappingResult.getOrElse(() => []);
+          } catch (e) {
+            log("⚠️ Failed to load mappings for page $pageNumber: $e");
+          }
+        }
         
-        final state = QuranPageLoaded(page: page, isFontLoaded: isFontLoaded);
+        final state = QuranPageLoaded(
+          page: page,
+          isFontLoaded: isFontLoaded,
+          lineMappings: lineMappings,
+        );
         _pagesCache[pageNumber] = state;
         emit(state);
 

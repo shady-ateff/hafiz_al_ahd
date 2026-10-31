@@ -16,28 +16,181 @@ import '../widgets/surah_juz_bottom_sheet.dart';
 import 'package:hafiz_al_ahd/core/widgets/app_snackbar.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:hafiz_al_ahd/features/quran/presentation/widgets/quran_page_shimmer.dart';
+import '../../domain/entities/quran_word.dart';
+import '../../domain/repositories/base_quran_mapping_repository.dart';
 
 class QuranScreen extends StatefulWidget {
-  const QuranScreen({super.key});
+  final int? initialPage;
+  final ValueChanged<QuranWord>? onWordTapped;
+  final ValueChanged<QuranWord>? onWordLongPressed;
+
+  const QuranScreen({
+    super.key,
+    this.initialPage,
+    this.onWordTapped,
+    this.onWordLongPressed,
+  });
+
+  static void showInstructionsDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) {
+        final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: const BorderSide(color: AppColors.secondaryGold, width: 1.5),
+          ),
+          backgroundColor:
+              isDark ? const Color(0xFF1E1E1E) : const Color(0xFFFFFDF0),
+          title: Row(
+            children: const [
+              Icon(Icons.menu_book_rounded,
+                  color: AppColors.secondaryGold, size: 26),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'تعليمات التفاعل مع المصحف',
+                  style: TextStyle(
+                    fontFamily: 'Cairo',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildInstructionRow(
+                icon: Icons.touch_app_rounded,
+                title: 'اضغط مطولاً على أي كلمة',
+                desc:
+                    'لعرض الآية كاملة والوصول إلى خياراتها (تفسير، نسخ، واستماع).',
+                isDark: isDark,
+              ),
+              const SizedBox(height: 14),
+              _buildInstructionRow(
+                icon: Icons.fullscreen_rounded,
+                title: 'اضغط ضغطة سريعة في أي مكان',
+                desc:
+                    'لإخفاء أو إظهار أشرطة التطبيق والاستمتاع بالقراءة في وضع ملء الشاشة.',
+                isDark: isDark,
+              ),
+              const SizedBox(height: 14),
+              _buildInstructionRow(
+                icon: Icons.swipe_rounded,
+                title: 'اسحب يميناً أو يساراً',
+                desc: 'للتنقل السريع والسلس بين صفحات المصحف الشريف.',
+                isDark: isDark,
+              ),
+            ],
+          ),
+          actions: [
+            Center(
+              child: ElevatedButton(
+                onPressed: () async {
+                  final prefs = sl<SharedPreferences>();
+                  await prefs.setBool('quran_gesture_onboarding_shown', true);
+                  Navigator.pop(dialogContext);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.secondaryGold,
+                  foregroundColor: AppColors.primaryBlack,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 36, vertical: 10),
+                ),
+                child: const Text(
+                  'فهمت، لنبدأ',
+                  style: TextStyle(
+                    fontFamily: 'Cairo',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  static Widget _buildInstructionRow({
+    required IconData icon,
+    required String title,
+    required String desc,
+    required bool isDark,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: AppColors.secondaryGold.withValues(alpha: 0.15),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: AppColors.secondaryGold, size: 20),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontFamily: 'Cairo',
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: isDark ? Colors.white : AppColors.primaryBlack,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                desc,
+                style: TextStyle(
+                  fontFamily: 'Cairo',
+                  fontSize: 12,
+                  height: 1.4,
+                  color: isDark ? Colors.white70 : Colors.black87,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 
   @override
   State<QuranScreen> createState() => _QuranScreenState();
 }
 
 class _QuranScreenState extends State<QuranScreen> {
-  final PageController _pageController = PageController(initialPage: 0);
-  final ValueNotifier<int> _currentPageNotifier = ValueNotifier<int>(1);
+  late final PageController _pageController;
+  late final ValueNotifier<int> _currentPageNotifier;
   bool _isFullScreen = false;
 
   @override
   void initState() {
     super.initState();
+    final initial = widget.initialPage ?? 1;
+    _pageController = PageController(initialPage: initial - 1);
+    _currentPageNotifier = ValueNotifier<int>(initial);
     _loadLastPage();
   }
 
   Future<void> _loadLastPage() async {
     final prefs = sl<SharedPreferences>();
-    final lastPage = prefs.getInt('last_quran_page') ?? 1;
+    final lastPage = widget.initialPage ?? (prefs.getInt('last_quran_page') ?? 1);
     _currentPageNotifier.value = lastPage;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -48,7 +201,16 @@ class _QuranScreenState extends State<QuranScreen> {
       if (lastPage < 604) {
         context.read<QuranCubit>().loadPage(lastPage + 1);
       }
+      _checkFirstTimeOnboarding();
     });
+  }
+
+  Future<void> _checkFirstTimeOnboarding() async {
+    final prefs = sl<SharedPreferences>();
+    final hasShown = prefs.getBool('quran_gesture_onboarding_shown') ?? false;
+    if (!hasShown && mounted) {
+      QuranScreen.showInstructionsDialog(context);
+    }
   }
 
   Future<void> _saveLastPage(int pageNumber) async {
@@ -197,6 +359,30 @@ class _QuranScreenState extends State<QuranScreen> {
                           return QuranPageWidget(
                             page: cachedPage.page,
                             isFontLoaded: cachedPage.isFontLoaded,
+                            lineMappings: cachedPage.lineMappings,
+                            onWordTapped: widget.onWordTapped,
+                            onWordLongPressed: widget.onWordLongPressed ?? (word) async {
+                              final ayahResult = await sl<BaseQuranMappingRepository>().getAyah(word.ayahId);
+                              ayahResult.fold(
+                                (failure) => log("Pressed word: ${word.location.formatted} (${word.uthmaniText})"),
+                                (ayah) {
+                                  log("📖 Ayah [${ayah.ayahId.formatted}]: ${ayah.uthmaniText}");
+                                  ScaffoldMessenger.of(context).removeCurrentSnackBar();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        '${ayah.ayahId.formatted}: ${ayah.uthmaniText}',
+                                        textDirection: TextDirection.rtl,
+                                        style: const TextStyle(fontFamily: 'Cairo', fontSize: 14),
+                                      ),
+                                      duration: const Duration(seconds: 3),
+                                      backgroundColor: AppColors.secondaryGold,
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                },
+                              );
+                            },
                           );
                         }
 
@@ -225,8 +411,6 @@ class _QuranScreenState extends State<QuranScreen> {
                             ),
                           );
                         }
-
-
 
                         if (state is QuranDownloadingFonts || (state is QuranLoading && context.read<QuranCubit>().isUnzipping)) {
                           final bool isDownloading = state is QuranDownloadingFonts;
@@ -390,10 +574,6 @@ class _QuranScreenState extends State<QuranScreen> {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              // side: BorderSide(
-                              //   color: AppColors.darkSilverMarble,
-                              //   width: 1,
-                              // ),
                             ),
                           ),
                           const SizedBox(width: 10),

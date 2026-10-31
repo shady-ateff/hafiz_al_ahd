@@ -27,6 +27,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hafiz_al_ahd/features/quran/data/datasources/quran_local_data_source.dart';
 import 'package:hafiz_al_ahd/features/quran/domain/repositories/base_quran_repository.dart';
 import 'package:hafiz_al_ahd/features/quran/data/repositories/quran_repository_impl.dart';
+import 'package:hafiz_al_ahd/features/quran/data/datasources/quran_mapping_local_data_source.dart';
+import 'package:hafiz_al_ahd/features/quran/domain/repositories/base_quran_mapping_repository.dart';
+import 'package:hafiz_al_ahd/features/quran/data/repositories/quran_mapping_repository_impl.dart';
 import 'package:hafiz_al_ahd/features/quran/domain/usecases/get_quran_page_use_case.dart';
 import 'package:hafiz_al_ahd/features/quran/presentation/cubit/quran_cubit.dart';
 import 'package:hafiz_al_ahd/features/quran/presentation/cubit/quran_settings_cubit.dart';
@@ -125,7 +128,18 @@ Future<void> init() async {
   sl.registerLazySingleton<BaseQuranRepository>(
     () => QuranRepositoryImpl(localDataSource: sl()),
   );
+  sl.registerLazySingleton<BaseQuranMappingLocalDataSource>(
+    () => QuranMappingLocalDataSourceImpl(),
+  );
+  sl.registerLazySingleton<BaseQuranMappingRepository>(
+    () => QuranMappingRepositoryImpl(localDataSource: sl()),
+  );
   sl.registerLazySingleton(() => GetQuranPageUseCase(sl()));
-  sl.registerFactory(() => QuranCubit(getQuranPageUseCase: sl()));
+  sl.registerFactory(
+    () => QuranCubit(
+      getQuranPageUseCase: sl(),
+      mappingRepository: sl(),
+    ),
+  );
   sl.registerFactory(() => QuranSettingsCubit(sharedPreferences: sl()));
 }

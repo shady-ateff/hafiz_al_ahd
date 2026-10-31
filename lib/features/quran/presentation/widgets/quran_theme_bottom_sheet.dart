@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../cubit/quran_settings_cubit.dart';
 import '../cubit/quran_settings_state.dart';
+import '../screens/quran_screen.dart';
 
 class QuranThemeBottomSheet extends StatelessWidget {
   const QuranThemeBottomSheet({super.key});
@@ -61,6 +62,29 @@ class QuranThemeBottomSheet extends StatelessWidget {
                     icon: Icons.brightness_auto_rounded,
                     mode: ThemeMode.system,
                     currentMode: state.quranThemeMode,
+                  ),
+                  const Divider(),
+                  ListTile(
+                    leading: const Icon(
+                      Icons.help_outline_rounded,
+                      color: Color(0xffD4AF37),
+                    ),
+                    title: const Text(
+                      'تعليمات التفاعل مع المصحف',
+                      style: TextStyle(
+                        fontFamily: 'Tajawal',
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    trailing: const Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      size: 16,
+                      color: Colors.grey,
+                    ),
+                    onTap: () {
+                      Navigator.pop(context);
+                      QuranScreen.showInstructionsDialog(context);
+                    },
                   ),
                 ],
               );

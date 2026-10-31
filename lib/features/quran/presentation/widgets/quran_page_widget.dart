@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
 import '../../domain/entities/quran_page.dart';
+import '../../domain/entities/quran_line_mapping.dart';
+import '../../domain/entities/quran_word.dart';
 import '../cubit/quran_cubit.dart';
 import '../../data/datasources/quran_page_metadata.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -8,15 +10,22 @@ import '../../data/datasources/surah_names.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../cubit/quran_settings_cubit.dart';
 import 'package:hafiz_al_ahd/features/quran/presentation/widgets/quran_page_shimmer.dart';
+import 'quran_interactive_line_widget.dart';
 
 class QuranPageWidget extends StatelessWidget {
   final QuranPage page;
   final bool isFontLoaded;
+  final List<QuranLineMapping>? lineMappings;
+  final ValueChanged<QuranWord>? onWordTapped;
+  final ValueChanged<QuranWord>? onWordLongPressed;
 
   const QuranPageWidget({
     super.key,
     required this.page,
     required this.isFontLoaded,
+    this.lineMappings,
+    this.onWordTapped,
+    this.onWordLongPressed,
   });
 
   bool _isDarkMode(BuildContext context, ThemeMode mode) {
@@ -40,6 +49,10 @@ class QuranPageWidget extends StatelessWidget {
         const QuranPageMetadata(surahName: "", juzNumber: 0);
     final surahName = meta.surahName;
     final juzNumber = meta.juzNumber;
+
+    final Map<int, QuranLineMapping>? mappingsByLine = lineMappings != null
+        ? {for (final m in lineMappings!) m.lineNumber: m}
+        : null;
 
     return SafeArea(
       child: Container(
@@ -102,6 +115,7 @@ class QuranPageWidget extends StatelessWidget {
                                   fontFamily,
                                   dynamicHeight,
                                   textColor,
+                                  mappingsByLine,
                                 ),
                               ),
                             ),
@@ -154,6 +168,7 @@ class QuranPageWidget extends StatelessWidget {
     String fontFamily,
     double dynamicHeight,
     Color textColor,
+    Map<int, QuranLineMapping>? mappingsByLine,
   ) {
     final List<Widget> widgets = [];
     int expectedLine = 1;
@@ -186,25 +201,39 @@ class QuranPageWidget extends StatelessWidget {
         expectedLine = line.lineNumber;
       }
 
-      widgets.add(
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          alignment: Alignment.center,
-          child: Text(
-            line.text,
-            textAlign: TextAlign.center,
-            textDirection: TextDirection.rtl,
-            style: TextStyle(
-              fontFamily: fontFamily,
-              fontSize: 40,
-              color: textColor,
-              height: dynamicHeight,
-              wordSpacing: -3.5,
-              letterSpacing: -0.5,
+      final mapping = mappingsByLine?[line.lineNumber];
+      if (mapping != null) {
+        widgets.add(
+          QuranInteractiveLineWidget(
+            line: mapping,
+            fontFamily: fontFamily,
+            dynamicHeight: dynamicHeight,
+            textColor: textColor,
+            onWordTapped: onWordTapped,
+            onWordLongPressed: onWordLongPressed,
+          ),
+        );
+      } else {
+        widgets.add(
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.center,
+            child: Text(
+              line.text,
+              textAlign: TextAlign.center,
+              textDirection: TextDirection.rtl,
+              style: TextStyle(
+                fontFamily: fontFamily,
+                fontSize: 40,
+                color: textColor,
+                height: dynamicHeight,
+                wordSpacing: -3.5,
+                letterSpacing: -0.5,
+              ),
             ),
           ),
-        ),
-      );
+        );
+      }
       expectedLine = line.lineNumber + 1;
     }
 
