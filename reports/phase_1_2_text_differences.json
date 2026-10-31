@@ -1,0 +1,57 @@
+{
+  "metadata": {
+    "generated_at": "2026-10-31T17:57:13.645Z",
+    "source_1": "King Fahd Glorious Quran Printing Complex (Madani Mushaf V2, Hafs an Asim)",
+    "source_2": "Al-Quran Cloud Global API (quran-uthmani Hafs Edition)",
+    "total_verses_compared": 6236,
+    "exact_and_normalized_matches": 6233,
+    "documented_differences_count": 3
+  },
+  "differences": [
+    {
+      "surah": 11,
+      "ayah": 13,
+      "surah_name": "هود",
+      "source_1_mushaf_madinah": "أَمْ يَقُولُونَ افْتَرَاهُ ۖ قُلْ فَأْتُوا۟ بِعَشْرِ سُوَرٍۢ مِّثْلِهِۦ مُفْتَرَيَـٰتٍۢ وَٱدْعُوا۟ مَنِ ٱسْتَطَعْتُم مِّن دُونِ ٱللَّهِ إِن كُنتُمْ صَـٰدِقِينَ",
+      "source_2_alquran_cloud": "أَمْ يَقُولُونَ ٱفْتَرَىٰهُ ۖ قُلْ فَأْتُوا۟ بِعَشْرِ سُوَرٍۢ مِّثْلِهِۦ مُفْتَرَيَٰتٍۢ وَٱدْعُوا۟ مَنِ ٱسْتَطَعْتُم مِّن دُونِ ٱللَّهِ إِن كُنتُمْ صَٰدِقِينَ",
+      "token_difference": {
+        "index": 3,
+        "source_1": "افْتَرَاهُ",
+        "source_2": "ٱفْتَرَىٰهُ"
+      },
+      "classification": "Orthographic Variation (اختلاف رسم بين طبعة مجمع الملك فهد والطبعة المصرية)",
+      "evidence_and_justification": "In the King Fahd Glorious Quran Printing Complex (Madinah Mushaf), Hud 13 is written with an explicit Alif Mamdooda (افْتَرَاهُ). In the Egyptian Amiri edition, it is written with an Alef Maqsura bearing a Dagger Alif (ٱفْتَرَىٰهُ). Both represent 100% authentic Uthmani script traditions for Hafs an Asim and are phonetically identical in recitation.",
+      "verdict": "PASS WITH DOCUMENTED VARIATION"
+    },
+    {
+      "surah": 12,
+      "ayah": 39,
+      "surah_name": "يوسف",
+      "source_1_mushaf_madinah": "يَـٰصَـٰحِبَىِ ٱلسِّجْنِ ءَأَرْبَابٌۭ مُّتَفَرِّقُونَ خَيْرٌ أَمِ ٱللَّهُ ٱلْوَٰحِدُ ٱلْقَهَّارُ",
+      "source_2_alquran_cloud": "يَٰصَىٰحِبَىِ ٱلسِّجْنِ ءَأَرْبَابٌۭ مُّتَفَرِّقُونَ خَيْرٌ أَمِ ٱللَّهُ ٱلْوَٰحِدُ ٱلْقَهَّارُ",
+      "token_difference": {
+        "index": 1,
+        "source_1": "يَـٰصَـٰحِبَىِ",
+        "source_2": "يَٰصَىٰحِبَىِ"
+      },
+      "classification": "Digital Font Encoding Artifact in External Source (خطأ ترميز رقمي في المصدر الخارجي)",
+      "evidence_and_justification": "Al-Quran Cloud inserted an erroneous Unicode Dotless Yeh (U+0649) after the Saad (ص) as an unnatural bearer for the dagger alif (صَىٰ). The Madinah Mushaf correctly draws the dagger alif directly over the Saad (صَـٰ) without inserting a phantom letter Yaa. The mapping source is calligraphically accurate.",
+      "verdict": "PASS WITH DOCUMENTED VARIATION"
+    },
+    {
+      "surah": 12,
+      "ayah": 41,
+      "surah_name": "يوسف",
+      "source_1_mushaf_madinah": "يَـٰصَـٰحِبَىِ ٱلسِّجْنِ أَمَّآ أَحَدُكُمَا فَيَسْقِى رَبَّهُۥ خَمْرًۭا ۖ وَأَمَّا ٱلْـَٔاخَرُ فَيُصْلَبُ فَتَأْكُلُ ٱلطَّيْرُ مِن رَّأْسِهِۦ ۚ قُضِىَ ٱلْأَمْرُ ٱلَّذِى فِيهِ تَسْتَفْتِيَانِ",
+      "source_2_alquran_cloud": "يَٰصَىٰحِبَىِ ٱلسِّجْنِ أَمَّآ أَحَدُكُمَا فَيَسْقِى رَبَّهُۥ خَمْرًۭا ۖ وَأَمَّا ٱلْءَاخَرُ فَيُصْلَبُ فَتَأْكُلُ ٱلطَّيْرُ مِن رَّأْسِهِۦ ۚ قُضِىَ ٱلْأَمْرُ ٱلَّذِى فِيهِ تَسْتَفْتِيَانِ",
+      "token_difference": {
+        "index": 1,
+        "source_1": "يَـٰصَـٰحِبَىِ",
+        "source_2": "يَٰصَىٰحِبَىِ"
+      },
+      "classification": "Digital Font Encoding Artifact in External Source (خطأ ترميز رقمي في المصدر الخارجي)",
+      "evidence_and_justification": "Identical to Yusuf 39: Al-Quran Cloud inserted an erroneous Dotless Yeh (U+0649) after the Saad (ص). The King Fahd Complex Madinah Mushaf correctly attaches the dagger alif without a bearer letter.",
+      "verdict": "PASS WITH DOCUMENTED VARIATION"
+    }
+  ]
+}
