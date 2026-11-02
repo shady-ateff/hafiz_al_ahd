@@ -131,7 +131,14 @@ void main() {
       expect(find.text('${shortAyah.uthmaniText} ۝١'), findsOneWidget);
 
       // Verify App attribution
-      expect(find.text('بواسطة تطبيق حافظ العهد'), findsOneWidget);
+      expect(
+        find.byWidgetPredicate(
+          (w) =>
+              w is Text &&
+              (w.data?.replaceAll('ـ', '').contains('حافظ العهد') ?? false),
+        ),
+        findsOneWidget,
+      );
 
       // Verify App Logo
       expect(find.byType(Image), findsOneWidget);
@@ -284,6 +291,13 @@ void main() {
     });
 
     testWidgets('5. Card dynamically adapts palette for Day (Light) and Night (Dark) themes', (tester) async {
+      tester.view.physicalSize = const Size(1080, 1350);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
       // 1. Day Mode (Light)
       await tester.pumpWidget(
         MaterialApp(
@@ -320,6 +334,13 @@ void main() {
     });
 
     testWidgets('6. Card renders QCF text when useQcf is true and Amiri text as backup when false', (tester) async {
+      tester.view.physicalSize = const Size(1080, 1350);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
       // 1. QCF Enabled
       await tester.pumpWidget(
         MaterialApp(

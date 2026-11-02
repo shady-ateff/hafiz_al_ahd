@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
+
 import '../../data/datasources/surah_names.dart';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -139,7 +139,7 @@ class SurahJuzBottomSheet extends StatelessWidget {
                               leading: CircleAvatar(
                                 backgroundColor: const Color(
                                   0xffD4AF37,
-                                ).withOpacity(0.1),
+                                ).withValues(alpha: 0.1),
                                 radius: 20,
                                 child: Text(
                                   "$surahNumber",
@@ -195,7 +195,7 @@ class SurahJuzBottomSheet extends StatelessWidget {
                               leading: CircleAvatar(
                                 backgroundColor: const Color(
                                   0xffD4AF37,
-                                ).withOpacity(0.1),
+                                ).withValues(alpha: 0.1),
                                 radius: 20,
                                 child: Text(
                                   "$juzNumber",

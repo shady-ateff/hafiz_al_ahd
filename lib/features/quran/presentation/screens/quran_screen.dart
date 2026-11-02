@@ -22,6 +22,11 @@ import '../services/quran_clipboard_service.dart';
 import '../services/quran_share_service.dart';
 import '../utils/quran_image_renderer.dart';
 import '../widgets/quran_ayah_share_modal.dart';
+import '../../domain/entities/quran_bookmark.dart';
+import '../cubit/quran_bookmark_cubit.dart';
+import '../cubit/quran_bookmark_state.dart';
+import '../widgets/quran_bookmarks_bottom_sheet.dart';
+import '../widgets/quran_bookmark_edit_sheet.dart';
 
 class QuranScreen extends StatefulWidget {
   final int? initialPage;
@@ -267,16 +272,56 @@ class _QuranScreenState extends State<QuranScreen> {
     }
   }
 
+  QuranBookmarkCubit? _tryGetBookmarkCubit(BuildContext context) {
+    try {
+      return context.read<QuranBookmarkCubit>();
+    } catch (_) {
+      try {
+        return sl<QuranBookmarkCubit>();
+      } catch (_) {
+        return null;
+      }
+    }
+  }
+
   Future<void> _openAyahBottomSheet(QuranAyah ayah) async {
     _closeActiveSheetRouteOnly();
 
+    final bookmarkCubit = _tryGetBookmarkCubit(context);
+
     final route = ModalBottomSheetRoute<void>(
-      builder: (sheetContext) => QuranAyahActionBottomSheet(
-        ayah: ayah,
-        onCloseTap: () => _closeActiveSheetRouteOnly(),
-        onCopyTap: () => _handleCopyAyah(ayah),
-        onShareTap: () => _handleShareAyah(ayah),
-      ),
+      builder: (sheetContext) {
+        if (bookmarkCubit != null) {
+          return BlocBuilder<QuranBookmarkCubit, QuranBookmarkState>(
+            bloc: bookmarkCubit,
+            builder: (context, bookmarkState) {
+              final isBookmarked = bookmarkCubit.isAyahBookmarked(ayah.id);
+              final bookmark = bookmarkCubit.getBookmark(ayah.id);
+              final bookmarkColor = bookmark?.colorCode != null
+                  ? Color(bookmark!.colorCode!)
+                  : null;
+              return QuranAyahActionBottomSheet(
+                ayah: ayah,
+                isBookmarked: isBookmarked,
+                bookmarkColor: bookmarkColor,
+                onCloseTap: () => _closeActiveSheetRouteOnly(),
+                onCopyTap: () => _handleCopyAyah(ayah),
+                onShareTap: () => _handleShareAyah(ayah),
+                onBookmarkTap: () => _handleToggleBookmark(ayah),
+              );
+            },
+          );
+        } else {
+          return QuranAyahActionBottomSheet(
+            ayah: ayah,
+            isBookmarked: false,
+            onCloseTap: () => _closeActiveSheetRouteOnly(),
+            onCopyTap: () => _handleCopyAyah(ayah),
+            onShareTap: () => _handleShareAyah(ayah),
+            onBookmarkTap: () => _handleToggleBookmark(ayah),
+          );
+        }
+      },
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       useSafeArea: true,
@@ -297,6 +342,124 @@ class _QuranScreenState extends State<QuranScreen> {
         _isAyahSheetOpen = false;
       }
     }
+  }
+
+  Future<void> _handleToggleBookmark(QuranAyah ayah) async {
+    final cubit = _tryGetBookmarkCubit(context);
+    if (cubit == null) return;
+    final existingBookmark = cubit.getBookmark(ayah.id);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetCtx) => QuranBookmarkEditSheet(
+        ayahId: ayah.id,
+        pageNumber: ayah.pageNumber,
+        existingBookmark: existingBookmark,
+        onSave: (name, colorCode) async {
+          await cubit.saveBookmark(
+            ayahId: ayah.id,
+            pageNumber: ayah.pageNumber,
+            name: name,
+            colorCode: colorCode,
+          );
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  Icon(
+                    Icons.bookmark_added_rounded,
+                    color: Color(colorCode),
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'تم حفظ ($name) بنجاح',
+                      style: const TextStyle(
+                        fontFamily: 'Tajawal',
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: AppColors.primaryBlack,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(
+                  color: Color(colorCode).withValues(alpha: 0.6),
+                  width: 1,
+                ),
+              ),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        },
+        onDelete: existingBookmark != null
+            ? () async {
+                await cubit.removeBookmark(ayah.id);
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Row(
+                      children: [
+                        Icon(
+                          Icons.bookmark_remove_rounded,
+                          color: AppColors.secondaryGold,
+                          size: 20,
+                        ),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'تمت إزالة الآية من الفواصل',
+                            style: TextStyle(
+                              fontFamily: 'Tajawal',
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    backgroundColor: AppColors.primaryBlack,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              }
+            : null,
+      ),
+    );
+  }
+
+  Future<void> _navigateToBookmark(QuranBookmark bookmark) async {
+    Navigator.of(context).maybePop();
+
+    int targetPage = bookmark.pageNumber ?? 1;
+    final mappingRepo = sl<BaseQuranMappingRepository>();
+    final res = await mappingRepo.getAyah(bookmark.ayahId);
+    res.fold((_) {}, (ayah) {
+      targetPage = ayah.pageNumber;
+    });
+
+    if (_currentPageNotifier.value != targetPage) {
+      _pageController.jumpToPage(targetPage - 1);
+      _currentPageNotifier.value = targetPage;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _handleAyahSelectionOrReopen(bookmark.ayahId, pageNumber: targetPage);
+      }
+    });
   }
 
   Future<void> _handleCopyAyah(QuranAyah ayah) async {
@@ -920,6 +1083,28 @@ class _QuranScreenState extends State<QuranScreen> {
                           const Spacer(),
 
                           IconButton(
+                            tooltip: 'الفواصل المحفوظة',
+                            onPressed: () {
+                              showModalBottomSheet(
+                                context: context,
+                                isScrollControlled: true,
+                                backgroundColor: Colors.transparent,
+                                builder: (sheetCtx) => QuranBookmarksBottomSheet(
+                                  onBookmarkSelected: (bookmark) => _navigateToBookmark(bookmark),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.bookmarks_rounded),
+                            style: IconButton.styleFrom(
+                              iconSize: 28,
+                              foregroundColor: const Color(0xffD4AF37),
+                              backgroundColor: Colors.transparent,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                          IconButton(
                             onPressed: () {
                               showModalBottomSheet(
                                 context: context,
@@ -997,12 +1182,12 @@ class _QuranScreenState extends State<QuranScreen> {
                         ),
                         decoration: BoxDecoration(
                           color: isDark
-                              ? const Color(0xFF222222).withOpacity(0.9)
-                              : Colors.white.withOpacity(0.9),
+                              ? const Color(0xFF222222).withValues(alpha: 0.9)
+                              : Colors.white.withValues(alpha: 0.9),
                           borderRadius: BorderRadius.circular(30),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
+                              color: Colors.black.withValues(alpha: 0.1),
                               blurRadius: 10,
                               offset: const Offset(0, 5),
                             ),
@@ -1050,7 +1235,7 @@ class _QuranScreenState extends State<QuranScreen> {
                                   activeTrackColor: const Color(0xffD4AF37),
                                   inactiveTrackColor: isDark
                                       ? Colors.grey[800]
-                                      : const Color(0xffD4AF37).withOpacity(0.3),
+                                      : const Color(0xffD4AF37).withValues(alpha: 0.3),
                                   thumbColor: const Color(0xffD4AF37),
                                   trackHeight: 4.0,
                                 ),

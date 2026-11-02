@@ -22,7 +22,7 @@ class QuranThemeBottomSheet extends StatelessWidget {
             height: 5,
             width: 50,
             decoration: BoxDecoration(
-              color: Colors.grey.withOpacity(0.5),
+              color: Colors.grey.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(10),
             ),
           ),

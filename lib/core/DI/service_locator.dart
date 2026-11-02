@@ -32,8 +32,17 @@ import 'package:hafiz_al_ahd/features/quran/data/repositories/quran_mapping_repo
 import 'package:hafiz_al_ahd/features/quran/domain/usecases/get_quran_page_use_case.dart';
 import 'package:hafiz_al_ahd/features/quran/presentation/cubit/quran_cubit.dart';
 import 'package:hafiz_al_ahd/features/quran/presentation/cubit/quran_settings_cubit.dart';
+import 'package:hafiz_al_ahd/features/quran/presentation/cubit/quran_bookmark_cubit.dart';
 import 'package:hafiz_al_ahd/features/quran/presentation/services/quran_clipboard_service.dart';
 import 'package:hafiz_al_ahd/features/quran/presentation/services/quran_share_service.dart';
+import 'package:hafiz_al_ahd/features/quran/data/datasources/quran_bookmark_local_data_source.dart';
+import 'package:hafiz_al_ahd/features/quran/domain/repositories/quran_bookmark_repository.dart';
+import 'package:hafiz_al_ahd/features/quran/data/repositories/quran_bookmark_repository_impl.dart';
+import 'package:hafiz_al_ahd/features/quran/domain/usecases/add_quran_bookmark_use_case.dart';
+import 'package:hafiz_al_ahd/features/quran/domain/usecases/get_quran_bookmarks_use_case.dart';
+import 'package:hafiz_al_ahd/features/quran/domain/usecases/toggle_quran_bookmark_use_case.dart';
+import 'package:hafiz_al_ahd/features/quran/domain/usecases/is_ayah_bookmarked_use_case.dart';
+import 'package:hafiz_al_ahd/features/quran/domain/usecases/remove_quran_bookmark_use_case.dart';
 
 // سميناه sl اختصاراً لـ Service Locator
 final sl = GetIt.instance;
@@ -144,5 +153,26 @@ Future<void> init() async {
   );
   sl.registerFactory(() => QuranSettingsCubit(sharedPreferences: sl()));
   sl.registerLazySingleton<QuranClipboardService>(() => const QuranClipboardService());
-  sl.registerLazySingleton<QuranShareService>(() =>  QuranShareService());
+  sl.registerLazySingleton<QuranShareService>(() => QuranShareService());
+
+  // Quran Bookmarks (Phase 2.6.3.4)
+  sl.registerLazySingleton<BaseQuranBookmarkLocalDataSource>(
+    () => QuranBookmarkLocalDataSourceImpl(sharedPreferences: sl()),
+  );
+  sl.registerLazySingleton<QuranBookmarkRepository>(
+    () => QuranBookmarkRepositoryImpl(localDataSource: sl()),
+  );
+  sl.registerLazySingleton(() => GetQuranBookmarksUseCase(sl()));
+  sl.registerLazySingleton(() => AddQuranBookmarkUseCase(sl()));
+  sl.registerLazySingleton(() => ToggleQuranBookmarkUseCase(sl()));
+  sl.registerLazySingleton(() => IsAyahBookmarkedUseCase(sl()));
+  sl.registerLazySingleton(() => RemoveQuranBookmarkUseCase(sl()));
+  sl.registerFactory(
+    () => QuranBookmarkCubit(
+      getBookmarksUseCase: sl(),
+      toggleBookmarkUseCase: sl(),
+      removeBookmarkUseCase: sl(),
+      addBookmarkUseCase: sl(),
+    ),
+  );
 }

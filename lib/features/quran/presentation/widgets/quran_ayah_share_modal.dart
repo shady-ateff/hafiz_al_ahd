@@ -54,7 +54,8 @@ class _QuranAyahShareModalState extends State<QuranAyahShareModal> {
 
     return Directionality(
       textDirection: TextDirection.rtl,
-      child: Center(
+      child: Align(
+        alignment: Alignment.bottomCenter,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 600),
           child: Container(
@@ -206,8 +207,9 @@ class _QuranAyahShareModalState extends State<QuranAyahShareModal> {
                                     ),
                                     selected: _useQcfFont,
                                     onSelected: (val) {
-                                      if (val)
+                                      if (val) {
                                         setState(() => _useQcfFont = true);
+                                      }
                                     },
                                     selectedColor: AppColors.secondaryGold,
                                     side: BorderSide(
@@ -235,8 +237,9 @@ class _QuranAyahShareModalState extends State<QuranAyahShareModal> {
                                     ),
                                     selected: !_useQcfFont,
                                     onSelected: (val) {
-                                      if (val)
+                                      if (val) {
                                         setState(() => _useQcfFont = false);
+                                      }
                                     },
                                     selectedColor: AppColors.secondaryGold,
                                     side: BorderSide(
@@ -277,7 +280,7 @@ class _QuranAyahShareModalState extends State<QuranAyahShareModal> {
                                     scale: 0.82,
                                     child: Switch.adaptive(
                                       value: isDarkCard,
-                                      activeColor: const Color(0xFFD6D6DC),
+                                      activeThumbColor: const Color(0xFFD6D6DC),
                                       activeTrackColor: Colors.white24,
                                       inactiveThumbColor:
                                           AppColors.secondaryGold,

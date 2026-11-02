@@ -8,6 +8,8 @@ import '../../domain/entities/quran_ayah.dart';
 /// through constructor parameters and callbacks.
 class QuranAyahActionBottomSheet extends StatelessWidget {
   final QuranAyah ayah;
+  final bool isBookmarked;
+  final Color? bookmarkColor;
   final VoidCallback? onTafseerTap;
   final VoidCallback? onCopyTap;
   final VoidCallback? onShareTap;
@@ -17,6 +19,8 @@ class QuranAyahActionBottomSheet extends StatelessWidget {
   const QuranAyahActionBottomSheet({
     super.key,
     required this.ayah,
+    this.isBookmarked = false,
+    this.bookmarkColor,
     this.onTafseerTap,
     this.onCopyTap,
     this.onShareTap,
@@ -183,9 +187,13 @@ class QuranAyahActionBottomSheet extends StatelessWidget {
                           ),
                           _buildActionButton(
                             context: context,
-                            icon: Icons.bookmark_border_rounded,
+                            icon: isBookmarked
+                                ? Icons.bookmark_rounded
+                                : Icons.bookmark_border_rounded,
                             label: 'فاصلة',
                             onTap: onBookmarkTap,
+                            isActive: isBookmarked,
+                            activeColor: bookmarkColor,
                           ),
                         ],
                       ),
@@ -206,9 +214,14 @@ class QuranAyahActionBottomSheet extends StatelessWidget {
     required IconData icon,
     required String label,
     required VoidCallback? onTap,
+    bool isActive = false,
+    Color? activeColor,
   }) {
+    final effectiveColor = activeColor ?? AppColors.secondaryGold;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final itemColor = isDark ? Colors.white : AppColors.darkText;
+    final itemColor = isActive
+        ? effectiveColor
+        : (isDark ? Colors.white : AppColors.darkText);
 
     return InkWell(
       onTap: onTap,
@@ -222,9 +235,11 @@ class QuranAyahActionBottomSheet extends StatelessWidget {
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppColors.secondaryGold.withValues(alpha: 0.12),
+                color: isActive
+                    ? effectiveColor.withValues(alpha: 0.28)
+                    : AppColors.secondaryGold.withValues(alpha: 0.12),
               ),
-              child: Icon(icon, color: AppColors.secondaryGold, size: 22),
+              child: Icon(icon, color: effectiveColor, size: 22),
             ),
             const SizedBox(height: 6),
             Text(
@@ -232,7 +247,7 @@ class QuranAyahActionBottomSheet extends StatelessWidget {
               style: TextStyle(
                 fontFamily: 'Tajawal',
                 fontSize: 12,
-                fontWeight: FontWeight.w600,
+                fontWeight: isActive ? FontWeight.bold : FontWeight.w600,
                 color: itemColor,
               ),
             ),

@@ -147,9 +147,6 @@ class QuranAyahShareCard extends StatelessWidget {
     final footerLogoBg = dark
         ? const Color(0xFF222226)
         : const Color.fromARGB(0, 255, 252, 248);
-    final footerLogoBorder = dark
-        ? const Color(0xFF484852)
-        : AppColors.secondaryGold.withValues(alpha: 0.4);
     final footerTextColor = dark
         ? const Color(0xFFB0B0B8)
         : const Color(0xFF7A6B55);
