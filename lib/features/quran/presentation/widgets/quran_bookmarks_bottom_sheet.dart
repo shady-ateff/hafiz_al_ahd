@@ -31,7 +31,7 @@ class QuranBookmarksBottomSheet extends StatefulWidget {
 
 class _QuranBookmarksBottomSheetState extends State<QuranBookmarksBottomSheet> {
   final Set<AyahId> _locallyDismissedAyahIds = {};
-  QuranBookmark? _lastDismissedBookmark;
+  final List<QuranBookmark> _dismissedBookmarks = [];
   Timer? _undoTimer;
 
   @override
@@ -44,20 +44,25 @@ class _QuranBookmarksBottomSheetState extends State<QuranBookmarksBottomSheet> {
     _undoTimer?.cancel();
     setState(() {
       _locallyDismissedAyahIds.add(bookmark.ayahId);
-      _lastDismissedBookmark = bookmark;
+      _dismissedBookmarks.add(bookmark);
     });
 
-    context.read<QuranBookmarkCubit>().removeBookmark(bookmark.ayahId);
+    final cubit = context.read<QuranBookmarkCubit>();
+    cubit.removeBookmark(bookmark.ayahId);
 
     _undoTimer = Timer(const Duration(seconds: 5), () {
       if (mounted) {
-        setState(() => _lastDismissedBookmark = null);
+        setState(() => _dismissedBookmarks.clear());
       }
     });
 
     final surahName = getSurahName(bookmark.ayahId.surahNumber);
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
+    final count = _dismissedBookmarks.length;
+    final toRestore = List<QuranBookmark>.from(_dismissedBookmarks);
+    final messenger = ScaffoldMessenger.of(context);
+
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
       SnackBar(
         content: Row(
           children: [
@@ -69,7 +74,9 @@ class _QuranBookmarksBottomSheetState extends State<QuranBookmarksBottomSheet> {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                'تم حذف فاصلة سورة $surahName (الآية ${bookmark.ayahId.ayahNumber})',
+                count == 1
+                    ? 'تم حذف فاصلة سورة $surahName (الآية ${bookmark.ayahId.ayahNumber})'
+                    : 'تم حذف $count فواصل',
                 style: const TextStyle(
                   fontFamily: 'Tajawal',
                   color: Colors.white,
@@ -79,10 +86,10 @@ class _QuranBookmarksBottomSheetState extends State<QuranBookmarksBottomSheet> {
           ],
         ),
         action: SnackBarAction(
-          label: 'تراجع',
+          label: count == 1 ? 'تراجع' : 'تراجع عن الكل',
           textColor: AppColors.secondaryGold,
           onPressed: () {
-            _restoreBookmark(bookmark);
+            _restoreBookmarks(toRestore, cubit: cubit, messenger: messenger);
           },
         ),
         backgroundColor: const Color(0xFFC62828),
@@ -95,23 +102,38 @@ class _QuranBookmarksBottomSheetState extends State<QuranBookmarksBottomSheet> {
     );
   }
 
-  Future<void> _restoreBookmark(QuranBookmark bookmark) async {
+  Future<void> _restoreBookmarks(
+    List<QuranBookmark> bookmarks, {
+    QuranBookmarkCubit? cubit,
+    ScaffoldMessengerState? messenger,
+  }) async {
     _undoTimer?.cancel();
+    if (bookmarks.isEmpty) return;
+
+    final toRestore = List<QuranBookmark>.from(bookmarks);
     if (mounted) {
       setState(() {
-        _locallyDismissedAyahIds.remove(bookmark.ayahId);
-        _lastDismissedBookmark = null;
+        for (final b in toRestore) {
+          _locallyDismissedAyahIds.remove(b.ayahId);
+        }
+        _dismissedBookmarks.removeWhere((b) => toRestore.contains(b));
       });
     }
-    await context.read<QuranBookmarkCubit>().saveBookmark(
-          ayahId: bookmark.ayahId,
-          pageNumber: bookmark.pageNumber,
-          name: bookmark.name,
-          colorCode: bookmark.colorCode,
-        );
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
+
+    final targetCubit = cubit ?? context.read<QuranBookmarkCubit>();
+    await targetCubit.restoreBookmarks(toRestore);
+
+    final targetMessenger =
+        messenger ?? (mounted ? ScaffoldMessenger.of(context) : null);
+    if (targetMessenger == null) return;
+
+    targetMessenger.hideCurrentSnackBar();
+    final count = toRestore.length;
+    final message = count == 1
+        ? 'تمت استعادة (${toRestore.first.name ?? 'الفاصلة'}) بنجاح'
+        : 'تمت استعادة $count فواصل بنجاح';
+
+    targetMessenger.showSnackBar(
       SnackBar(
         content: Row(
           children: [
@@ -123,7 +145,7 @@ class _QuranBookmarksBottomSheetState extends State<QuranBookmarksBottomSheet> {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                'تمت استعادة (${bookmark.name ?? 'الفاصلة'}) بنجاح',
+                message,
                 style: const TextStyle(
                   fontFamily: 'Tajawal',
                   color: Colors.white,
@@ -222,7 +244,7 @@ class _QuranBookmarksBottomSheetState extends State<QuranBookmarksBottomSheet> {
                 const Divider(height: 1),
 
                 // 3. In-sheet Undo Banner
-                if (_lastDismissedBookmark != null)
+                if (_dismissedBookmarks.isNotEmpty)
                   Padding(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -249,7 +271,9 @@ class _QuranBookmarksBottomSheetState extends State<QuranBookmarksBottomSheet> {
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'تم حذف "${_lastDismissedBookmark!.name ?? 'الفاصلة'}"',
+                              _dismissedBookmarks.length == 1
+                                  ? 'تم حذف "${_dismissedBookmarks.first.name ?? 'الفاصلة'}"'
+                                  : 'تم حذف ${_dismissedBookmarks.length} فواصل',
                               style: TextStyle(
                                 fontFamily: 'Tajawal',
                                 fontSize: 13,
@@ -272,16 +296,18 @@ class _QuranBookmarksBottomSheetState extends State<QuranBookmarksBottomSheet> {
                               ),
                             ),
                             icon: const Icon(Icons.undo_rounded, size: 15),
-                            label: const Text(
-                              'تراجع',
-                              style: TextStyle(
+                            label: Text(
+                              _dismissedBookmarks.length == 1
+                                  ? 'تراجع'
+                                  : 'تراجع عن الكل',
+                              style: const TextStyle(
                                 fontFamily: 'Tajawal',
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                             onPressed: () {
-                              _restoreBookmark(_lastDismissedBookmark!);
+                              _restoreBookmarks(_dismissedBookmarks);
                             },
                           ),
                           const SizedBox(width: 4),
@@ -293,7 +319,7 @@ class _QuranBookmarksBottomSheetState extends State<QuranBookmarksBottomSheet> {
                             tooltip: 'إغلاق',
                             onPressed: () {
                               _undoTimer?.cancel();
-                              setState(() => _lastDismissedBookmark = null);
+                              setState(() => _dismissedBookmarks.clear());
                             },
                           ),
                         ],
@@ -484,9 +510,9 @@ class _QuranBookmarksBottomSheetState extends State<QuranBookmarksBottomSheet> {
     required Color subtextColor,
   }) {
     final surahName = getSurahName(bookmark.ayahId.surahNumber);
-    final bookmarkColor = Color(
-      bookmark.colorCode ?? AppColors.secondaryGold.value,
-    );
+    final bookmarkColor = bookmark.colorCode != null
+        ? Color(bookmark.colorCode!)
+        : AppColors.secondaryGold;
     final bookmarkName = bookmark.name ?? 'فاصل الحفظ';
 
     return InkWell(

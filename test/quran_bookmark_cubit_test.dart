@@ -4,6 +4,7 @@ import 'package:hafiz_al_ahd/core/errors/failure.dart';
 import 'package:hafiz_al_ahd/features/quran/domain/entities/ayah_id.dart';
 import 'package:hafiz_al_ahd/features/quran/domain/entities/quran_bookmark.dart';
 import 'package:hafiz_al_ahd/features/quran/domain/repositories/quran_bookmark_repository.dart';
+import 'package:hafiz_al_ahd/features/quran/domain/usecases/add_quran_bookmark_use_case.dart';
 import 'package:hafiz_al_ahd/features/quran/domain/usecases/get_quran_bookmarks_use_case.dart';
 import 'package:hafiz_al_ahd/features/quran/domain/usecases/remove_quran_bookmark_use_case.dart';
 import 'package:hafiz_al_ahd/features/quran/domain/usecases/toggle_quran_bookmark_use_case.dart';
@@ -93,6 +94,7 @@ void main() {
       getBookmarksUseCase: GetQuranBookmarksUseCase(mockRepo),
       toggleBookmarkUseCase: ToggleQuranBookmarkUseCase(mockRepo),
       removeBookmarkUseCase: RemoveQuranBookmarkUseCase(mockRepo),
+      addBookmarkUseCase: AddQuranBookmarkUseCase(mockRepo),
     );
   });
 
@@ -190,6 +192,36 @@ void main() {
       expect(loaded.bookmarks.length, equals(2));
       expect(cubit.isAyahBookmarked(ayah1), isTrue);
       expect(cubit.isAyahBookmarked(ayah2), isTrue);
+    });
+
+    test('7. saveBookmark preserves custom createdAt timestamp', () async {
+      final originalTime = DateTime(2025, 5, 20, 14, 30);
+      final saved = await cubit.saveBookmark(
+        ayahId: ayah1,
+        pageNumber: 1,
+        createdAt: originalTime,
+        name: 'فاصل ورد الحفظ',
+        colorCode: 0xFF2E7D32,
+      );
+
+      expect(saved, isNotNull);
+      expect(saved!.createdAt, equals(originalTime));
+      expect(cubit.getBookmark(ayah1)?.createdAt, equals(originalTime));
+    });
+
+    test('8. restoreBookmarks restores multiple bookmarks simultaneously preserving timestamps', () async {
+      final time1 = DateTime(2026, 1, 1, 10, 0);
+      final time2 = DateTime(2026, 1, 2, 11, 0);
+      final b1 = QuranBookmark(ayahId: ayah1, createdAt: time1, pageNumber: 1, name: 'فاصل 1');
+      final b2 = QuranBookmark(ayahId: ayah2, createdAt: time2, pageNumber: 42, name: 'فاصل 2');
+
+      await cubit.restoreBookmarks([b1, b2]);
+
+      expect(cubit.state, isA<QuranBookmarkLoaded>());
+      final loaded = cubit.state as QuranBookmarkLoaded;
+      expect(loaded.bookmarks.length, equals(2));
+      expect(cubit.getBookmark(ayah1)?.createdAt, equals(time1));
+      expect(cubit.getBookmark(ayah2)?.createdAt, equals(time2));
     });
   });
 }

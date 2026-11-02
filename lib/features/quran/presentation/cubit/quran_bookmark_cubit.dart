@@ -81,10 +81,11 @@ class QuranBookmarkCubit extends Cubit<QuranBookmarkState> {
     );
   }
 
-  /// Adds or updates a bookmark with custom [name] and [colorCode].
+  /// Adds or updates a bookmark with custom [name], [colorCode], and optional [createdAt].
   Future<QuranBookmark?> saveBookmark({
     required AyahId ayahId,
     int? pageNumber,
+    DateTime? createdAt,
     String? name,
     int? colorCode,
   }) async {
@@ -92,6 +93,7 @@ class QuranBookmarkCubit extends Cubit<QuranBookmarkState> {
       final result = await addBookmarkUseCase!(
         ayahId: ayahId,
         pageNumber: pageNumber,
+        createdAt: createdAt,
         name: name,
         colorCode: colorCode,
       );
@@ -112,6 +114,26 @@ class QuranBookmarkCubit extends Cubit<QuranBookmarkState> {
       );
     }
     return null;
+  }
+
+  /// Restores multiple bookmarks at once (e.g. during Undo) preserving their original [createdAt].
+  Future<void> restoreBookmarks(List<QuranBookmark> bookmarks) async {
+    if (addBookmarkUseCase != null && bookmarks.isNotEmpty) {
+      for (final bookmark in bookmarks) {
+        await addBookmarkUseCase!(
+          ayahId: bookmark.ayahId,
+          pageNumber: bookmark.pageNumber,
+          createdAt: bookmark.createdAt,
+          name: bookmark.name,
+          colorCode: bookmark.colorCode,
+        );
+      }
+      final refreshed = await getBookmarksUseCase();
+      refreshed.fold(
+        (failure) => emit(QuranBookmarkError(failure.message)),
+        (loaded) => emit(QuranBookmarkLoaded(loaded)),
+      );
+    }
   }
 
   /// Removes a bookmark directly.

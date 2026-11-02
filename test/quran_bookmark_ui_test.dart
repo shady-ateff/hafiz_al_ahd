@@ -279,6 +279,70 @@ void main() {
       // Verify bookmark is restored
       expect(find.text('فاصل ورد الحفظ'), findsOneWidget);
     });
+
+    testWidgets('7. Dismissing multiple bookmarks shows aggregated count and Undo restores all items', (tester) async {
+      final b1 = QuranBookmark(
+        ayahId: testAyah1.id,
+        pageNumber: 1,
+        createdAt: DateTime(2026, 11, 2, 10, 0),
+        name: 'فاصل الأول',
+      );
+      final b2 = QuranBookmark(
+        ayahId: testAyah2.id,
+        pageNumber: 42,
+        createdAt: DateTime(2026, 11, 2, 9, 0),
+        name: 'فاصل الثاني',
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: BlocProvider<QuranBookmarkCubit>(
+              create: (context) => _TestBookmarkCubit(bookmarks: [b1, b2]),
+              child: QuranBookmarksBottomSheet(
+                onBookmarkSelected: (_) {},
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final key1 = ValueKey('bookmark_${testAyah1.id.formatted}');
+      final key2 = ValueKey('bookmark_${testAyah2.id.formatted}');
+
+      expect(find.byKey(key1), findsOneWidget);
+      expect(find.byKey(key2), findsOneWidget);
+
+      // Dismiss first bookmark
+      await tester.drag(find.byKey(key1), const Offset(-500, 0));
+      await tester.pumpAndSettle();
+
+      expect(find.text('تم حذف "فاصل الأول"'), findsOneWidget);
+      expect(find.byKey(key1), findsNothing);
+      expect(find.byKey(key2), findsOneWidget);
+
+      // Dismiss second bookmark
+      await tester.drag(find.byKey(key2), const Offset(-500, 0));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(key1), findsNothing);
+      expect(find.byKey(key2), findsNothing);
+
+      // Aggregated banner shows count
+      expect(find.text('تم حذف 2 فواصل'), findsWidgets);
+      expect(find.text('تراجع عن الكل'), findsWidgets);
+
+      // Tap Undo all
+      await tester.tap(find.text('تراجع عن الكل').first);
+      await tester.pumpAndSettle();
+
+      // Verify both bookmarks are restored
+      expect(find.byKey(key1), findsOneWidget);
+      expect(find.byKey(key2), findsOneWidget);
+      expect(find.text('فاصل الأول'), findsOneWidget);
+      expect(find.text('فاصل الثاني'), findsOneWidget);
+    });
   });
 }
 
@@ -305,19 +369,30 @@ class _TestBookmarkCubit extends QuranBookmarkCubit {
   Future<QuranBookmark?> saveBookmark({
     required AyahId ayahId,
     int? pageNumber,
+    DateTime? createdAt,
     String? name,
     int? colorCode,
   }) async {
     final b = QuranBookmark(
       ayahId: ayahId,
       pageNumber: pageNumber,
-      createdAt: DateTime.now(),
+      createdAt: createdAt ?? DateTime.now(),
       name: name,
       colorCode: colorCode,
     );
     _initialList.add(b);
     emit(QuranBookmarkLoaded(List.from(_initialList)));
     return b;
+  }
+
+  @override
+  Future<void> restoreBookmarks(List<QuranBookmark> bookmarks) async {
+    for (final b in bookmarks) {
+      if (!_initialList.any((item) => item.ayahId == b.ayahId)) {
+        _initialList.add(b);
+      }
+    }
+    emit(QuranBookmarkLoaded(List.from(_initialList)));
   }
 }
 

@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:hafiz_al_ahd/features/quran/domain/entities/ayah_id.dart';
 import '../../../../core/utils/app_colors.dart';
 import '../../data/datasources/surah_names.dart';
 import '../../domain/entities/ayah_id.dart';
-import '../../domain/entities/quran_ayah.dart';
 import '../../domain/entities/quran_bookmark.dart';
 
 /// Preset definition for Quran bookmarks
@@ -416,9 +414,10 @@ class _QuranBookmarkEditSheetState extends State<QuranBookmarkEditSheet> {
                                     final finalName = _nameController.text.trim().isNotEmpty
                                         ? _nameController.text.trim()
                                         : 'فاصل الحفظ';
+                                    final navigator = Navigator.of(context);
                                     await widget.onSave(finalName, _selectedColorCode);
                                     if (mounted) {
-                                      Navigator.of(context).maybePop();
+                                      navigator.maybePop();
                                     }
                                   } finally {
                                     if (mounted) {
