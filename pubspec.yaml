@@ -96,6 +96,7 @@ flutter:
     - assets/
     - assets/sounds/
     - assets/quran/mushaf/
+    - assets/quran/tafseer/
   #   - images/a_dot_ham.jpeg
 
   fonts:

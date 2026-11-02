@@ -43,6 +43,11 @@ import 'package:hafiz_al_ahd/features/quran/domain/usecases/get_quran_bookmarks_
 import 'package:hafiz_al_ahd/features/quran/domain/usecases/toggle_quran_bookmark_use_case.dart';
 import 'package:hafiz_al_ahd/features/quran/domain/usecases/is_ayah_bookmarked_use_case.dart';
 import 'package:hafiz_al_ahd/features/quran/domain/usecases/remove_quran_bookmark_use_case.dart';
+import 'package:hafiz_al_ahd/features/quran/data/datasources/quran_tafseer_local_data_source.dart';
+import 'package:hafiz_al_ahd/features/quran/domain/repositories/quran_tafseer_repository.dart';
+import 'package:hafiz_al_ahd/features/quran/data/repositories/quran_tafseer_repository_impl.dart';
+import 'package:hafiz_al_ahd/features/quran/domain/usecases/get_quran_tafseer_use_case.dart';
+import 'package:hafiz_al_ahd/features/quran/presentation/cubit/quran_tafseer_cubit.dart';
 
 // سميناه sl اختصاراً لـ Service Locator
 final sl = GetIt.instance;
@@ -146,13 +151,12 @@ Future<void> init() async {
   );
   sl.registerLazySingleton(() => GetQuranPageUseCase(sl()));
   sl.registerFactory(
-    () => QuranCubit(
-      getQuranPageUseCase: sl(),
-      mappingRepository: sl(),
-    ),
+    () => QuranCubit(getQuranPageUseCase: sl(), mappingRepository: sl()),
   );
   sl.registerFactory(() => QuranSettingsCubit(sharedPreferences: sl()));
-  sl.registerLazySingleton<QuranClipboardService>(() => const QuranClipboardService());
+  sl.registerLazySingleton<QuranClipboardService>(
+    () => const QuranClipboardService(),
+  );
   sl.registerLazySingleton<QuranShareService>(() => QuranShareService());
 
   // Quran Bookmarks (Phase 2.6.3.4)
@@ -175,4 +179,14 @@ Future<void> init() async {
       addBookmarkUseCase: sl(),
     ),
   );
+
+  // Quran Tafseer (Phase 2.6.3.5)
+  sl.registerLazySingleton<BaseQuranTafseerLocalDataSource>(
+    () => QuranTafseerLocalDataSourceImpl(),
+  );
+  sl.registerLazySingleton<QuranTafseerRepository>(
+    () => QuranTafseerRepositoryImpl(localDataSource: sl()),
+  );
+  sl.registerLazySingleton(() => GetQuranTafseerUseCase(sl()));
+  sl.registerFactory(() => QuranTafseerCubit(getQuranTafseerUseCase: sl()));
 }

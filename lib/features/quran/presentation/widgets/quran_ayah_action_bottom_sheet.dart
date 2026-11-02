@@ -34,13 +34,16 @@ class QuranAyahActionBottomSheet extends StatelessWidget {
         MediaQuery.of(context).orientation == Orientation.landscape;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final initialSize = isLandscape ? 0.60 : 0.38;
-    final minSize = isLandscape ? 0.25 : 0.20;
+    final initialSize = isLandscape ? 0.60 : 0.50;
+    final minSize = isLandscape ? 0.30: 0.30;
     const maxSize = 0.80;
-    final snapSizes = isLandscape ? const [0.60, 0.80] : const [0.38, 0.60, 0.80];
+    final snapSizes = isLandscape
+        ? const [0.60, 0.80]
+        : const [0.38, 0.60, 0.80];
 
-    final sheetBgColor =
-        isDark ? AppColors.primaryBlack : Theme.of(context).scaffoldBackgroundColor;
+    final sheetBgColor = isDark
+        ? AppColors.primaryBlack
+        : Theme.of(context).scaffoldBackgroundColor;
     final cardBgColor = isDark
         ? const Color(0xFF262626)
         : AppColors.secondaryGold.withValues(alpha: 0.05);
@@ -63,8 +66,9 @@ class QuranAyahActionBottomSheet extends StatelessWidget {
               return Container(
                 decoration: BoxDecoration(
                   color: sheetBgColor,
-                  borderRadius:
-                      const BorderRadius.vertical(top: Radius.circular(24)),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(24),
+                  ),
                   border: Border.all(color: borderColor, width: 1.5),
                   boxShadow: [
                     BoxShadow(
@@ -123,7 +127,9 @@ class QuranAyahActionBottomSheet extends StatelessWidget {
                             icon: const Icon(Icons.close_rounded),
                             color: subtextColor,
                             tooltip: 'إغلاق',
-                            onPressed: onCloseTap ?? () => Navigator.of(context).maybePop(),
+                            onPressed:
+                                onCloseTap ??
+                                () => Navigator.of(context).maybePop(),
                           ),
                         ],
                       ),
@@ -132,27 +138,30 @@ class QuranAyahActionBottomSheet extends StatelessWidget {
 
                     // 3. Scrollable Uthmani Text Card
                     Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: cardBgColor,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: borderColor.withValues(alpha: 0.2)),
+                      child: SingleChildScrollView(
+                        controller: scrollController,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 4,
                           ),
-                          child: SingleChildScrollView(
-                            controller: scrollController,
-                            physics: const ClampingScrollPhysics(),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: cardBgColor,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: borderColor.withValues(alpha: 0.2),
+                              ),
+                            ),
                             child: Text(
                               ayah.uthmaniText,
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                fontFamily: 'Tajawal',
-                                fontSize: 18,
+                                fontFamily: 'Amiri',
+                                fontSize: 20,
                                 height: 1.8,
-                                fontWeight: FontWeight.w600,
                                 color: textColor,
                               ),
                             ),
@@ -163,7 +172,10 @@ class QuranAyahActionBottomSheet extends StatelessWidget {
 
                     // 4. Action Buttons (UI Placeholders)
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
@@ -257,4 +269,3 @@ class QuranAyahActionBottomSheet extends StatelessWidget {
     );
   }
 }
-

@@ -27,6 +27,7 @@ import '../cubit/quran_bookmark_cubit.dart';
 import '../cubit/quran_bookmark_state.dart';
 import '../widgets/quran_bookmarks_bottom_sheet.dart';
 import '../widgets/quran_bookmark_edit_sheet.dart';
+import '../widgets/quran_tafseer_bottom_sheet.dart';
 
 class QuranScreen extends StatefulWidget {
   final int? initialPage;
@@ -305,6 +306,7 @@ class _QuranScreenState extends State<QuranScreen> {
                 isBookmarked: isBookmarked,
                 bookmarkColor: bookmarkColor,
                 onCloseTap: () => _closeActiveSheetRouteOnly(),
+                onTafseerTap: () => _handleOpenTafseer(ayah),
                 onCopyTap: () => _handleCopyAyah(ayah),
                 onShareTap: () => _handleShareAyah(ayah),
                 onBookmarkTap: () => _handleToggleBookmark(ayah),
@@ -316,12 +318,44 @@ class _QuranScreenState extends State<QuranScreen> {
             ayah: ayah,
             isBookmarked: false,
             onCloseTap: () => _closeActiveSheetRouteOnly(),
+            onTafseerTap: () => _handleOpenTafseer(ayah),
             onCopyTap: () => _handleCopyAyah(ayah),
             onShareTap: () => _handleShareAyah(ayah),
             onBookmarkTap: () => _handleToggleBookmark(ayah),
           );
         }
       },
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      useSafeArea: true,
+      capturedThemes: InheritedTheme.capture(
+        from: context,
+        to: Navigator.of(context).context,
+      ),
+    );
+
+    _activeAyahSheetRoute = route;
+    _isAyahSheetOpen = true;
+
+    try {
+      await Navigator.of(context).push(route);
+    } finally {
+      if (_activeAyahSheetRoute == route) {
+        _activeAyahSheetRoute = null;
+        _isAyahSheetOpen = false;
+      }
+    }
+  }
+
+  Future<void> _handleOpenTafseer(QuranAyah ayah) async {
+    // Close the action bottom sheet route ONLY without clearing the QuranAyah selection.
+    _closeActiveSheetRouteOnly();
+
+    final route = ModalBottomSheetRoute<void>(
+      builder: (sheetContext) => QuranTafseerBottomSheet(
+        ayah: ayah,
+        onCloseTap: () => _closeActiveSheetRouteOnly(),
+      ),
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       useSafeArea: true,
