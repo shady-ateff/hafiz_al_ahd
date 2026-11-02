@@ -157,7 +157,7 @@ void main() {
   }
 
   group('Phase 2.4 — 1. Full Page Layout & Metric Parity (0.0px Deviation)', () {
-    final representativePages = [1, 2, 48, 604];
+    final representativePages = [1, 2, 48, 201, 604];
 
     for (final pageNum in representativePages) {
       testWidgets('Page $pageNum: Layout dimensions & line counts parity',
@@ -231,8 +231,8 @@ void main() {
     }
   });
 
-  group('Phase 2.4 — 2. Visual Parity & Pixel Diff Evidence (Pages 1, 2, 48, 604)', () {
-    final screenshotPages = [1, 2, 48, 604];
+  group('Phase 2.4 — 2. Visual Parity & Pixel Diff Evidence (Pages 1, 2, 48, 201, 604)', () {
+    final screenshotPages = [1, 2, 48, 201, 604];
 
     for (final pageNum in screenshotPages) {
       testWidgets('Screenshot & Pixel Comparison for Page $pageNum',

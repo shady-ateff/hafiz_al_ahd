@@ -10,7 +10,6 @@ import 'package:hafiz_al_ahd/features/home/domain/usecases/get_cached_location_u
 import 'package:hafiz_al_ahd/features/home/domain/usecases/get_prayer_times_use_case.dart';
 import 'package:hafiz_al_ahd/features/home/domain/usecases/save_location_usecase.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit/prayer_times_cubit.dart';
-import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit/prayer_times_states.dart';
 import 'package:hafiz_al_ahd/features/notifications/data/repos/notification_repository_impl.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/repos/base_notification_repository.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/usecases/cancel_all_notfication_usecase.dart';
@@ -33,6 +32,8 @@ import 'package:hafiz_al_ahd/features/quran/data/repositories/quran_mapping_repo
 import 'package:hafiz_al_ahd/features/quran/domain/usecases/get_quran_page_use_case.dart';
 import 'package:hafiz_al_ahd/features/quran/presentation/cubit/quran_cubit.dart';
 import 'package:hafiz_al_ahd/features/quran/presentation/cubit/quran_settings_cubit.dart';
+import 'package:hafiz_al_ahd/features/quran/presentation/services/quran_clipboard_service.dart';
+import 'package:hafiz_al_ahd/features/quran/presentation/services/quran_share_service.dart';
 
 // سميناه sl اختصاراً لـ Service Locator
 final sl = GetIt.instance;
@@ -142,4 +143,6 @@ Future<void> init() async {
     ),
   );
   sl.registerFactory(() => QuranSettingsCubit(sharedPreferences: sl()));
+  sl.registerLazySingleton<QuranClipboardService>(() => const QuranClipboardService());
+  sl.registerLazySingleton<QuranShareService>(() =>  QuranShareService());
 }

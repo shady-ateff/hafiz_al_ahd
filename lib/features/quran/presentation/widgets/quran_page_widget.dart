@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
+import '../../domain/entities/ayah_id.dart';
 import '../../domain/entities/quran_page.dart';
 import '../../domain/entities/quran_line_mapping.dart';
 import '../../domain/entities/quran_word.dart';
 import '../cubit/quran_cubit.dart';
 import '../../data/datasources/quran_page_metadata.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import '../../data/datasources/surah_names.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../cubit/quran_settings_cubit.dart';
 import 'package:hafiz_al_ahd/features/quran/presentation/widgets/quran_page_shimmer.dart';
@@ -16,6 +15,7 @@ class QuranPageWidget extends StatelessWidget {
   final QuranPage page;
   final bool isFontLoaded;
   final List<QuranLineMapping>? lineMappings;
+  final AyahId? selectedAyahId;
   final ValueChanged<QuranWord>? onWordTapped;
   final ValueChanged<QuranWord>? onWordLongPressed;
 
@@ -24,6 +24,7 @@ class QuranPageWidget extends StatelessWidget {
     required this.page,
     required this.isFontLoaded,
     this.lineMappings,
+    this.selectedAyahId,
     this.onWordTapped,
     this.onWordLongPressed,
   });
@@ -43,6 +44,9 @@ class QuranPageWidget extends StatelessWidget {
     final bgColor = isDark ? const Color(0xFF121212) : const Color(0xffFFFCE6);
     final textColor = isDark ? const Color(0xFFF5F5DC) : Colors.black87;
     final primaryTextColor = isDark ? const Color(0xffD4AF37) : Colors.black87;
+    final highlightColor = isDark
+        ? const Color(0x40D4AF37)
+        : const Color(0x33D4AF37);
 
     final meta =
         quranPageMetadata[page.pageNumber] ??
@@ -115,6 +119,7 @@ class QuranPageWidget extends StatelessWidget {
                                   fontFamily,
                                   dynamicHeight,
                                   textColor,
+                                  highlightColor,
                                   mappingsByLine,
                                 ),
                               ),
@@ -168,6 +173,7 @@ class QuranPageWidget extends StatelessWidget {
     String fontFamily,
     double dynamicHeight,
     Color textColor,
+    Color highlightColor,
     Map<int, QuranLineMapping>? mappingsByLine,
   ) {
     final List<Widget> widgets = [];
@@ -209,6 +215,8 @@ class QuranPageWidget extends StatelessWidget {
             fontFamily: fontFamily,
             dynamicHeight: dynamicHeight,
             textColor: textColor,
+            selectedAyahId: selectedAyahId,
+            highlightColor: highlightColor,
             onWordTapped: onWordTapped,
             onWordLongPressed: onWordLongPressed,
           ),
@@ -317,9 +325,5 @@ class QuranPageWidget extends StatelessWidget {
         style: TextStyle(fontFamily: 'QCF2001', fontSize: 40, color: textColor),
       ),
     );
-  }
-
-  bool _isSurahStart(QuranPage page, int surahNumber) {
-    return surahStartPages[surahNumber - 1] == page.pageNumber;
   }
 }

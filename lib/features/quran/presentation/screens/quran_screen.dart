@@ -1,5 +1,4 @@
-import 'dart:developer';
-
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
@@ -11,24 +10,33 @@ import 'package:hafiz_al_ahd/features/quran/presentation/cubit/quran_settings_st
 import '../widgets/quran_theme_bottom_sheet.dart';
 import '../../../../core/DI/service_locator.dart';
 import '../widgets/quran_page_widget.dart';
-import '../../data/datasources/surah_names.dart';
 import '../widgets/surah_juz_bottom_sheet.dart';
-import 'package:hafiz_al_ahd/core/widgets/app_snackbar.dart';
-import 'package:shimmer/shimmer.dart';
+import '../widgets/quran_ayah_action_bottom_sheet.dart';
 import 'package:hafiz_al_ahd/features/quran/presentation/widgets/quran_page_shimmer.dart';
+import '../../domain/entities/ayah_id.dart';
+import '../../domain/entities/quran_ayah.dart';
 import '../../domain/entities/quran_word.dart';
 import '../../domain/repositories/base_quran_mapping_repository.dart';
+import 'package:share_plus/share_plus.dart';
+import '../services/quran_clipboard_service.dart';
+import '../services/quran_share_service.dart';
+import '../utils/quran_image_renderer.dart';
+import '../widgets/quran_ayah_share_modal.dart';
 
 class QuranScreen extends StatefulWidget {
   final int? initialPage;
   final ValueChanged<QuranWord>? onWordTapped;
   final ValueChanged<QuranWord>? onWordLongPressed;
+  final QuranClipboardService? clipboardService;
+  final QuranShareService? shareService;
 
   const QuranScreen({
     super.key,
     this.initialPage,
     this.onWordTapped,
     this.onWordLongPressed,
+    this.clipboardService,
+    this.shareService,
   });
 
   static void showInstructionsDialog(BuildContext context) {
@@ -95,7 +103,9 @@ class QuranScreen extends StatefulWidget {
                 onPressed: () async {
                   final prefs = sl<SharedPreferences>();
                   await prefs.setBool('quran_gesture_onboarding_shown', true);
-                  Navigator.pop(dialogContext);
+                  if (dialogContext.mounted) {
+                    Navigator.pop(dialogContext);
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.secondaryGold,
@@ -179,6 +189,22 @@ class _QuranScreenState extends State<QuranScreen> {
   late final ValueNotifier<int> _currentPageNotifier;
   bool _isFullScreen = false;
 
+  ModalBottomSheetRoute<void>? _activeAyahSheetRoute;
+  bool _isAyahSheetOpen = false;
+  int _selectionRequestToken = 0;
+
+  QuranClipboardService get _clipboardService =>
+      widget.clipboardService ??
+      (sl.isRegistered<QuranClipboardService>()
+          ? sl<QuranClipboardService>()
+          : const QuranClipboardService());
+
+  QuranShareService get _shareService =>
+      widget.shareService ??
+      (sl.isRegistered<QuranShareService>()
+          ? sl<QuranShareService>()
+          :  QuranShareService());
+
   @override
   void initState() {
     super.initState();
@@ -199,7 +225,7 @@ class _QuranScreenState extends State<QuranScreen> {
       }
       context.read<QuranCubit>().loadPage(lastPage);
       if (lastPage < 604) {
-        context.read<QuranCubit>().loadPage(lastPage + 1);
+        context.read<QuranCubit>().preloadPage(lastPage + 1);
       }
       _checkFirstTimeOnboarding();
     });
@@ -220,9 +246,391 @@ class _QuranScreenState extends State<QuranScreen> {
 
   @override
   void dispose() {
+    _closeActiveSheetRouteOnly();
     _pageController.dispose();
     _currentPageNotifier.dispose();
     super.dispose();
+  }
+
+  void _closeActiveSheetRouteOnly() {
+    if (_activeAyahSheetRoute != null && _activeAyahSheetRoute!.isActive) {
+      final route = _activeAyahSheetRoute!;
+      _activeAyahSheetRoute = null;
+      _isAyahSheetOpen = false;
+      if (route.navigator != null) {
+        if (route.isCurrent) {
+          route.navigator!.pop();
+        } else {
+          route.navigator!.removeRoute(route);
+        }
+      }
+    }
+  }
+
+  Future<void> _openAyahBottomSheet(QuranAyah ayah) async {
+    _closeActiveSheetRouteOnly();
+
+    final route = ModalBottomSheetRoute<void>(
+      builder: (sheetContext) => QuranAyahActionBottomSheet(
+        ayah: ayah,
+        onCloseTap: () => _closeActiveSheetRouteOnly(),
+        onCopyTap: () => _handleCopyAyah(ayah),
+        onShareTap: () => _handleShareAyah(ayah),
+      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      useSafeArea: true,
+      capturedThemes: InheritedTheme.capture(
+        from: context,
+        to: Navigator.of(context).context,
+      ),
+    );
+
+    _activeAyahSheetRoute = route;
+    _isAyahSheetOpen = true;
+
+    try {
+      await Navigator.of(context).push(route);
+    } finally {
+      if (_activeAyahSheetRoute == route) {
+        _activeAyahSheetRoute = null;
+        _isAyahSheetOpen = false;
+      }
+    }
+  }
+
+  Future<void> _handleCopyAyah(QuranAyah ayah) async {
+    final success = await _clipboardService.copyAyah(ayah);
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    if (success) {
+      _closeActiveSheetRouteOnly();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(
+                Icons.check_circle_outline_rounded,
+                color: AppColors.secondaryGold,
+                size: 20,
+              ),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'تم نسخ الآية الكريمة بنجاح',
+                  style: TextStyle(fontFamily: 'Tajawal', color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: AppColors.primaryBlack,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(
+              color: AppColors.secondaryGold.withValues(alpha: 0.6),
+              width: 1,
+            ),
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(
+                Icons.error_outline_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'فشل نسخ الآية، يرجى المحاولة مرة أخرى',
+                  style: TextStyle(fontFamily: 'Tajawal', color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: AppColors.errorColor,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleShareAyah(QuranAyah ayah) async {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      useSafeArea: true,
+      builder: (modalContext) => QuranAyahShareModal(
+        ayah: ayah,
+        onClose: () => Navigator.of(modalContext).pop(),
+        onShareText: () async {
+          Navigator.of(modalContext).pop();
+          await _executeShareText(ayah);
+        },
+        onShareImage: (cardKey) async {
+          final pngBytes = await QuranImageRenderer.captureBoundaryToPng(cardKey);
+          if (modalContext.mounted && Navigator.of(modalContext).canPop()) {
+            Navigator.of(modalContext).pop();
+          }
+          await _executeShareImage(ayah, pngBytes);
+        },
+      ),
+    );
+  }
+
+  Future<void> _executeShareText(QuranAyah ayah) async {
+    final status = await _shareService.shareText(ayah);
+
+    if (!mounted) return;
+
+    if (status == ShareResultStatus.success) {
+      _closeActiveSheetRouteOnly();
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(
+                Icons.check_circle_outline_rounded,
+                color: AppColors.secondaryGold,
+                size: 20,
+              ),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'تمت مشاركة الآية الكريمة بنجاح',
+                  style: TextStyle(fontFamily: 'Tajawal', color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: AppColors.primaryBlack,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(
+              color: AppColors.secondaryGold.withValues(alpha: 0.6),
+              width: 1,
+            ),
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } else if (status == ShareResultStatus.dismissed) {
+      // User dismissed share sheet without sharing: keep BottomSheet open, no false success.
+    } else {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(
+                Icons.error_outline_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'فشلت مشاركة الآية، يرجى المحاولة مرة أخرى',
+                  style: TextStyle(fontFamily: 'Tajawal', color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: AppColors.errorColor,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  Future<void> _executeShareImage(
+    QuranAyah ayah,
+    Uint8List pngBytes,
+  ) async {
+    String? tempPath;
+    try {
+      tempPath = await QuranImageRenderer.saveTempImageFile(
+        ayah: ayah,
+        pngBytes: pngBytes,
+      );
+
+      final status = await _shareService.shareImageFile(tempPath, ayah);
+
+      if (!mounted) return;
+
+      if (status == ShareResultStatus.success) {
+        _closeActiveSheetRouteOnly();
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(
+                  Icons.check_circle_outline_rounded,
+                  color: AppColors.secondaryGold,
+                  size: 20,
+                ),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'تمت مشاركة البطاقة القرآنية بنجاح',
+                    style: TextStyle(fontFamily: 'Tajawal', color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: AppColors.primaryBlack,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(
+                color: AppColors.secondaryGold.withValues(alpha: 0.6),
+                width: 1,
+              ),
+            ),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      } else if (status == ShareResultStatus.dismissed) {
+        // Dismissed without sharing: keep modal open, do not show false success.
+      } else {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(
+                  Icons.error_outline_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'فشلت مشاركة الصورة، يرجى المحاولة مرة أخرى',
+                    style: TextStyle(fontFamily: 'Tajawal', color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: AppColors.errorColor,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(
+                Icons.error_outline_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'حدث خطأ أثناء تصيير صورة الآية',
+                  style: TextStyle(fontFamily: 'Tajawal', color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: AppColors.errorColor,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } finally {
+      if (tempPath != null) {
+        await QuranImageRenderer.cleanupTempFile(tempPath);
+      }
+    }
+  }
+
+  void _handleWordTapped(QuranWord word, int pageNumber) {
+    final currentSelected = context.read<QuranCubit>().selectedAyahId;
+    if (currentSelected == word.ayahId) {
+      _handleAyahSelectionOrReopen(word.ayahId, pageNumber: pageNumber);
+    }
+  }
+
+  void _handleWordLongPressed(QuranWord word, int pageNumber) {
+    _handleAyahSelectionOrReopen(word.ayahId, pageNumber: pageNumber);
+  }
+
+  Future<void> _handleAyahSelectionOrReopen(
+    AyahId ayahId, {
+    required int pageNumber,
+  }) async {
+    final cubit = context.read<QuranCubit>();
+    final currentSelected = cubit.selectedAyahId;
+
+    if (currentSelected == ayahId && _isAyahSheetOpen) {
+      return;
+    }
+
+    final int requestToken = ++_selectionRequestToken;
+
+    cubit.selectAyah(ayahId, pageNumber: pageNumber);
+
+    final mappingRepo = sl<BaseQuranMappingRepository>();
+    final result = await mappingRepo.getAyah(ayahId);
+
+    if (!mounted) return;
+    if (requestToken != _selectionRequestToken) return;
+    if (cubit.selectedAyahId != ayahId) return;
+
+    if (_isAyahSheetOpen && _activeAyahSheetRoute != null) {
+      _closeActiveSheetRouteOnly();
+    }
+
+    result.fold(
+      (failure) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              failure.message,
+              style: const TextStyle(fontFamily: 'Tajawal'),
+            ),
+            backgroundColor: AppColors.errorColor,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      },
+      (ayah) {
+        _openAyahBottomSheet(ayah);
+      },
+    );
   }
 
   void _toggleFullScreen() {
@@ -332,14 +740,17 @@ class _QuranScreenState extends State<QuranScreen> {
                   onPageChanged: (index) {
                     final int pageNumber = index + 1;
                     _currentPageNotifier.value = pageNumber;
+                    _selectionRequestToken++;
+                    _closeActiveSheetRouteOnly();
+                    context.read<QuranCubit>().clearSelection();
                     context.read<QuranCubit>().loadPage(pageNumber);
                     _saveLastPage(pageNumber);
 
                     if (pageNumber < 604) {
-                      context.read<QuranCubit>().loadPage(pageNumber + 1);
+                      context.read<QuranCubit>().preloadPage(pageNumber + 1);
                     }
                     if (pageNumber > 1) {
-                      context.read<QuranCubit>().loadPage(pageNumber - 1);
+                      context.read<QuranCubit>().preloadPage(pageNumber - 1);
                     }
                   },
                   itemBuilder: (context, index) {
@@ -352,37 +763,20 @@ class _QuranScreenState extends State<QuranScreen> {
                         return true;
                       },
                       builder: (context, state) {
-                        final cachedPage = context
-                            .read<QuranCubit>()
-                            .getCachedPage(pageNumber);
-                        if (cachedPage != null) {
+                        final effectiveState = (state is QuranPageLoaded && state.page.pageNumber == pageNumber)
+                            ? state
+                            : context.read<QuranCubit>().getCachedPage(pageNumber);
+
+                        if (effectiveState != null) {
                           return QuranPageWidget(
-                            page: cachedPage.page,
-                            isFontLoaded: cachedPage.isFontLoaded,
-                            lineMappings: cachedPage.lineMappings,
-                            onWordTapped: widget.onWordTapped,
-                            onWordLongPressed: widget.onWordLongPressed ?? (word) async {
-                              final ayahResult = await sl<BaseQuranMappingRepository>().getAyah(word.ayahId);
-                              ayahResult.fold(
-                                (failure) => log("Pressed word: ${word.location.formatted} (${word.uthmaniText})"),
-                                (ayah) {
-                                  log("📖 Ayah [${ayah.ayahId.formatted}]: ${ayah.uthmaniText}");
-                                  ScaffoldMessenger.of(context).removeCurrentSnackBar();
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        '${ayah.ayahId.formatted}: ${ayah.uthmaniText}',
-                                        textDirection: TextDirection.rtl,
-                                        style: const TextStyle(fontFamily: 'Cairo', fontSize: 14),
-                                      ),
-                                      duration: const Duration(seconds: 3),
-                                      backgroundColor: AppColors.secondaryGold,
-                                      behavior: SnackBarBehavior.floating,
-                                    ),
-                                  );
-                                },
-                              );
-                            },
+                            page: effectiveState.page,
+                            isFontLoaded: effectiveState.isFontLoaded,
+                            lineMappings: effectiveState.lineMappings,
+                            selectedAyahId: effectiveState.selectedAyahId,
+                            onWordTapped: widget.onWordTapped ??
+                                (word) => _handleWordTapped(word, pageNumber),
+                            onWordLongPressed: widget.onWordLongPressed ??
+                                (word) => _handleWordLongPressed(word, pageNumber),
                           );
                         }
 

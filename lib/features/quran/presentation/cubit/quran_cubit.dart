@@ -1,6 +1,5 @@
 import 'dart:developer';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -8,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:archive/archive.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/DI/service_locator.dart';
+import '../../domain/entities/ayah_id.dart';
 import '../../domain/entities/quran_line_mapping.dart';
 import '../../domain/repositories/base_quran_mapping_repository.dart';
 import '../../domain/usecases/get_quran_page_use_case.dart';
@@ -31,6 +31,14 @@ class QuranCubit extends Cubit<QuranState> {
   bool get fontsReady => _fontsReady;
   bool get isUnzipping => _isUnzipping;
 
+  AyahId? get selectedAyahId {
+    final s = state;
+    if (s is QuranPageLoaded) {
+      return s.selectedAyahId;
+    }
+    return null;
+  }
+
   QuranCubit({
     required this.getQuranPageUseCase,
     this.mappingRepository,
@@ -53,6 +61,7 @@ class QuranCubit extends Cubit<QuranState> {
         return;
       }
 
+      if (isClosed) return;
       _isUnzipping = true;
       emit(const QuranDownloadingFonts(0.0));
       log("⏳ Starting Quran fonts download...");
@@ -82,7 +91,7 @@ class QuranCubit extends Cubit<QuranState> {
         downloaded += data.length;
         raf.writeFromSync(data);
         
-        if (total > 0) {
+        if (total > 0 && !isClosed) {
           final double progress = downloaded / total;
           emit(QuranDownloadingFonts(progress));
         }
@@ -91,6 +100,7 @@ class QuranCubit extends Cubit<QuranState> {
       await raf.close();
       log("✅ Download finished. Now extracting fonts in background...");
 
+      if (isClosed) return;
       emit(QuranLoading()); // Change state while extracting
 
       // Extract ZIP in background isolate to prevent UI freezing
@@ -104,12 +114,15 @@ class QuranCubit extends Cubit<QuranState> {
       await prefs.setBool('quran_fonts_extracted', true);
       log("✅ Extraction complete! Fonts are ready.");
 
+      if (isClosed) return;
       // Reload the last page after fonts are ready
       loadPage(_lastRequestedPage);
     } catch (e) {
       _isUnzipping = false;
       log("❌ Error initializing Quran fonts: $e");
-      emit(QuranError('حدث خطأ أثناء تحميل خطوط المصحف: $e'));
+      if (!isClosed) {
+        emit(QuranError('حدث خطأ أثناء تحميل خطوط المصحف: $e'));
+      }
     }
   }
 
@@ -140,11 +153,114 @@ class QuranCubit extends Cubit<QuranState> {
     return _pagesCache[pageNumber] as QuranPageLoaded?;
   }
 
+  void selectAyah(AyahId ayahId, {int? pageNumber}) {
+    final targetPageNumber = pageNumber ??
+        (state is QuranPageLoaded
+            ? (state as QuranPageLoaded).page.pageNumber
+            : _lastRequestedPage);
+
+    final cached = _pagesCache[targetPageNumber];
+    final targetState = (cached is QuranPageLoaded)
+        ? cached
+        : (state is QuranPageLoaded &&
+                (state as QuranPageLoaded).page.pageNumber == targetPageNumber)
+            ? state as QuranPageLoaded
+            : null;
+
+    if (targetState == null) return;
+
+    if (targetState.selectedAyahId == ayahId) {
+      return;
+    }
+
+    final updatedState = targetState.copyWith(
+      selectedAyahId: ayahId,
+      clearSelectedAyah: false,
+    );
+
+    _pagesCache[targetPageNumber] = updatedState;
+    emit(updatedState);
+  }
+
+  void toggleAyahSelection(AyahId ayahId, {int? pageNumber}) {
+    final targetPageNumber = pageNumber ??
+        (state is QuranPageLoaded
+            ? (state as QuranPageLoaded).page.pageNumber
+            : _lastRequestedPage);
+
+    final cached = _pagesCache[targetPageNumber];
+    final targetState = (cached is QuranPageLoaded)
+        ? cached
+        : (state is QuranPageLoaded &&
+                (state as QuranPageLoaded).page.pageNumber == targetPageNumber)
+            ? state as QuranPageLoaded
+            : null;
+
+    if (targetState == null) return;
+
+    final isSameAyah = targetState.selectedAyahId == ayahId;
+    final updatedState = targetState.copyWith(
+      selectedAyahId: isSameAyah ? null : ayahId,
+      clearSelectedAyah: isSameAyah,
+    );
+
+    _pagesCache[targetPageNumber] = updatedState;
+    emit(updatedState);
+  }
+
+  void clearSelection() {
+    final currentState = state;
+    if (currentState is! QuranPageLoaded) return;
+    if (currentState.selectedAyahId == null) return;
+
+    final updatedState = currentState.copyWith(clearSelectedAyah: true);
+    _pagesCache[currentState.page.pageNumber] = updatedState;
+    emit(updatedState);
+  }
+
+  Future<void> preloadPage(int pageNumber) async {
+    if (_pagesCache.containsKey(pageNumber)) return;
+    if (_isUnzipping) return;
+
+    final failureOrPage = await getQuranPageUseCase(pageNumber);
+    await failureOrPage.fold(
+      (failure) async {},
+      (page) async {
+        bool isFontLoaded = await _loadFontForPage(pageNumber);
+        await _loadFontForPage(1);
+
+        List<QuranLineMapping>? lineMappings;
+        if (mappingRepository != null) {
+          try {
+            await mappingRepository!.init();
+            final mappingResult = await mappingRepository!.getPageMapping(pageNumber);
+            lineMappings = mappingResult.getOrElse(() => []);
+          } catch (_) {}
+        }
+
+        final state = QuranPageLoaded(
+          page: page,
+          isFontLoaded: isFontLoaded,
+          lineMappings: lineMappings,
+        );
+        _pagesCache[pageNumber] = state;
+        _preloadSurroundingFonts(pageNumber);
+      },
+    );
+  }
+
   Future<void> loadPage(int pageNumber) async {
     _lastRequestedPage = pageNumber;
     
     if (_pagesCache.containsKey(pageNumber)) {
-      emit(_pagesCache[pageNumber]!);
+      final cachedState = _pagesCache[pageNumber]!;
+      if (cachedState is QuranPageLoaded && cachedState.selectedAyahId != null) {
+        final sanitizedState = cachedState.copyWith(clearSelectedAyah: true);
+        _pagesCache[pageNumber] = sanitizedState;
+        emit(sanitizedState);
+        return;
+      }
+      emit(cachedState);
       return;
     }
 
@@ -154,10 +270,13 @@ class QuranCubit extends Cubit<QuranState> {
     }
 
     final failureOrPage = await getQuranPageUseCase(pageNumber);
+    if (isClosed) return;
 
     await failureOrPage.fold(
       (failure) async {
-        emit(QuranError(failure.message));
+        if (!isClosed) {
+          emit(QuranError(failure.message));
+        }
       },
       (page) async {
         // Load the specific QCF font for this page dynamically
@@ -178,6 +297,8 @@ class QuranCubit extends Cubit<QuranState> {
           }
         }
         
+        if (isClosed) return;
+
         final state = QuranPageLoaded(
           page: page,
           isFontLoaded: isFontLoaded,
@@ -298,6 +419,9 @@ class QuranCubit extends Cubit<QuranState> {
     }
     return result;
   }
+
+  /// Returns true if the QCF font for [pageNumber] has been loaded into the engine.
+  bool isFontLoaded(int pageNumber) => _loadedFonts.contains(pageNumber);
 
   // Helper method for the UI to get the font family name
   static String getFontFamilyForPage(int pageNumber) {
