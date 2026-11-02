@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../../../core/utils/app_colors.dart';
 import '../../data/datasources/surah_names.dart';
@@ -30,16 +31,33 @@ class QuranAyahActionBottomSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isLandscape =
-        MediaQuery.of(context).orientation == Orientation.landscape;
+    final mediaQuery = MediaQuery.of(context);
+    final screenHeight = mediaQuery.size.height;
+    final isLandscape = mediaQuery.orientation == Orientation.landscape;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final initialSize = isLandscape ? 0.60 : 0.50;
-    final minSize = isLandscape ? 0.30: 0.30;
-    const maxSize = 0.80;
-    final snapSizes = isLandscape
-        ? const [0.60, 0.80]
-        : const [0.38, 0.60, 0.80];
+    // Dynamically calculate initial height based on Ayah content length
+    final charsPerLine = isLandscape ? 65.0 : 38.0;
+    final wordsPerLine = isLandscape ? 10.0 : 6.0;
+    final linesFromChars = (ayah.uthmaniText.trim().length / charsPerLine)
+        .ceil();
+    final linesFromWords = (ayah.wordsCount / wordsPerLine).ceil();
+    final estimatedLines = math
+        .max(linesFromChars, linesFromWords)
+        .clamp(1, 50);
+
+    // Height of Ayah card: padding (14*2 = 28) + (lines * 36)
+    final textCardHeight = 28.0 + (estimatedLines * 36.0);
+    // Non-text UI overhead: DragHandle (29) + Header (48) + Divider (16) + Actions (94) + Margins (18) = ~205 px
+    final totalContentHeight = 205.0 + textCardHeight;
+
+    final minSize = isLandscape ? 0.35 : 0.36;
+    final maxSize = isLandscape ? 0.90 : 0.85;
+    final calculatedFraction = screenHeight > 0
+        ? totalContentHeight / screenHeight
+        : 0.45;
+    final initialSize = calculatedFraction.clamp(minSize, maxSize);
+    final snapSizes = [minSize, initialSize, maxSize].toSet().toList()..sort();
 
     final sheetBgColor = isDark
         ? AppColors.primaryBlack
@@ -78,140 +96,148 @@ class QuranAyahActionBottomSheet extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: Column(
-                  children: [
-                    // 1. Drag Handle
-                    const SizedBox(height: 12),
-                    Container(
-                      width: 44,
-                      height: 5,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.withValues(alpha: 0.4),
-                        borderRadius: BorderRadius.circular(2.5),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(24),
+                  ),
+                  child: Material(
+                    color: sheetBgColor,
+                    child: Column(
+                      children: [
+                        // 1. Drag Handle
+                        const SizedBox(height: 12),
+                        Container(
+                          width: 44,
+                          height: 5,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.withValues(alpha: 0.4),
+                            borderRadius: BorderRadius.circular(2.5),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
 
-                    // 2. Header: Surah Name • Ayah Number • Page Number
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '${getSurahName(ayah.id.surahNumber)} • الآية ${ayah.id.ayahNumber} • صفحة ${ayah.pageNumber}',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    fontFamily: 'Tajawal',
-                                    color: AppColors.secondaryGold,
-                                  ),
+                        // 2. Header: Surah Name • Ayah Number • Page Number
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      '${getSurahName(ayah.id.surahNumber)} • الآية ${ayah.id.ayahNumber} • صفحة ${ayah.pageNumber}',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        fontFamily: 'Tajawal',
+                                        color: AppColors.secondaryGold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '${ayah.wordsCount} كلمات',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontFamily: 'Tajawal',
+                                        color: subtextColor,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  '${ayah.wordsCount} كلمات',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontFamily: 'Tajawal',
-                                    color: subtextColor,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.close_rounded),
-                            color: subtextColor,
-                            tooltip: 'إغلاق',
-                            onPressed:
-                                onCloseTap ??
-                                () => Navigator.of(context).maybePop(),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Divider(height: 16),
-
-                    // 3. Scrollable Uthmani Text Card
-                    Expanded(
-                      child: SingleChildScrollView(
-                        controller: scrollController,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 4,
-                          ),
-                          child: Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: cardBgColor,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: borderColor.withValues(alpha: 0.2),
                               ),
-                            ),
-                            child: Text(
-                              ayah.uthmaniText,
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontFamily: 'Amiri',
-                                fontSize: 20,
-                                height: 1.8,
-                                color: textColor,
+                              IconButton(
+                                icon: const Icon(Icons.close_rounded),
+                                color: subtextColor,
+                                tooltip: 'إغلاق',
+                                onPressed:
+                                    onCloseTap ??
+                                    () => Navigator.of(context).maybePop(),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Divider(height: 16),
+
+                        // 3. Scrollable Uthmani Text Card
+                        Expanded(
+                          child: SingleChildScrollView(
+                            controller: scrollController,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 4,
+                              ),
+                              child: Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(14),
+                                decoration: BoxDecoration(
+                                  color: cardBgColor,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: borderColor.withValues(alpha: 0.2),
+                                  ),
+                                ),
+                                child: Text(
+                                  ayah.uthmaniText,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontFamily: 'Amiri',
+                                    fontSize: 20,
+                                    height: 1.8,
+                                    color: textColor,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    ),
 
-                    // 4. Action Buttons (UI Placeholders)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          _buildActionButton(
-                            context: context,
-                            icon: Icons.auto_stories_outlined,
-                            label: 'التفسير',
-                            onTap: onTafseerTap,
+                        // 4. Action Buttons (UI Placeholders)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
                           ),
-                          _buildActionButton(
-                            context: context,
-                            icon: Icons.copy_rounded,
-                            label: 'نسخ',
-                            onTap: onCopyTap,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              _buildActionButton(
+                                context: context,
+                                icon: Icons.auto_stories_outlined,
+                                label: 'التفسير',
+                                onTap: onTafseerTap,
+                              ),
+                              _buildActionButton(
+                                context: context,
+                                icon: Icons.copy_rounded,
+                                label: 'نسخ',
+                                onTap: onCopyTap,
+                              ),
+                              _buildActionButton(
+                                context: context,
+                                icon: Icons.share_rounded,
+                                label: 'مشاركة',
+                                onTap: onShareTap,
+                              ),
+                              _buildActionButton(
+                                context: context,
+                                icon: isBookmarked
+                                    ? Icons.bookmark_rounded
+                                    : Icons.bookmark_border_rounded,
+                                label: 'فاصلة',
+                                onTap: onBookmarkTap,
+                                isActive: isBookmarked,
+                                activeColor: bookmarkColor,
+                              ),
+                            ],
                           ),
-                          _buildActionButton(
-                            context: context,
-                            icon: Icons.share_rounded,
-                            label: 'مشاركة',
-                            onTap: onShareTap,
-                          ),
-                          _buildActionButton(
-                            context: context,
-                            icon: isBookmarked
-                                ? Icons.bookmark_rounded
-                                : Icons.bookmark_border_rounded,
-                            label: 'فاصلة',
-                            onTap: onBookmarkTap,
-                            isActive: isBookmarked,
-                            activeColor: bookmarkColor,
-                          ),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
                     ),
-                    const SizedBox(height: 8),
-                  ],
+                  ),
                 ),
               );
             },

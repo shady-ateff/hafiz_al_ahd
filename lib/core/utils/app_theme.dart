@@ -6,6 +6,7 @@ class AppTheme {
   // ─────────────── DARK THEME ───────────────
   static ThemeData get darkTheme {
     return ThemeData(
+      dividerTheme: DividerThemeData(color: AppColors.deepBackground),
       brightness: Brightness.dark,
       iconButtonTheme: IconButtonThemeData(
         style: ButtonStyle(

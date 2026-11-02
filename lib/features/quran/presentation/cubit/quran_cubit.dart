@@ -76,7 +76,12 @@ class QuranCubit extends Cubit<QuranState> {
       // Download from internet
       final url = 'https://github.com/shady-ateff/hafiz_al_ahd/releases/download/v1.0.0/quran_fonts.zip';
       final httpClient = HttpClient();
+      httpClient.connectionTimeout = const Duration(seconds: 30);
+      httpClient.badCertificateCallback = (X509Certificate cert, String host, int port) {
+        return host.contains('github.com') || host.contains('githubusercontent.com');
+      };
       final request = await httpClient.getUrl(Uri.parse(url));
+      request.followRedirects = true;
       final response = await request.close();
       
       if (response.statusCode != 200) {
@@ -121,9 +126,29 @@ class QuranCubit extends Cubit<QuranState> {
       _isUnzipping = false;
       log("❌ Error initializing Quran fonts: $e");
       if (!isClosed) {
-        emit(QuranError('حدث خطأ أثناء تحميل خطوط المصحف: $e'));
+        emit(QuranError('حدث خطأ أثناء تحميل خطوط المصحف: يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.'));
       }
     }
+  }
+
+  /// Retries the font download process by cleaning up cache, state, and retrying initFonts.
+  Future<void> retryFontsDownload() async {
+    _fontsReady = false;
+    _isUnzipping = false;
+    _pagesCache.clear();
+    _loadedFonts.clear();
+    try {
+      final prefs = sl<SharedPreferences>();
+      await prefs.remove('quran_fonts_extracted');
+
+      final docDir = await getApplicationDocumentsDirectory();
+      final zipFile = File('${docDir.path}/quran_fonts/fonts.zip');
+      if (await zipFile.exists()) {
+        await zipFile.delete();
+      }
+    } catch (_) {}
+
+    await initFonts();
   }
 
   static void _extractZipFile(Map<String, dynamic> args) {

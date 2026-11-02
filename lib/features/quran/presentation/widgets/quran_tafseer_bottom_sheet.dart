@@ -106,7 +106,12 @@ class _TafseerBottomSheetContent extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: Column(
+                child: ClipRRect(
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(24)),
+                  child: Material(
+                    color: sheetBgColor,
+                    child: Column(
                   children: [
                     // 1. Drag Handle
                     const SizedBox(height: 12),
@@ -242,8 +247,10 @@ class _TafseerBottomSheetContent extends StatelessWidget {
                     ),
                   ],
                 ),
-              );
-            },
+              ),
+            ),
+          );
+        },
           ),
         ),
       ),

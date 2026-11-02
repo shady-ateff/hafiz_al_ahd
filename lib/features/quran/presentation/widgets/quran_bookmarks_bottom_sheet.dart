@@ -94,9 +94,7 @@ class _QuranBookmarksBottomSheetState extends State<QuranBookmarksBottomSheet> {
         ),
         backgroundColor: const Color(0xFFC62828),
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         duration: const Duration(seconds: 5),
       ),
     );
@@ -171,275 +169,320 @@ class _QuranBookmarksBottomSheetState extends State<QuranBookmarksBottomSheet> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? const Color(0xFF1A1A1E) : Colors.white;
-    final cardBg = isDark ? const Color(0xFF24242A) : const Color(0xFFFAF7F0);
-    final borderColor = isDark
-        ? const Color(0xFF383842)
-        : AppColors.secondaryGold.withValues(alpha: 0.25);
+    final sheetBgColor = isDark
+        ? AppColors.primaryBlack
+        : Theme.of(context).scaffoldBackgroundColor;
+    final cardBg = isDark
+        ? const Color(0xFF262626)
+        : AppColors.secondaryGold.withValues(alpha: 0.05);
+    final borderColor = AppColors.secondaryGold.withValues(alpha: 0.3);
     final primaryTextColor = isDark ? Colors.white : AppColors.darkText;
     final subtextColor = isDark ? Colors.white70 : Colors.black54;
 
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Align(
-        alignment: Alignment.bottomCenter,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: 600,
-            maxHeight: MediaQuery.of(context).size.height * 0.90,
-          ),
-          child: Material(
-            color: bgColor,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            clipBehavior: Clip.antiAlias,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // 1. Drag Handle
-                Container(
-                  margin: const EdgeInsets.only(top: 12, bottom: 8),
-                  height: 5,
-                  width: 44,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withValues(alpha: 0.35),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
+    return DraggableScrollableSheet(
+      builder: (_, scrollController) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: 600,
+              maxHeight: MediaQuery.of(context).size.height * 0.90,
+            ),
+            child: Container(
+              decoration: BoxDecoration(
+                color: sheetBgColor,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(24),
                 ),
-
-                // 2. Header
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                border: Border.all(color: borderColor, width: 1.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.2),
+                    blurRadius: 10,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(24),
+                ),
+                child: Material(
+                  color: sheetBgColor,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.bookmarks_rounded,
-                            color: AppColors.secondaryGold,
-                            size: 24,
+                      // 1. Drag Handle
+                      Container(
+                        margin: const EdgeInsets.only(top: 12, bottom: 8),
+                        height: 5,
+                        width: 44,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.withValues(alpha: 0.4),
+                          borderRadius: BorderRadius.circular(2.5),
+                        ),
+                      ),
+
+                      // 2. Header
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 8,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.bookmarks_rounded,
+                                  color: AppColors.secondaryGold,
+                                  size: 24,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'الفواصل المحفوظة',
+                                  style: TextStyle(
+                                    fontFamily: 'Tajawal',
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: primaryTextColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.close_rounded),
+                              color: subtextColor,
+                              tooltip: 'إغلاق',
+                              onPressed: () => Navigator.of(context).pop(),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Divider(height: 1),
+
+                      // 3. In-sheet Undo Banner
+                      if (_dismissedBookmarks.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 6,
                           ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'الفواصل المحفوظة',
-                            style: TextStyle(
-                              fontFamily: 'Tajawal',
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: primaryTextColor,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? const Color(0xFF2C1E1E)
+                                  : const Color(0xFFFFEBEE),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: Colors.redAccent.withValues(alpha: 0.4),
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.info_outline_rounded,
+                                  color: Colors.redAccent,
+                                  size: 18,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    _dismissedBookmarks.length == 1
+                                        ? 'تم حذف "${_dismissedBookmarks.first.name ?? 'الفاصلة'}"'
+                                        : 'تم حذف ${_dismissedBookmarks.length} فواصل',
+                                    style: TextStyle(
+                                      fontFamily: 'Tajawal',
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                      color: isDark
+                                          ? Colors.white
+                                          : AppColors.darkText,
+                                    ),
+                                  ),
+                                ),
+                                TextButton.icon(
+                                  style: TextButton.styleFrom(
+                                    backgroundColor: AppColors.secondaryGold,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 4,
+                                    ),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                  icon: const Icon(
+                                    Icons.undo_rounded,
+                                    size: 15,
+                                  ),
+                                  label: Text(
+                                    _dismissedBookmarks.length == 1
+                                        ? 'تراجع'
+                                        : 'تراجع عن الكل',
+                                    style: const TextStyle(
+                                      fontFamily: 'Tajawal',
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  onPressed: () {
+                                    _restoreBookmarks(_dismissedBookmarks);
+                                  },
+                                ),
+                                const SizedBox(width: 4),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.close_rounded,
+                                    size: 16,
+                                  ),
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                  color: subtextColor,
+                                  tooltip: 'إغلاق',
+                                  onPressed: () {
+                                    _undoTimer?.cancel();
+                                    setState(() => _dismissedBookmarks.clear());
+                                  },
+                                ),
+                              ],
                             ),
                           ),
-                        ],
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close_rounded),
-                        color: subtextColor,
-                        tooltip: 'إغلاق',
-                        onPressed: () => Navigator.of(context).pop(),
+                        ),
+
+                      // 4. Bookmarks List (Flexible with shrinkWrap to fit content height)
+                      Flexible(
+                        child: BlocBuilder<QuranBookmarkCubit, QuranBookmarkState>(
+                          builder: (context, state) {
+                            if (state is QuranBookmarkLoading) {
+                              return const Padding(
+                                padding: EdgeInsets.all(40),
+                                child: Center(
+                                  child: CircularProgressIndicator(
+                                    color: AppColors.secondaryGold,
+                                  ),
+                                ),
+                              );
+                            }
+
+                            if (state is QuranBookmarkError) {
+                              return Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(24.0),
+                                  child: Text(
+                                    state.message,
+                                    style: const TextStyle(
+                                      fontFamily: 'Tajawal',
+                                      color: AppColors.errorColor,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }
+
+                            final allBookmarks = state is QuranBookmarkLoaded
+                                ? state.bookmarks
+                                : <QuranBookmark>[];
+
+                            final bookmarks = allBookmarks
+                                .where(
+                                  (b) => !_locallyDismissedAyahIds.contains(
+                                    b.ayahId,
+                                  ),
+                                )
+                                .toList();
+
+                            if (bookmarks.isEmpty) {
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 32.0,
+                                  vertical: 36.0,
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 72,
+                                      height: 72,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: AppColors.secondaryGold
+                                            .withValues(alpha: 0.1),
+                                      ),
+                                      child: const Icon(
+                                        Icons.bookmark_outline_rounded,
+                                        color: AppColors.secondaryGold,
+                                        size: 38,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'لا توجد فواصل محفوظة بعد',
+                                      style: TextStyle(
+                                        fontFamily: 'Tajawal',
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: primaryTextColor,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'يمكنك حفظ فاصلة لأي آية من خلال الضغط المطول عليها في المصحف ثم اختيار "فاصلة".',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontFamily: 'Tajawal',
+                                        fontSize: 14,
+                                        height: 1.5,
+                                        color: subtextColor,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+
+                            return ListView.separated(
+                              controller: scrollController,
+
+                              shrinkWrap: true,
+                              physics: const ClampingScrollPhysics(),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              itemCount: bookmarks.length,
+                              separatorBuilder: (context, index) =>
+                                  const SizedBox(height: 10),
+                              itemBuilder: (context, index) {
+                                final bookmark = bookmarks[index];
+                                return _buildDismissibleBookmarkTile(
+                                  context: context,
+                                  bookmark: bookmark,
+                                  cardBg: cardBg,
+                                  borderColor: borderColor,
+                                  primaryTextColor: primaryTextColor,
+                                  subtextColor: subtextColor,
+                                );
+                              },
+                            );
+                          },
+                        ),
                       ),
                     ],
                   ),
                 ),
-                const Divider(height: 1),
-
-                // 3. In-sheet Undo Banner
-                if (_dismissedBookmarks.isNotEmpty)
-                  Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? const Color(0xFF2C1E1E)
-                            : const Color(0xFFFFEBEE),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Colors.redAccent.withValues(alpha: 0.4),
-                          width: 1,
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.info_outline_rounded,
-                            color: Colors.redAccent,
-                            size: 18,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              _dismissedBookmarks.length == 1
-                                  ? 'تم حذف "${_dismissedBookmarks.first.name ?? 'الفاصلة'}"'
-                                  : 'تم حذف ${_dismissedBookmarks.length} فواصل',
-                              style: TextStyle(
-                                fontFamily: 'Tajawal',
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color:
-                                    isDark ? Colors.white : AppColors.darkText,
-                              ),
-                            ),
-                          ),
-                          TextButton.icon(
-                            style: TextButton.styleFrom(
-                              backgroundColor: AppColors.secondaryGold,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 4),
-                              minimumSize: Size.zero,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            icon: const Icon(Icons.undo_rounded, size: 15),
-                            label: Text(
-                              _dismissedBookmarks.length == 1
-                                  ? 'تراجع'
-                                  : 'تراجع عن الكل',
-                              style: const TextStyle(
-                                fontFamily: 'Tajawal',
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            onPressed: () {
-                              _restoreBookmarks(_dismissedBookmarks);
-                            },
-                          ),
-                          const SizedBox(width: 4),
-                          IconButton(
-                            icon: const Icon(Icons.close_rounded, size: 16),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                            color: subtextColor,
-                            tooltip: 'إغلاق',
-                            onPressed: () {
-                              _undoTimer?.cancel();
-                              setState(() => _dismissedBookmarks.clear());
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                // 4. Bookmarks List (Flexible with shrinkWrap to fit content height)
-                Flexible(
-                  child: BlocBuilder<QuranBookmarkCubit, QuranBookmarkState>(
-                    builder: (context, state) {
-                      if (state is QuranBookmarkLoading) {
-                        return const Padding(
-                          padding: EdgeInsets.all(40),
-                          child: Center(
-                            child: CircularProgressIndicator(
-                              color: AppColors.secondaryGold,
-                            ),
-                          ),
-                        );
-                      }
-
-                      if (state is QuranBookmarkError) {
-                        return Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(24.0),
-                            child: Text(
-                              state.message,
-                              style: const TextStyle(
-                                fontFamily: 'Tajawal',
-                                color: AppColors.errorColor,
-                              ),
-                            ),
-                          ),
-                        );
-                      }
-
-                      final allBookmarks = state is QuranBookmarkLoaded
-                          ? state.bookmarks
-                          : <QuranBookmark>[];
-
-                      final bookmarks = allBookmarks
-                          .where((b) => !_locallyDismissedAyahIds.contains(b.ayahId))
-                          .toList();
-
-                      if (bookmarks.isEmpty) {
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 32.0,
-                            vertical: 36.0,
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 72,
-                                height: 72,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: AppColors.secondaryGold
-                                      .withValues(alpha: 0.1),
-                                ),
-                                child: const Icon(
-                                  Icons.bookmark_outline_rounded,
-                                  color: AppColors.secondaryGold,
-                                  size: 38,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'لا توجد فواصل محفوظة بعد',
-                                style: TextStyle(
-                                  fontFamily: 'Tajawal',
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: primaryTextColor,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'يمكنك حفظ فاصلة لأي آية من خلال الضغط المطول عليها في المصحف ثم اختيار "فاصلة".',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontFamily: 'Tajawal',
-                                  fontSize: 14,
-                                  height: 1.5,
-                                  color: subtextColor,
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }
-
-                      return ListView.separated(
-                        shrinkWrap: true,
-                        physics: const ClampingScrollPhysics(),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                        itemCount: bookmarks.length,
-                        separatorBuilder: (context, index) =>
-                            const SizedBox(height: 10),
-                        itemBuilder: (context, index) {
-                          final bookmark = bookmarks[index];
-                          return _buildDismissibleBookmarkTile(
-                            context: context,
-                            bookmark: bookmark,
-                            cardBg: cardBg,
-                            borderColor: borderColor,
-                            primaryTextColor: primaryTextColor,
-                            subtextColor: subtextColor,
-                          );
-                        },
-                      );
-                    },
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),
@@ -663,10 +706,7 @@ class _QuranBookmarksBottomSheetState extends State<QuranBookmarksBottomSheet> {
     );
   }
 
-  void _openEditSheet(
-    BuildContext context,
-    QuranBookmark bookmark,
-  ) {
+  void _openEditSheet(BuildContext context, QuranBookmark bookmark) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -677,11 +717,11 @@ class _QuranBookmarksBottomSheetState extends State<QuranBookmarksBottomSheet> {
         existingBookmark: bookmark,
         onSave: (name, colorCode) async {
           await context.read<QuranBookmarkCubit>().saveBookmark(
-                ayahId: bookmark.ayahId,
-                pageNumber: bookmark.pageNumber,
-                name: name,
-                colorCode: colorCode,
-              );
+            ayahId: bookmark.ayahId,
+            pageNumber: bookmark.pageNumber,
+            name: name,
+            colorCode: colorCode,
+          );
         },
         onDelete: () {
           _onBookmarkDismissed(bookmark);

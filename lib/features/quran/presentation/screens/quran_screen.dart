@@ -924,6 +924,7 @@ class _QuranScreenState extends State<QuranScreen> {
             : AppColors.darkSilverMarble;
 
         return Scaffold(
+          resizeToAvoidBottomInset: false,
           backgroundColor: bgColor,
           body: Stack(
             children: [
@@ -960,50 +961,10 @@ class _QuranScreenState extends State<QuranScreen> {
                         return true;
                       },
                       builder: (context, state) {
-                        final effectiveState = (state is QuranPageLoaded && state.page.pageNumber == pageNumber)
-                            ? state
-                            : context.read<QuranCubit>().getCachedPage(pageNumber);
+                        final cubit = context.read<QuranCubit>();
 
-                        if (effectiveState != null) {
-                          return QuranPageWidget(
-                            page: effectiveState.page,
-                            isFontLoaded: effectiveState.isFontLoaded,
-                            lineMappings: effectiveState.lineMappings,
-                            selectedAyahId: effectiveState.selectedAyahId,
-                            onWordTapped: widget.onWordTapped ??
-                                (word) => _handleWordTapped(word, pageNumber),
-                            onWordLongPressed: widget.onWordLongPressed ??
-                                (word) => _handleWordLongPressed(word, pageNumber),
-                          );
-                        }
-
-                        if (state is QuranError) {
-                          return Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  state.message,
-                                  style: const TextStyle(color: Colors.red),
-                                ),
-                                ElevatedButton(
-                                  onPressed: () {
-                                    final cubit = context.read<QuranCubit>();
-                                    // if it's a font error, retry initFonts
-                                    if (!cubit.fontsReady) {
-                                      cubit.initFonts();
-                                    } else {
-                                      cubit.loadPage(pageNumber);
-                                    }
-                                  },
-                                  child: const Text('إعادة المحاولة'),
-                                ),
-                              ],
-                            ),
-                          );
-                        }
-
-                        if (state is QuranDownloadingFonts || (state is QuranLoading && context.read<QuranCubit>().isUnzipping)) {
+                        // 1. If currently downloading fonts or extracting, show download progress UI
+                        if (state is QuranDownloadingFonts || (state is QuranLoading && cubit.isUnzipping)) {
                           final bool isDownloading = state is QuranDownloadingFonts;
                           final double progress = isDownloading ? state.progress : 1.0;
                           return Center(
@@ -1019,7 +980,7 @@ class _QuranScreenState extends State<QuranScreen> {
                                       child: CircularProgressIndicator(
                                         value: isDownloading ? progress : null,
                                         strokeWidth: 8,
-                                        color: AppColors.lightGold,
+                                        color: AppColors.secondaryGold,
                                         backgroundColor: isDark ? Colors.white12 : Colors.black12,
                                         strokeCap: StrokeCap.round,
                                       ),
@@ -1030,19 +991,21 @@ class _QuranScreenState extends State<QuranScreen> {
                                         style: TextStyle(
                                           fontSize: 24,
                                           fontWeight: FontWeight.bold,
+                                          fontFamily: 'Tajawal',
                                           color: isDark ? Colors.white : AppColors.primaryBlack,
                                         ),
                                       )
                                     else
-                                      const Icon(Icons.settings_suggest_rounded, size: 48, color: AppColors.lightGold),
+                                      const Icon(Icons.settings_suggest_rounded, size: 48, color: AppColors.secondaryGold),
                                   ],
                                 ),
                                 const SizedBox(height: 40),
                                 Text(
-                                  isDownloading ? 'جاري تحميل المصحف الشريف...' : 'جاري تهيئة الخطوط...',
+                                  isDownloading ? 'جاري تحميل خطوط المصحف الشريف...' : 'جاري تهيئة الخطوط...',
                                   style: TextStyle(
                                     fontSize: 22,
                                     fontWeight: FontWeight.bold,
+                                    fontFamily: 'Tajawal',
                                     color: isDark ? Colors.white : AppColors.primaryBlack,
                                   ),
                                 ),
@@ -1053,11 +1016,156 @@ class _QuranScreenState extends State<QuranScreen> {
                                   style: TextStyle(
                                     fontSize: 14,
                                     height: 1.5,
+                                    fontFamily: 'Tajawal',
                                     color: isDark ? Colors.white60 : Colors.black54,
                                   ),
                                 ),
                               ],
                             ),
+                          );
+                        }
+
+                        // 2. If an error occurred (download error or page error):
+                        if (state is QuranError) {
+                          return Center(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 32),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(20),
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: Colors.redAccent.withValues(alpha: 0.1),
+                                    ),
+                                    child: const Icon(
+                                      Icons.cloud_off_rounded,
+                                      size: 54,
+                                      color: Colors.redAccent,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 24),
+                                  Text(
+                                    state.message,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontFamily: 'Tajawal',
+                                      fontSize: 16,
+                                      height: 1.6,
+                                      fontWeight: FontWeight.bold,
+                                      color: isDark ? Colors.white : AppColors.darkText,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 24),
+                                  ElevatedButton.icon(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.secondaryGold,
+                                      foregroundColor: Colors.black,
+                                      elevation: 2,
+                                      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                    ),
+                                    onPressed: () {
+                                      if (!cubit.fontsReady) {
+                                        cubit.retryFontsDownload();
+                                      } else {
+                                        cubit.loadPage(pageNumber);
+                                      }
+                                    },
+                                    icon: const Icon(Icons.refresh_rounded, size: 22),
+                                    label: const Text(
+                                      'إعادة المحاولة',
+                                      style: TextStyle(
+                                        fontFamily: 'Tajawal',
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }
+
+                        // 3. Check loaded / cached page
+                        final effectiveState = (state is QuranPageLoaded && state.page.pageNumber == pageNumber)
+                            ? state
+                            : cubit.getCachedPage(pageNumber);
+
+                        if (effectiveState != null) {
+                          // If fonts are not ready and the font is not loaded, show download retry prompt
+                          if (!cubit.fontsReady && !effectiveState.isFontLoaded) {
+                            return Center(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 32),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(20),
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: AppColors.secondaryGold.withValues(alpha: 0.1),
+                                      ),
+                                      child: const Icon(
+                                        Icons.font_download_off_rounded,
+                                        size: 54,
+                                        color: AppColors.secondaryGold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 24),
+                                    Text(
+                                      'لم يتم اكتمال تحميل خطوط المصحف بعد.\nيرجى التأكد من اتصال الإنترنت ثم إعادة المحاولة.',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontFamily: 'Tajawal',
+                                        fontSize: 16,
+                                        height: 1.6,
+                                        fontWeight: FontWeight.bold,
+                                        color: isDark ? Colors.white : AppColors.darkText,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 24),
+                                    ElevatedButton.icon(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.secondaryGold,
+                                        foregroundColor: Colors.black,
+                                        elevation: 2,
+                                        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(16),
+                                        ),
+                                      ),
+                                      onPressed: () => cubit.retryFontsDownload(),
+                                      icon: const Icon(Icons.refresh_rounded, size: 22),
+                                      label: const Text(
+                                        'تحميل الخطوط الآن',
+                                        style: TextStyle(
+                                          fontFamily: 'Tajawal',
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }
+
+                          return QuranPageWidget(
+                            page: effectiveState.page,
+                            isFontLoaded: effectiveState.isFontLoaded,
+                            lineMappings: effectiveState.lineMappings,
+                            selectedAyahId: effectiveState.selectedAyahId,
+                            onWordTapped: widget.onWordTapped ??
+                                (word) => _handleWordTapped(word, pageNumber),
+                            onWordLongPressed: widget.onWordLongPressed ??
+                                (word) => _handleWordLongPressed(word, pageNumber),
                           );
                         }
 

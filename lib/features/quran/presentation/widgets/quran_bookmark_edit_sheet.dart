@@ -112,10 +112,11 @@ class _QuranBookmarkEditSheetState extends State<QuranBookmarkEditSheet> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? const Color(0xFF1E1E24) : Colors.white;
+    final bgColor =
+        isDark ? AppColors.primaryBlack : Theme.of(context).scaffoldBackgroundColor;
     final primaryTextColor = isDark ? Colors.white : AppColors.darkText;
     final subtextColor = isDark ? Colors.white70 : Colors.black54;
-    final borderColor = isDark ? const Color(0xFF383842) : AppColors.secondaryGold.withValues(alpha: 0.25);
+    final borderColor = AppColors.secondaryGold.withValues(alpha: 0.3);
     final surahName = getSurahName(widget.ayahId.surahNumber);
     final activeColor = Color(_selectedColorCode);
     final isEditing = widget.existingBookmark != null;
@@ -125,20 +126,38 @@ class _QuranBookmarkEditSheetState extends State<QuranBookmarkEditSheet> {
       child: Align(
         alignment: Alignment.bottomCenter,
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 600),
+          constraints: BoxConstraints(
+            maxWidth: 600,
+            maxHeight: MediaQuery.of(context).size.height * 0.90,
+          ),
           child: Container(
             decoration: BoxDecoration(
               color: bgColor,
               borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
               border: Border.all(color: borderColor, width: 1.5),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.2),
+                  blurRadius: 10,
+                  spreadRadius: 2,
+                ),
+              ],
             ),
-            child: SafeArea(
-              top: false,
-              child: SingleChildScrollView(
-                physics: const ClampingScrollPhysics(),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  child: Column(
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              child: Material(
+                color: bgColor,
+                child: SafeArea(
+                  top: false,
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      bottom: MediaQuery.of(context).viewInsets.bottom,
+                    ),
+                    child: SingleChildScrollView(
+                      physics: const ClampingScrollPhysics(),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -149,7 +168,7 @@ class _QuranBookmarkEditSheetState extends State<QuranBookmarkEditSheet> {
                           height: 5,
                           margin: const EdgeInsets.only(bottom: 12),
                           decoration: BoxDecoration(
-                            color: Colors.grey.withValues(alpha: 0.35),
+                            color: Colors.grey.withValues(alpha: 0.4),
                             borderRadius: BorderRadius.circular(2.5),
                           ),
                         ),
@@ -459,7 +478,10 @@ class _QuranBookmarkEditSheetState extends State<QuranBookmarkEditSheet> {
           ),
         ),
       ),
-    );
+    ),
+  ),
+),
+);
   }
 }
 

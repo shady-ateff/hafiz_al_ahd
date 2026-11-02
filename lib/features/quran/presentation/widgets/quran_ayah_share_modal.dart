@@ -47,9 +47,10 @@ class _QuranAyahShareModalState extends State<QuranAyahShareModal> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isDarkCard = _resolveDarkMode(context);
-    final bgColor = isDark ? AppColors.primaryBlack : Colors.white;
+    final bgColor =
+        isDark ? AppColors.primaryBlack : Theme.of(context).scaffoldBackgroundColor;
     final subtextColor = isDark ? Colors.white70 : Colors.black54;
-    final borderColor = AppColors.secondaryGold.withValues(alpha: 0.35);
+    final borderColor = AppColors.secondaryGold.withValues(alpha: 0.3);
     final surahName = getSurahName(widget.ayah.id.surahNumber);
 
     return Directionality(
@@ -67,13 +68,19 @@ class _QuranAyahShareModalState extends State<QuranAyahShareModal> {
               border: Border.all(color: borderColor, width: 1.5),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.25),
-                  blurRadius: 16,
+                  color: Colors.black.withValues(alpha: 0.2),
+                  blurRadius: 10,
                   spreadRadius: 2,
                 ),
               ],
             ),
-            child: SafeArea(
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(24),
+              ),
+              child: Material(
+                color: bgColor,
+                child: SafeArea(
               top: false,
               child: SingleChildScrollView(
                 physics: const ClampingScrollPhysics(),
@@ -390,7 +397,9 @@ class _QuranAyahShareModalState extends State<QuranAyahShareModal> {
           ),
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 
   Widget _buildShareOptionTile({
