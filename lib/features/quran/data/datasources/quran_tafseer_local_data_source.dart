@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import '../../../../core/errors/exception.dart';
 import '../../domain/entities/ayah_id.dart';
@@ -63,27 +64,11 @@ class QuranTafseerLocalDataSourceImpl implements BaseQuranTafseerLocalDataSource
         rawJson = await rootBundle.loadString(assetPath);
       }
 
-      if (rawJson.trim().isEmpty) {
-        throw const FormatException('Tafseer asset is empty');
-      }
-
-      final dynamic decoded = jsonDecode(rawJson);
-      if (decoded is! Map<String, dynamic>) {
-        throw const FormatException('Tafseer root JSON must be a Map<String, dynamic>');
-      }
-
-      final dynamic rawMap = decoded['tafseer'];
-      if (rawMap is! Map<String, dynamic>) {
-        throw const FormatException('Tafseer asset missing or invalid "tafseer" key');
-      }
-
-      final map = <String, String>{};
-      for (final entry in rawMap.entries) {
-        final val = entry.value;
-        if (val is String) {
-          map[entry.key] = val;
-        }
-      }
+      final map = await compute(
+        _parseTafseerJsonInBackground,
+        rawJson,
+        debugLabel: 'TafseerJsonParser',
+      );
 
       _cachedTafseer = map;
       return map;
@@ -103,5 +88,33 @@ class QuranTafseerLocalDataSourceImpl implements BaseQuranTafseerLocalDataSource
     }
     return text;
   }
+}
+
+/// Top-level isolate computation function for decoding and parsing the Tafseer JSON dataset.
+/// Executed strictly off the main UI thread via [compute] to preserve 60/120Hz frame budgets.
+Map<String, String> _parseTafseerJsonInBackground(String rawJson) {
+  if (rawJson.trim().isEmpty) {
+    throw const FormatException('Tafseer asset is empty');
+  }
+
+  final dynamic decoded = jsonDecode(rawJson);
+  if (decoded is! Map<String, dynamic>) {
+    throw const FormatException('Tafseer root JSON must be a Map<String, dynamic>');
+  }
+
+  final dynamic rawMap = decoded['tafseer'];
+  if (rawMap is! Map<String, dynamic>) {
+    throw const FormatException('Tafseer asset missing or invalid "tafseer" key');
+  }
+
+  final map = <String, String>{};
+  for (final entry in rawMap.entries) {
+    final val = entry.value;
+    if (val is String) {
+      map[entry.key] = val;
+    }
+  }
+
+  return map;
 }
 

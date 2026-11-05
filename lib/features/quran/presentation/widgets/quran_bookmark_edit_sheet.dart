@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hafiz_al_ahd/core/widgets/app_loader.dart';
 import '../../../../core/utils/app_colors.dart';
 import '../../data/datasources/surah_names.dart';
 import '../../domain/entities/ayah_id.dart';
@@ -409,10 +410,7 @@ class _QuranBookmarkEditSheetState extends State<QuranBookmarkEditSheet> {
                               ? const SizedBox(
                                   width: 18,
                                   height: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
+                                  child:  AppLoader(),
                                 )
                               : const Icon(Icons.bookmark_added_rounded, size: 20),
                           label: Text(

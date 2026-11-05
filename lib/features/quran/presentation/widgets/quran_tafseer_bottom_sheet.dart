@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hafiz_al_ahd/core/widgets/app_loader.dart';
 import '../../../../core/DI/service_locator.dart';
 import '../../../../core/utils/app_colors.dart';
 import '../../data/datasources/surah_names.dart';
@@ -267,10 +268,7 @@ class _TafseerBottomSheetContent extends StatelessWidget {
           const SizedBox(
             width: 36,
             height: 36,
-            child: CircularProgressIndicator(
-              strokeWidth: 3,
-              color: AppColors.secondaryGold,
-            ),
+            child:  AppLoader(),
           ),
           const SizedBox(height: 16),
           Text(

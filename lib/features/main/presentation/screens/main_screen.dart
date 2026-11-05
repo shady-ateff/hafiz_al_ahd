@@ -13,7 +13,6 @@ import 'package:hafiz_al_ahd/features/settings/presentation/screens/settings_scr
 import 'package:hafiz_al_ahd/features/gamification/presentation/cubit/gamification_cubit.dart';
 import 'package:hafiz_al_ahd/features/gamification/presentation/cubit/gamification_state.dart';
 import 'package:hafiz_al_ahd/features/gamification/presentation/widgets/achievement_dialog.dart';
-import 'package:hafiz_al_ahd/features/quran/presentation/screens/quran_screen.dart';
 import 'package:hafiz_al_ahd/features/quran/presentation/cubit/quran_cubit.dart';
 import 'package:hafiz_al_ahd/features/quran/presentation/cubit/quran_state.dart';
 import 'package:hafiz_al_ahd/core/widgets/app_snackbar.dart';
@@ -31,19 +30,11 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   late int _currentIndex;
   bool _isDownloadOverlayDismissed = false;
 
-  late final List<Widget> _screens;
-
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialTab;
     
-    _screens = [
-      const HomeScreen(),
-      const QiblaScreen(),
-      AzkarScreen(initialCategory: widget.initialAzkarCategory),
-      const SettingsScreen(),
-    ];
     // 👈 2. تهيئة الاتجاه الافتراضي
     _updateOrientation(_currentIndex);
     WidgetsBinding.instance.addObserver(this);
@@ -107,7 +98,12 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           children: [
             IndexedStack(
               index: _currentIndex,
-              children: _screens,
+              children: [
+                const HomeScreen(),
+                QiblaScreen(isActive: _currentIndex == 1),
+                AzkarScreen(initialCategory: widget.initialAzkarCategory),
+                const SettingsScreen(),
+              ],
             ),
             
             // 👈 5. شريط تقدم تحميل المصحف يظهر فقط في الشاشة الرئيسية وفوق الـ NavBar

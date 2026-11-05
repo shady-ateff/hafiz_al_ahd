@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hafiz_al_ahd/core/theme/theme_helper.dart';
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
+import 'package:hafiz_al_ahd/core/widgets/app_loader.dart';
 import 'package:hafiz_al_ahd/core/widgets/gradient_text.dart';
 import 'package:hafiz_al_ahd/features/gamification/presentation/cubit/gamification_cubit.dart';
 import 'package:hafiz_al_ahd/features/gamification/presentation/cubit/gamification_state.dart';
@@ -34,7 +35,7 @@ class ProfileScreen extends StatelessWidget {
         builder: (context, state) {
           if (state is GamificationLoading || state is GamificationInitial) {
             return const Center(
-              child: CircularProgressIndicator(color: AppColors.secondaryGold),
+              child:  AppLoader(),
             );
           }
 

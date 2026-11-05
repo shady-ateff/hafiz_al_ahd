@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hafiz_al_ahd/core/errors/failure.dart';
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
+import 'package:hafiz_al_ahd/core/widgets/app_loader.dart';
 import 'package:hafiz_al_ahd/features/quran/domain/entities/ayah_id.dart';
 import 'package:hafiz_al_ahd/features/quran/domain/entities/ayah_segment.dart';
 import 'package:hafiz_al_ahd/features/quran/domain/entities/quran_ayah.dart';
@@ -111,7 +112,7 @@ void main() {
       await tester.pump();
 
       expect(find.byKey(const Key('tafseer_loading_view')), findsOneWidget);
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byType(AppLoader), findsOneWidget);
       expect(find.text('جارٍ تحميل التفسير...'), findsOneWidget);
     });
 

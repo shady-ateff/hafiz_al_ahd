@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hafiz_al_ahd/core/theme/cubit/theme_cubit.dart';
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
+import 'package:hafiz_al_ahd/core/widgets/app_loader.dart';
 import 'package:hafiz_al_ahd/core/widgets/gradient_text.dart';
 import 'package:hafiz_al_ahd/core/DI/service_locator.dart';
 import 'package:hafiz_al_ahd/features/home/domain/usecases/get_cached_location_usecase.dart';
@@ -236,7 +237,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
       body: _isLoading
           ? const Center(
-              child: CircularProgressIndicator(color: AppColors.secondaryGold),
+              child:  AppLoader(),
             )
           : SingleChildScrollView(
               child: Padding(

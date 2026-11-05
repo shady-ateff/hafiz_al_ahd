@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hafiz_al_ahd/core/widgets/app_loader.dart';
 import 'package:hafiz_al_ahd/features/quran/domain/entities/ayah_id.dart';
 import '../../../../core/DI/service_locator.dart';
 import '../../../../core/utils/app_colors.dart';
@@ -369,9 +370,7 @@ class _QuranBookmarksBottomSheetState extends State<QuranBookmarksBottomSheet> {
                               return const Padding(
                                 padding: EdgeInsets.all(40),
                                 child: Center(
-                                  child: CircularProgressIndicator(
-                                    color: AppColors.secondaryGold,
-                                  ),
+                                  child:  AppLoader(),
                                 ),
                               );
                             }

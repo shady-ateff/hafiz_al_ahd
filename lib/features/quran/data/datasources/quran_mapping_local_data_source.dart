@@ -6,6 +6,12 @@ import 'package:flutter/services.dart';
 abstract class BaseQuranMappingLocalDataSource {
   /// Loads and decodes the raw Quran mapping dataset into a Dart Map.
   Future<Map<String, dynamic>> loadRawMappingData();
+
+  /// Loads the raw JSON string of the dataset without decoding on the caller thread.
+  Future<String> loadRawMappingJsonString() async {
+    final map = await loadRawMappingData();
+    return jsonEncode(map);
+  }
 }
 
 /// Implementation of [BaseQuranMappingLocalDataSource] that loads the mapping
@@ -20,7 +26,7 @@ class QuranMappingLocalDataSourceImpl implements BaseQuranMappingLocalDataSource
   });
 
   @override
-  Future<Map<String, dynamic>> loadRawMappingData() async {
+  Future<String> loadRawMappingJsonString() async {
     try {
       final String rawJson;
       if (customDataLoader != null) {
@@ -32,6 +38,17 @@ class QuranMappingLocalDataSourceImpl implements BaseQuranMappingLocalDataSource
       if (rawJson.trim().isEmpty) {
         throw const FormatException('Quran mapping asset is empty');
       }
+
+      return rawJson;
+    } catch (e) {
+      throw Exception('Failed to load Quran mapping asset "$assetPath": $e');
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> loadRawMappingData() async {
+    try {
+      final rawJson = await loadRawMappingJsonString();
 
       final dynamic decoded = jsonDecode(rawJson);
       if (decoded is! Map<String, dynamic>) {

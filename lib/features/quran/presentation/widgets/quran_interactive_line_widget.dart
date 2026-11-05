@@ -38,51 +38,94 @@ class _QuranInteractiveLineWidgetState
     extends State<QuranInteractiveLineWidget> {
   final List<GestureRecognizer?> _recognizers = [];
 
+  bool _containsAyah(AyahId? id) {
+    if (id == null) return false;
+    for (final w in widget.line.words) {
+      if (w.ayahId == id) return true;
+    }
+    return false;
+  }
+
   @override
   void initState() {
     super.initState();
-    _rebuildRecognizers();
+    _syncRecognizers();
   }
 
   @override
   void didUpdateWidget(QuranInteractiveLineWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.line != oldWidget.line ||
-        widget.selectedAyahId != oldWidget.selectedAyahId ||
-        widget.onWordTapped != oldWidget.onWordTapped ||
-        widget.onWordLongPressed != oldWidget.onWordLongPressed) {
-      _rebuildRecognizers();
+
+    final lineChanged = widget.line != oldWidget.line;
+    final callbacksChanged = widget.onWordTapped != oldWidget.onWordTapped ||
+        widget.onWordLongPressed != oldWidget.onWordLongPressed;
+    final selectionAffectsThisLine =
+        widget.selectedAyahId != oldWidget.selectedAyahId &&
+            (_containsAyah(widget.selectedAyahId) ||
+                _containsAyah(oldWidget.selectedAyahId));
+
+    if (lineChanged || callbacksChanged || selectionAffectsThisLine) {
+      _syncRecognizers();
     }
   }
 
-  void _rebuildRecognizers() {
-    _disposeRecognizers();
+  /// Synchronizes gesture recognizers in-place to avoid recreation overhead.
+  /// Recognizers for words whose selection state did not change are preserved as-is.
+  void _syncRecognizers() {
+    final words = widget.line.words;
     final selectedId = widget.selectedAyahId;
 
-    for (final word in widget.line.words) {
+    while (_recognizers.length < words.length) {
+      _recognizers.add(null);
+    }
+    while (_recognizers.length > words.length) {
+      _recognizers.removeLast()?.dispose();
+    }
+
+    for (int i = 0; i < words.length; i++) {
+      final word = words[i];
       final isSelected = selectedId != null && word.ayahId == selectedId;
+      final current = _recognizers[i];
 
       if (isSelected) {
-        // Words belonging to the currently selected Ayah receive tap to reopen and retain long-press
-        final recognizer = QuranWordTapGestureRecognizer(
-          onTap: widget.onWordTapped != null
+        if (current is QuranWordTapGestureRecognizer) {
+          // Re-use existing recognizer and update callbacks in-place
+          current.onTap = widget.onWordTapped != null
               ? () => widget.onWordTapped?.call(word)
-              : null,
-          onLongPress: widget.onWordLongPressed != null
+              : null;
+          current.onLongPress = widget.onWordLongPressed != null
               ? () => widget.onWordLongPressed?.call(word)
-              : null,
-        );
-        _recognizers.add(recognizer);
-      } else if (widget.onWordLongPressed != null) {
-        // Unselected words must not receive a TapGestureRecognizer.
-        // They only receive LongPressGestureRecognizer.
-        final recognizer = LongPressGestureRecognizer()
-          ..onLongPress = () {
-            widget.onWordLongPressed?.call(word);
-          };
-        _recognizers.add(recognizer);
+              : null;
+        } else {
+          current?.dispose();
+          _recognizers[i] = QuranWordTapGestureRecognizer(
+            onTap: widget.onWordTapped != null
+                ? () => widget.onWordTapped?.call(word)
+                : null,
+            onLongPress: widget.onWordLongPressed != null
+                ? () => widget.onWordLongPressed?.call(word)
+                : null,
+          );
+        }
       } else {
-        _recognizers.add(null);
+        if (widget.onWordLongPressed != null) {
+          if (current is LongPressGestureRecognizer &&
+              current is! QuranWordTapGestureRecognizer) {
+            // Re-use existing recognizer and update callback in-place
+            current.onLongPress = () {
+              widget.onWordLongPressed?.call(word);
+            };
+          } else {
+            current?.dispose();
+            _recognizers[i] = LongPressGestureRecognizer()
+              ..onLongPress = () {
+                widget.onWordLongPressed?.call(word);
+              };
+          }
+        } else {
+          current?.dispose();
+          _recognizers[i] = null;
+        }
       }
     }
   }

@@ -199,6 +199,35 @@ class _QuranScreenState extends State<QuranScreen> {
   bool _isAyahSheetOpen = false;
   int _selectionRequestToken = 0;
 
+  final Map<int, ValueChanged<QuranWord>> _tappedCallbacks = {};
+  final Map<int, ValueChanged<QuranWord>> _longPressedCallbacks = {};
+
+  ValueChanged<QuranWord>? _getWordTappedCallback(int pageNumber) {
+    if (widget.onWordTapped != null) return widget.onWordTapped;
+    return _tappedCallbacks.putIfAbsent(
+      pageNumber,
+      () => (word) => _handleWordTapped(word, pageNumber),
+    );
+  }
+
+  ValueChanged<QuranWord>? _getWordLongPressedCallback(int pageNumber) {
+    if (widget.onWordLongPressed != null) return widget.onWordLongPressed;
+    return _longPressedCallbacks.putIfAbsent(
+      pageNumber,
+      () => (word) => _handleWordLongPressed(word, pageNumber),
+    );
+  }
+
+  @override
+  void didUpdateWidget(QuranScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.onWordTapped != oldWidget.onWordTapped ||
+        widget.onWordLongPressed != oldWidget.onWordLongPressed) {
+      _tappedCallbacks.clear();
+      _longPressedCallbacks.clear();
+    }
+  }
+
   QuranClipboardService get _clipboardService =>
       widget.clipboardService ??
       (sl.isRegistered<QuranClipboardService>()
@@ -255,6 +284,8 @@ class _QuranScreenState extends State<QuranScreen> {
     _closeActiveSheetRouteOnly();
     _pageController.dispose();
     _currentPageNotifier.dispose();
+    _tappedCallbacks.clear();
+    _longPressedCallbacks.clear();
     super.dispose();
   }
 
@@ -1162,10 +1193,8 @@ class _QuranScreenState extends State<QuranScreen> {
                             isFontLoaded: effectiveState.isFontLoaded,
                             lineMappings: effectiveState.lineMappings,
                             selectedAyahId: effectiveState.selectedAyahId,
-                            onWordTapped: widget.onWordTapped ??
-                                (word) => _handleWordTapped(word, pageNumber),
-                            onWordLongPressed: widget.onWordLongPressed ??
-                                (word) => _handleWordLongPressed(word, pageNumber),
+                            onWordTapped: _getWordTappedCallback(pageNumber),
+                            onWordLongPressed: _getWordLongPressedCallback(pageNumber),
                           );
                         }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hafiz_al_ahd/core/widgets/app_loader.dart';
 import '../../../../core/utils/app_colors.dart';
 import '../cubit/quran_settings_cubit.dart';
 import '../../data/datasources/surah_names.dart';
@@ -353,10 +354,7 @@ class _QuranAyahShareModalState extends State<QuranAyahShareModal> {
                                 ? const SizedBox(
                                     width: 18,
                                     height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
+                                    child:  AppLoader(),
                                   )
                                 : const Icon(Icons.share_rounded, size: 20),
                             label: Text(

@@ -291,7 +291,7 @@ class QuranPageWidget extends StatelessWidget {
     double dynamicHeight,
     Color textColor,
   ) {
-    return Container(
+    return SizedBox(
       height: 44 * dynamicHeight,
       child: Stack(
         alignment: Alignment.center,

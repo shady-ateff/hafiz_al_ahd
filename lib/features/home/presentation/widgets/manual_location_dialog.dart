@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:hafiz_al_ahd/core/widgets/app_loader.dart';
 import '../../../../core/utils/app_colors.dart';
 import '../../../../core/utils/calculation_method_helper.dart';
 import '../cubit/prayer_times_cubit/prayer_times_cubit.dart';
@@ -219,10 +220,7 @@ class _ManualLocationDialogState extends State<ManualLocationDialog> {
                       ? const SizedBox(
                           height: 20,
                           width: 20,
-                          child: CircularProgressIndicator(
-                            color: AppColors.primaryBlack,
-                            strokeWidth: 2,
-                          ),
+                          child:  AppLoader(),
                         )
                       : Text(
                           'تأكيد وحساب المواقيت',
