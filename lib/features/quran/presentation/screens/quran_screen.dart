@@ -966,6 +966,7 @@ class _QuranScreenState extends State<QuranScreen> {
                   controller: _pageController,
                   reverse: false,
                   itemCount: 604,
+                  allowImplicitScrolling: true,
                   onPageChanged: (index) {
                     final int pageNumber = index + 1;
                     _currentPageNotifier.value = pageNumber;

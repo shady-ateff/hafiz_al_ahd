@@ -135,6 +135,7 @@ class _AppState extends State<App> with TrayListener, WindowListener {
         builder: (context, themeState) {
           return MaterialApp(
             navigatorKey: navigatorKey,
+            navigatorObservers: [routeObserver],
             title: 'Hafiz Al Ahd',
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,

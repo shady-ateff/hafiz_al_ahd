@@ -16,12 +16,14 @@ class PrayerTimesGrid extends StatelessWidget {
   final int crossAxisCount;
   final bool isScrollable;
   final bool forceVerticalCardLayout;
+  final bool isActive;
 
   const PrayerTimesGrid({
     super.key,
     this.crossAxisCount = 2,
     this.isScrollable = false,
     this.forceVerticalCardLayout = false,
+    this.isActive = true,
   });
 
   @override
@@ -148,6 +150,7 @@ class PrayerTimesGrid extends StatelessWidget {
           ? nextPrayer.isIqama
           : false, // 👈 جبناها من المصدر الصح
       remaining: null,
+      isActive: isActive,
     );
   }
 

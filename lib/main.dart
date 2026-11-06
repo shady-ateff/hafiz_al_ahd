@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:alarm/alarm.dart';
 import 'package:alarm/utils/alarm_set.dart';
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:hafiz_al_ahd/app/view/app.dart';
@@ -18,7 +17,6 @@ import 'package:hafiz_al_ahd/features/notifications/presentation/screens/adhan_s
 import 'package:hijri/hijri_calendar.dart';
 import 'package:launch_at_startup/launch_at_startup.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter_timezone/flutter_timezone.dart';
@@ -28,6 +26,7 @@ import 'package:hafiz_al_ahd/features/notifications/data/repos/notification_repo
 // 👈 الدالة دي بتتحط بره أي كلاس، مثلاً في ملف منفصل أو فوق في main.dart
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
 bool _isAdhanScreenActive = false; // 👈 علم لمنع فتح الشاشة مرتين
 
 void _openAdhanScreen({required String payload, int? notificationId, String? prayerName}) {

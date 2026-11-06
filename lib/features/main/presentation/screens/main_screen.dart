@@ -99,7 +99,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             IndexedStack(
               index: _currentIndex,
               children: [
-                const HomeScreen(),
+                HomeScreen(isActive: _currentIndex == 0),
                 QiblaScreen(isActive: _currentIndex == 1),
                 AzkarScreen(initialCategory: widget.initialAzkarCategory),
                 const SettingsScreen(),

@@ -16,12 +16,14 @@ class TimeDateSection extends StatelessWidget {
     this.isTabletDesktop = false,
     this.isMobile = false,
     this.isWatch = false,
+    this.isActive = true,
   });
 
   final bool isLandscape;
   final bool isTabletDesktop;
   final bool isMobile;
   final bool isWatch;
+  final bool isActive;
 
   @override
   Widget build(BuildContext context) {
@@ -30,6 +32,8 @@ class TimeDateSection extends StatelessWidget {
     final isDark = context.watch<ThemeCubit>().state.isDark;
 
     return BlocBuilder<TimeCubit, DateTime>(
+      key: ValueKey(isActive),
+      buildWhen: (previous, current) => isActive,
       builder: (context, state) {
         DateTime currentTime = state;
 
