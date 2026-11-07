@@ -20,6 +20,11 @@ import 'package:hafiz_al_ahd/features/notifications/domain/usecases/schedule_wee
 import 'package:hafiz_al_ahd/features/notifications/domain/usecases/show_sticky_notification_usecase.dart';
 import 'package:hafiz_al_ahd/features/settings/domain/usecases/get_iqama_delays_usecase.dart';
 import 'package:hafiz_al_ahd/features/settings/domain/usecases/save_iqama_delays_usecase.dart';
+import 'package:hafiz_al_ahd/features/notifications/domain/repos/prayer_alarm_config_repository.dart';
+import 'package:hafiz_al_ahd/features/notifications/data/repos/prayer_alarm_config_repository_impl.dart';
+import 'package:hafiz_al_ahd/features/notifications/data/datasources/prayer_alarm_config_local_data_source.dart';
+import 'package:hafiz_al_ahd/features/notifications/domain/usecases/get_prayer_alarm_configs_use_case.dart';
+import 'package:hafiz_al_ahd/features/notifications/domain/usecases/save_prayer_alarm_config_use_case.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // --- Quran Imports ---
@@ -96,6 +101,16 @@ Future<void> init() async {
   sl.registerLazySingleton<BaseNotificationRepository>(
     () => NotificationRepositoryImpl(),
   );
+
+  // Prayer Alarm Config
+  sl.registerLazySingleton<BasePrayerAlarmConfigLocalDataSource>(
+    () => PrayerAlarmConfigLocalDataSourceImpl(prefs: sl()),
+  );
+  sl.registerLazySingleton<BasePrayerAlarmConfigRepository>(
+    () => PrayerAlarmConfigRepositoryImpl(localDataSource: sl()),
+  );
+  sl.registerLazySingleton(() => GetPrayerAlarmConfigsUseCase(sl()));
+  sl.registerLazySingleton(() => SavePrayerAlarmConfigUseCase(sl()));
 
   // 👈 ضيف الاتنين دول (أو حسب أساميهم عندك في المشروع)
   sl.registerLazySingleton<PrayerTimesRepo>(() => PrayerTimesRepoImpl(sl()));
