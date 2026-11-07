@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:hafiz_al_ahd/main.dart' show routeObserver;
 import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit/prayer_times_cubit.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit/prayer_times_states.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/widgets/manual_location_dialog.dart';
@@ -12,25 +13,63 @@ import 'package:hafiz_al_ahd/features/home/presentation/widgets/continue_reading
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final bool isActive;
+  const HomeScreen({super.key, this.isActive = true});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen>
-    with AutomaticKeepAliveClientMixin {
+    with AutomaticKeepAliveClientMixin, RouteAware {
+  bool _isRouteCurrent = true;
+
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route != null) {
+      routeObserver.subscribe(this, route);
+      _isRouteCurrent = route.isCurrent;
+    }
+  }
+
+  @override
+  void dispose() {
+    routeObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  @override
+  void didPushNext() {
+    if (mounted) {
+      setState(() {
+        _isRouteCurrent = false;
+      });
+    }
+  }
+
+  @override
+  void didPopNext() {
+    if (mounted) {
+      setState(() {
+        _isRouteCurrent = true;
+      });
+    }
   }
 
   @override
   bool get wantKeepAlive => true;
+
+  bool get isEffectivelyActive => widget.isActive && _isRouteCurrent;
+
   @override
   Widget build(BuildContext context) {
     super.build(context); // 👈 لازم تنادي السوبر عشان يحافظ على الـ State
-    return Scaffold(
+
+    return TickerMode(
+      enabled: isEffectivelyActive,
+      child: Scaffold(
       // الـ Scaffold بياخد الخلفية أوتوماتيك من الـ Theme
       appBar: AppBar(
         actions: [
@@ -145,6 +184,7 @@ class _HomeScreenState extends State<HomeScreen>
               },
             )
           : null,
+      ),
     );
   }
 
@@ -165,7 +205,7 @@ class _HomeScreenState extends State<HomeScreen>
           mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.max,
           children: [
-            const Expanded(
+            Expanded(
               flex: 4,
               child: Column(
                 children: [
@@ -173,16 +213,20 @@ class _HomeScreenState extends State<HomeScreen>
                     child: TimeDateSection(
                       isLandscape: false,
                       isTabletDesktop: true,
+                      isActive: isEffectivelyActive,
                     ),
                   ),
-                  ContinueReadingCard(),
+                  const ContinueReadingCard(),
                 ],
               ),
             ),
             const SizedBox(width: 40),
             Expanded(
               flex: 3,
-              child: PrayerTimesGrid(crossAxisCount: calculatedCrossAxisCount),
+              child: PrayerTimesGrid(
+                crossAxisCount: calculatedCrossAxisCount,
+                isActive: isEffectivelyActive,
+              ),
             ),
           ],
         ),
@@ -191,18 +235,28 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Widget _buildMobileLayout() {
-    return const Padding(
-      padding: EdgeInsets.symmetric(horizontal: 20.0),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.max,
         children: [
           Expanded(
             flex: 2,
-            child: TimeDateSection(isLandscape: false, isMobile: true),
+            child: TimeDateSection(
+              isLandscape: false,
+              isMobile: true,
+              isActive: isEffectivelyActive,
+            ),
           ),
-          ContinueReadingCard(), // 👈 البطاقة الجديدة
-          Expanded(flex: 3, child: PrayerTimesGrid(crossAxisCount: 2)),
+          const ContinueReadingCard(), // 👈 البطاقة الجديدة
+          Expanded(
+            flex: 3,
+            child: PrayerTimesGrid(
+              crossAxisCount: 2,
+              isActive: isEffectivelyActive,
+            ),
+          ),
         ],
       ),
     );
@@ -216,17 +270,22 @@ class _HomeScreenState extends State<HomeScreen>
           child: Column(
             children: [
               SizedBox(height: MediaQuery.sizeOf(context).height * 0.1),
-              const SizedBox(
+              SizedBox(
                 height: 200,
-                child: TimeDateSection(isLandscape: false, isWatch: true),
+                child: TimeDateSection(
+                  isLandscape: false,
+                  isWatch: true,
+                  isActive: isEffectivelyActive,
+                ),
               ),
               const SizedBox(height: 16),
               const ContinueReadingCard(),
               const SizedBox(height: 16),
-              const PrayerTimesGrid(
+              PrayerTimesGrid(
                 crossAxisCount: 1,
                 isScrollable: true,
                 forceVerticalCardLayout: false,
+                isActive: isEffectivelyActive,
               ),
               const SizedBox(height: 20),
             ],

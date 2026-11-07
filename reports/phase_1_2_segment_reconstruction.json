@@ -1,0 +1,71 @@
+{
+  "summary": {
+    "total_ayahs_verified": 6236,
+    "perfect_reconstructions": 6236,
+    "failed_reconstructions": 0,
+    "total_tokens_reconstructed": 78003,
+    "missing_tokens": 0,
+    "duplicated_tokens": 0,
+    "reordered_tokens": 0,
+    "invalid_line_references": 0,
+    "invalid_word_indices": 0,
+    "invalid_page_references": 0,
+    "verdict": "PASS"
+  },
+  "sample_verifications": [
+    {
+      "ayah": "1:1",
+      "surah": 1,
+      "ayah_number": 1,
+      "page": 1,
+      "segments_count": 1,
+      "words_count": 4,
+      "status": "PASS"
+    },
+    {
+      "ayah": "1:7",
+      "surah": 1,
+      "ayah_number": 7,
+      "page": 1,
+      "segments_count": 3,
+      "words_count": 9,
+      "status": "PASS"
+    },
+    {
+      "ayah": "2:1",
+      "surah": 2,
+      "ayah_number": 1,
+      "page": 2,
+      "segments_count": 1,
+      "words_count": 1,
+      "status": "PASS"
+    },
+    {
+      "ayah": "2:255",
+      "surah": 2,
+      "ayah_number": 255,
+      "page": 42,
+      "segments_count": 6,
+      "words_count": 50,
+      "status": "PASS"
+    },
+    {
+      "ayah": "2:282",
+      "surah": 2,
+      "ayah_number": 282,
+      "page": 48,
+      "segments_count": 15,
+      "words_count": 128,
+      "status": "PASS"
+    },
+    {
+      "ayah": "114:6",
+      "surah": 114,
+      "ayah_number": 6,
+      "page": 604,
+      "segments_count": 1,
+      "words_count": 3,
+      "status": "PASS"
+    }
+  ]
+}

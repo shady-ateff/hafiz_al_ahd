@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
 import 'package:hafiz_al_ahd/core/utils/app_permission.dart';
+import 'package:hafiz_al_ahd/core/widgets/app_loader.dart';
 import 'package:hafiz_al_ahd/features/main/presentation/screens/main_screen.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit/prayer_times_cubit.dart';
 import 'dart:io';
@@ -310,7 +311,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     if (_isLoading) {
       return const Scaffold(
         backgroundColor: _darkBg,
-        body: Center(child: CircularProgressIndicator(color: _gold)),
+        body: Center(child: AppLoader()),
       );
     }
     return BlocProvider(
@@ -438,10 +439,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                 ? const SizedBox(
                                     width: 24,
                                     height: 24,
-                                    child: CircularProgressIndicator(
-                                      color: _darkBg,
-                                      strokeWidth: 2.5,
-                                    ),
+                                    child: AppLoader()
+                                    ,
                                   )
                                 : Text(
                                     _pages[cubit.currentPage].buttonText,

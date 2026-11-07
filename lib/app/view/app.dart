@@ -5,6 +5,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:hafiz_al_ahd/core/DI/service_locator.dart';
 import 'package:hafiz_al_ahd/core/utils/app_theme.dart';
 import 'package:hafiz_al_ahd/core/theme/cubit/theme_cubit.dart';
+import 'package:hafiz_al_ahd/core/widgets/app_loader.dart';
 import 'package:hafiz_al_ahd/features/azkar/data/datasources/azkar_local_data_source.dart';
 import 'package:hafiz_al_ahd/features/azkar/data/repositories/azkar_repository_impl.dart';
 import 'package:hafiz_al_ahd/features/azkar/domain/usecases/get_azkar_usecase.dart';
@@ -13,19 +14,17 @@ import 'package:hafiz_al_ahd/features/azkar/presentation/cubit/azkar_tracker_cub
 import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit/prayer_times_cubit.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/cubit/time_cubit.dart';
 import 'package:hafiz_al_ahd/features/main/presentation/screens/main_screen.dart';
-import 'package:hafiz_al_ahd/features/quran/presentation/cubit/quran_state.dart';
 import 'package:hafiz_al_ahd/main.dart'; // For navigatorKey
 import 'package:hafiz_al_ahd/features/onboarding/presentation/cubit/onboarding_cubit.dart';
 import 'package:hafiz_al_ahd/features/onboarding/presentation/screens/onboarding_screen.dart';
 import 'package:hafiz_al_ahd/features/gamification/data/repositories/gamification_repository_impl.dart';
 import 'package:hafiz_al_ahd/features/gamification/presentation/cubit/gamification_cubit.dart';
 import 'package:hafiz_al_ahd/features/quran/presentation/cubit/quran_cubit.dart'; // 👈 استيراد المصحف
-import 'package:hafiz_al_ahd/features/quran/presentation/cubit/quran_settings_cubit.dart'; // 👈 استيراد اعدادات المصحف
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:hafiz_al_ahd/features/quran/presentation/cubit/quran_settings_cubit.dart';
+import 'package:hafiz_al_ahd/features/quran/presentation/cubit/quran_bookmark_cubit.dart'; // 👈 استيراد اعدادات المصحف
+import 'package:hafiz_al_ahd/features/splash/splash_screen.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:tray_manager/tray_manager.dart';
-import 'package:hafiz_al_ahd/core/widgets/app_snackbar.dart';
-import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
 
 // 1. 👈 حولناها لـ StatefulWidget
 class App extends StatefulWidget {
@@ -39,6 +38,11 @@ class App extends StatefulWidget {
 // 2. 👈 ضفنا الـ Listeners بتاعة الويندوز والأيقونة
 class _AppState extends State<App> with TrayListener, WindowListener {
   late Future<bool> _onboardingFuture;
+
+  /// True after the splash has been shown once in this process lifetime.
+  /// Stays true even when app is backgrounded & resumed (same process).
+  /// Resets to false only when the OS kills the process (cold start).
+  static bool _splashShown = false;
 
   @override
   void initState() {
@@ -124,12 +128,14 @@ class _AppState extends State<App> with TrayListener, WindowListener {
         ),
         BlocProvider(create: (context) => AzkarTrackerCubit()),
         BlocProvider(create: (context) => sl<QuranCubit>()), // 👈 إضافة QuranCubit
-        BlocProvider(create: (context) => sl<QuranSettingsCubit>()), // 👈 إضافة اعدادات المصحف
+        BlocProvider(create: (context) => sl<QuranSettingsCubit>()),
+        BlocProvider(create: (context) => sl<QuranBookmarkCubit>()..loadBookmarks()), // 👈 إضافة اعدادات المصحف
       ],
       child: BlocBuilder<ThemeCubit, ThemeState>(
         builder: (context, themeState) {
           return MaterialApp(
             navigatorKey: navigatorKey,
+            navigatorObservers: [routeObserver],
             title: 'Hafiz Al Ahd',
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
@@ -141,12 +147,24 @@ class _AppState extends State<App> with TrayListener, WindowListener {
                   return const Scaffold(
                     backgroundColor: Color(0xFF121212),
                     body: Center(
-                      child: CircularProgressIndicator(color: Color(0xFFB89B5E)),
+                      child: AppLoader(),
                     ),
                   );
                 }
+
                 final isComplete = snapshot.data ?? false;
-                return isComplete ? const MainScreen() : const OnboardingScreen();
+                final destination =
+                    isComplete ? const MainScreen() : const OnboardingScreen();
+
+                // Show splash only on the very first cold start of this process.
+                // If _splashShown is already true, the app was merely resumed from
+                // background — skip the splash entirely.
+                if (!_splashShown) {
+                  _splashShown = true;
+                  return SplashScreen(nextScreen: destination);
+                }
+
+                return destination;
               },
             ),
             builder: (context, child) {

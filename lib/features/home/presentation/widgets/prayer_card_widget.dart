@@ -18,6 +18,7 @@ class PrayerCard extends StatefulWidget {
   final bool? isNextPrayer;
   final bool isIqama;
   final Color? activeTextColor;
+  final bool isActive;
 
   const PrayerCard({
     super.key,
@@ -30,6 +31,7 @@ class PrayerCard extends StatefulWidget {
     required this.time,
     this.isIqama = false,
     this.activeTextColor,
+    this.isActive = true,
   });
 
   @override
@@ -73,6 +75,9 @@ class _PrayerCardState extends State<PrayerCard>
       _animationController!.stop();
       _animationController!.reset();
     }
+    if (widget.isActive != oldWidget.isActive && widget.isActive) {
+      setState(() {});
+    }
   }
 
   @override
@@ -87,6 +92,8 @@ class _PrayerCardState extends State<PrayerCard>
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
 
     return BlocBuilder<TimeCubit, DateTime>(
+      key: ValueKey(widget.isActive),
+      buildWhen: (previous, current) => widget.isActive,
       builder: (context, currentTime) {
         Duration remaining =
             widget.time?.difference(currentTime) ?? Duration.zero;
@@ -313,6 +320,7 @@ class _PrayerCardState extends State<PrayerCard>
                           targetTime: widget.time,
                           isIqama: isIqama,
                           textColor: textColor,
+                          isActive: widget.isActive,
                         ),
                       ),
                     ),
@@ -332,15 +340,19 @@ class NextPrayerTimer extends StatelessWidget {
     this.targetTime,
     this.isIqama = false,
     required this.textColor,
+    this.isActive = true,
   });
 
   final DateTime? targetTime;
   final bool isIqama;
   final Color textColor;
+  final bool isActive;
 
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<TimeCubit, DateTime>(
+      key: ValueKey(isActive),
+      buildWhen: (previous, current) => isActive,
       builder: (context, currentTime) {
         Duration remaining =
             targetTime?.difference(currentTime) ?? Duration.zero;

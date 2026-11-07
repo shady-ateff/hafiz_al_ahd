@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:developer';
 
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
@@ -86,6 +87,7 @@ Future<void> updateNativeWidgets(
   String locationName,
   String hijriDate,
 ) async {
+  if (!Platform.isAndroid && !Platform.isIOS) return;
   // بيانات الصلاة القادمة
   await HomeWidget.saveWidgetData<String>('next_prayer_name', next.name);
   await HomeWidget.saveWidgetData<String>('location_name', locationName);
@@ -133,6 +135,7 @@ Future<void> scheduleNextAlarm(
   PrayerTimesEntity allTimes,
   Map<String, int> iqamaDelays,
 ) async {
+  if (!Platform.isAndroid) return;
   // 1. حساب أقرب صلاة بعد الصلاة دي عشان نمررها للـ Native Receiver يقوم بتحديثها في الـ Widget والـ Notification بدون تأخير
   final nextNextPrayer = allTimes.getNextPrayer(
     targetTime.add(const Duration(minutes: 1)),

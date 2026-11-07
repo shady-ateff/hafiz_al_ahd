@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:hafiz_al_ahd/core/helpers/helper_functions.dart';
 import 'package:hafiz_al_ahd/core/theme/theme_helper.dart'; // 👈 الـ Helper
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
+import 'package:hafiz_al_ahd/core/widgets/app_loader.dart';
 import 'package:hafiz_al_ahd/core/widgets/gradient_text.dart';
 import 'package:hafiz_al_ahd/features/azkar/domain/entities/azkar_item.dart';
 import 'package:hafiz_al_ahd/features/azkar/presentation/cubit/azkar_cubit.dart';
@@ -91,9 +92,7 @@ class _AzkarScreenState extends State<AzkarScreen> {
             builder: (context, state) {
               if (state is AzkarLoading || state is AzkarInitial) {
                 return const Center(
-                  child: CircularProgressIndicator(
-                    color: AppColors.secondaryGold,
-                  ),
+                  child:  AppLoader()
                 );
               }
 

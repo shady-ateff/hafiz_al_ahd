@@ -1,20 +1,22 @@
+import 'dart:async';
 import 'dart:math' show pi;
 import 'package:flutter/material.dart';
 import 'package:flutter_qiblah/flutter_qiblah.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hafiz_al_ahd/core/theme/theme_helper.dart';
-import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
 import 'package:hafiz_al_ahd/core/widgets/gradient_icon.dart';
 import 'package:hafiz_al_ahd/core/widgets/gradient_text.dart';
 import 'package:lottie/lottie.dart';
 
 // 👈 1. حولناها لـ StatefulWidget عشان نحافظ على الـ Future
 class QiblaScreen extends StatefulWidget {
-  const QiblaScreen({super.key});
+  final bool isActive;
+  const QiblaScreen({super.key, this.isActive = true});
 
   @override
   State<QiblaScreen> createState() => _QiblaScreenState();
 }
+
 class _QiblaScreenState extends State<QiblaScreen> {
   // شلنا الـ static عشان نعطي البلوجن وقت (Async Gap) يعمل Reset للسنسور
   // لو دخلنا وخرجنا بسرعة، الـ FlutterQiblah بيعلق لو معملناش await
@@ -39,7 +41,7 @@ class _QiblaScreenState extends State<QiblaScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
-      body: FutureBuilder(
+      body: FutureBuilder<bool?>(
         future: _deviceSupportFuture,
         builder: (context, AsyncSnapshot<bool?> snapshot) {
           if (snapshot.hasError || (snapshot.hasData && snapshot.data == false)) {
@@ -60,7 +62,7 @@ class _QiblaScreenState extends State<QiblaScreen> {
             );
           }
 
-          return const _QiblaCompassWidget();
+          return _QiblaCompassWidget(isActive: widget.isActive);
         },
       ),
     );
@@ -68,48 +70,115 @@ class _QiblaScreenState extends State<QiblaScreen> {
 }
 
 class _QiblaCompassWidget extends StatefulWidget {
-  const _QiblaCompassWidget();
+  final bool isActive;
+  const _QiblaCompassWidget({this.isActive = true});
 
   @override
   State<_QiblaCompassWidget> createState() => _QiblaCompassWidgetState();
 }
 
-class _QiblaCompassWidgetState extends State<_QiblaCompassWidget> {
+class _QiblaCompassWidgetState extends State<_QiblaCompassWidget>
+    with WidgetsBindingObserver {
   static QiblahDirection? _lastDirection;
-  Stream<QiblahDirection>? _qiblahStream;
+  StreamSubscription<QiblahDirection>? _subscription;
+  Timer? _debounceTimer;
+  int _eventCount = 0;
+  bool _isAppResumed = true;
 
   @override
   void initState() {
     super.initState();
-    // تأخير 300 ملي ثانية لعلاج الـ Race Condition في قناة الـ Native
-    // بحيث نعطي النظام وقت يقفل البوصلة القديمة قبل ما يفتح الجديدة لو اليوزر فتح الشاشة وقفلها بسرعة
-    Future.delayed(const Duration(milliseconds: 300), () {
-      if (mounted) {
-        setState(() {
-          _qiblahStream = FlutterQiblah.qiblahStream;
-        });
+    WidgetsBinding.instance.addObserver(this);
+    if (widget.isActive) {
+      _startListening();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _QiblaCompassWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive != oldWidget.isActive) {
+      if (widget.isActive && _isAppResumed) {
+        _startListening();
+      } else {
+        _stopListening();
       }
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _isAppResumed = true;
+      if (widget.isActive && _subscription == null && _debounceTimer == null) {
+        _startListening();
+      }
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      _isAppResumed = false;
+      _stopListening();
+    }
+  }
+
+  void _startListening() {
+    if (_debounceTimer != null || _subscription != null) return;
+
+    // تأخير 300 ملي ثانية لعلاج الـ Race Condition في قناة الـ Native
+    // وتفادي تفعيل السنسور أثناء التمرير السريع بين التبويبات
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+      _debounceTimer = null;
+      if (!mounted || !widget.isActive || !_isAppResumed) return;
+
+      debugPrint('[HafizQibla] Subscribing to qiblahStream (isActive: true)');
+      _eventCount = 0;
+      _subscription = FlutterQiblah.qiblahStream.listen(
+        (direction) {
+          _eventCount++;
+          if (_eventCount <= 3 || _eventCount % 100 == 0) {
+            debugPrint(
+              '[HafizQibla] Event #$_eventCount: direction=${direction.direction.toStringAsFixed(1)}°, qiblah=${direction.qiblah.toStringAsFixed(1)}°',
+            );
+          }
+          if (mounted) {
+            setState(() {
+              _lastDirection = direction;
+            });
+          }
+        },
+        onError: (error) {
+          debugPrint('[HafizQibla] Sensor stream error: $error');
+        },
+      );
     });
+  }
+
+  void _stopListening() {
+    if (_debounceTimer != null) {
+      _debounceTimer!.cancel();
+      _debounceTimer = null;
+    }
+    if (_subscription != null) {
+      _subscription!.cancel();
+      _subscription = null;
+      debugPrint(
+        '[HafizQibla] Cancelled qiblahStream subscription (total events: $_eventCount)',
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _stopListening();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_qiblahStream == null) {
-      return _buildUI(context, _lastDirection ?? const QiblahDirection(0, 0, 0));
-    }
+    final qiblahDirection =
+        _lastDirection ?? const QiblahDirection(0, 0, 0);
 
-    return StreamBuilder<QiblahDirection>(
-      stream: _qiblahStream,
-      builder: (_, AsyncSnapshot<QiblahDirection> snapshot) {
-        if (snapshot.hasData) {
-          _lastDirection = snapshot.data;
-        }
-
-        final qiblahDirection = snapshot.data ?? _lastDirection ?? const QiblahDirection(0, 0, 0);
-
-        return _buildUI(context, qiblahDirection);
-      },
-    );
+    return _buildUI(context, qiblahDirection);
   }
 
   Widget _buildUI(BuildContext context, QiblahDirection qiblahDirection) {
@@ -200,7 +269,7 @@ class _QiblaCompassWidgetState extends State<_QiblaCompassWidget> {
     );
   }
 }
-// ... دالة _showCalibrationDialog ودالة _buildInstructionRow زي ما هما مفيش فيهم تغيير
+
 void _showCalibrationDialog(BuildContext context) {
   showDialog(
     context: context,
@@ -282,7 +351,6 @@ void _showCalibrationDialog(BuildContext context) {
   );
 }
 
-// 👈 بصينا الـ context عشان نقدر نقرأ الألوان الدايناميك
 Widget _buildInstructionRow(BuildContext context, String number, String text) {
   return Row(
     crossAxisAlignment: CrossAxisAlignment.start,

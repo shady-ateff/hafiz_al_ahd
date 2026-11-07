@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:alarm/alarm.dart';
 import 'package:alarm/utils/alarm_set.dart';
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:hafiz_al_ahd/app/view/app.dart';
@@ -18,7 +17,6 @@ import 'package:hafiz_al_ahd/features/notifications/presentation/screens/adhan_s
 import 'package:hijri/hijri_calendar.dart';
 import 'package:launch_at_startup/launch_at_startup.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter_timezone/flutter_timezone.dart';
@@ -28,6 +26,7 @@ import 'package:hafiz_al_ahd/features/notifications/data/repos/notification_repo
 // 👈 الدالة دي بتتحط بره أي كلاس، مثلاً في ملف منفصل أو فوق في main.dart
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
 bool _isAdhanScreenActive = false; // 👈 علم لمنع فتح الشاشة مرتين
 
 void _openAdhanScreen({required String payload, int? notificationId, String? prayerName}) {
@@ -50,13 +49,18 @@ void _openAdhanScreen({required String payload, int? notificationId, String? pra
 
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
-  await AndroidAlarmManager.initialize();
-  await Alarm.init(); // 👈 تهيئة باكيدج المنبه (للأذان)
+  if (Platform.isAndroid) {
+    await AndroidAlarmManager.initialize();
+  }
 
-  // 👈 منطق تهجير (Migration) للمستخدمين القدامى: مسح الإشعار الثابت القديم (الوهمي) اللي كان رقمه 999
-  FlutterLocalNotificationsPlugin().cancel(id: 999);
+  if (Platform.isAndroid || Platform.isIOS) {
+    await Alarm.init(); // 👈 تهيئة باكيدج المنبه (للأذان)
 
-  await BackgroundServiceManager.initializeService(); // 👈 تهيئة خدمة الخلفية الحقيقية (للإشعار الثابت)
+    // 👈 منطق تهجير (Migration) للمستخدمين القدامى: مسح الإشعار الثابت القديم (الوهمي) اللي كان رقمه 999
+    FlutterLocalNotificationsPlugin().cancel(id: 999);
+
+    await BackgroundServiceManager.initializeService(); // 👈 تهيئة خدمة الخلفية الحقيقية (للإشعار الثابت)
+  }
   // ---------------------------------------------------------
   // 1. تهيئة المنطقة الزمنية (عشان نمنع ضرب الإشعارات كلها مع بعض)
   // ---------------------------------------------------------
@@ -135,8 +139,9 @@ void main(List<String> args) async {
   // 7. بعد ما الـ Navigator يبقى جاهز، نعمل كل حاجة تانية
   // ---------------------------------------------------------
   WidgetsBinding.instance.addPostFrameCallback((_) async {
-    // 7a. الاستماع لباكيدج المنبه (alarm) — لما الأذان يرن
-    Alarm.ringing.listen((AlarmSet alarmSet) async {
+    // 7a. الاستماع لباكيدج المنبه (alarm) — لما الأذان يرن (فقط على أندرويد و iOS)
+    if (Platform.isAndroid || Platform.isIOS) {
+      Alarm.ringing.listen((AlarmSet alarmSet) async {
       // إذا كان هناك منبهات متعددة رنت في نفس اللحظة (مثلاً الجهاز كان مغلقاً)، نحتفظ بالأحدث فقط
       AlarmSettings? latestAlarm;
       for (final alarm in alarmSet.alarms) {
@@ -166,6 +171,7 @@ void main(List<String> args) async {
         );
       }
     });
+    }
 
     // 7b. التحقق من إشعارات flutter_local_notifications (عشان نعرف لو اليوزر داس على حاجة)
     final NotificationAppLaunchDetails? notificationAppLaunchDetails =

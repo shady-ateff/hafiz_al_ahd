@@ -10,7 +10,6 @@ import 'package:hafiz_al_ahd/features/home/domain/usecases/get_cached_location_u
 import 'package:hafiz_al_ahd/features/home/domain/usecases/get_prayer_times_use_case.dart';
 import 'package:hafiz_al_ahd/features/home/domain/usecases/save_location_usecase.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit/prayer_times_cubit.dart';
-import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit/prayer_times_states.dart';
 import 'package:hafiz_al_ahd/features/notifications/data/repos/notification_repository_impl.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/repos/base_notification_repository.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/usecases/cancel_all_notfication_usecase.dart';
@@ -27,9 +26,28 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hafiz_al_ahd/features/quran/data/datasources/quran_local_data_source.dart';
 import 'package:hafiz_al_ahd/features/quran/domain/repositories/base_quran_repository.dart';
 import 'package:hafiz_al_ahd/features/quran/data/repositories/quran_repository_impl.dart';
+import 'package:hafiz_al_ahd/features/quran/data/datasources/quran_mapping_local_data_source.dart';
+import 'package:hafiz_al_ahd/features/quran/domain/repositories/base_quran_mapping_repository.dart';
+import 'package:hafiz_al_ahd/features/quran/data/repositories/quran_mapping_repository_impl.dart';
 import 'package:hafiz_al_ahd/features/quran/domain/usecases/get_quran_page_use_case.dart';
 import 'package:hafiz_al_ahd/features/quran/presentation/cubit/quran_cubit.dart';
 import 'package:hafiz_al_ahd/features/quran/presentation/cubit/quran_settings_cubit.dart';
+import 'package:hafiz_al_ahd/features/quran/presentation/cubit/quran_bookmark_cubit.dart';
+import 'package:hafiz_al_ahd/features/quran/presentation/services/quran_clipboard_service.dart';
+import 'package:hafiz_al_ahd/features/quran/presentation/services/quran_share_service.dart';
+import 'package:hafiz_al_ahd/features/quran/data/datasources/quran_bookmark_local_data_source.dart';
+import 'package:hafiz_al_ahd/features/quran/domain/repositories/quran_bookmark_repository.dart';
+import 'package:hafiz_al_ahd/features/quran/data/repositories/quran_bookmark_repository_impl.dart';
+import 'package:hafiz_al_ahd/features/quran/domain/usecases/add_quran_bookmark_use_case.dart';
+import 'package:hafiz_al_ahd/features/quran/domain/usecases/get_quran_bookmarks_use_case.dart';
+import 'package:hafiz_al_ahd/features/quran/domain/usecases/toggle_quran_bookmark_use_case.dart';
+import 'package:hafiz_al_ahd/features/quran/domain/usecases/is_ayah_bookmarked_use_case.dart';
+import 'package:hafiz_al_ahd/features/quran/domain/usecases/remove_quran_bookmark_use_case.dart';
+import 'package:hafiz_al_ahd/features/quran/data/datasources/quran_tafseer_local_data_source.dart';
+import 'package:hafiz_al_ahd/features/quran/domain/repositories/quran_tafseer_repository.dart';
+import 'package:hafiz_al_ahd/features/quran/data/repositories/quran_tafseer_repository_impl.dart';
+import 'package:hafiz_al_ahd/features/quran/domain/usecases/get_quran_tafseer_use_case.dart';
+import 'package:hafiz_al_ahd/features/quran/presentation/cubit/quran_tafseer_cubit.dart';
 
 // سميناه sl اختصاراً لـ Service Locator
 final sl = GetIt.instance;
@@ -125,7 +143,50 @@ Future<void> init() async {
   sl.registerLazySingleton<BaseQuranRepository>(
     () => QuranRepositoryImpl(localDataSource: sl()),
   );
+  sl.registerLazySingleton<BaseQuranMappingLocalDataSource>(
+    () => QuranMappingLocalDataSourceImpl(),
+  );
+  sl.registerLazySingleton<BaseQuranMappingRepository>(
+    () => QuranMappingRepositoryImpl(localDataSource: sl()),
+  );
   sl.registerLazySingleton(() => GetQuranPageUseCase(sl()));
-  sl.registerFactory(() => QuranCubit(getQuranPageUseCase: sl()));
+  sl.registerFactory(
+    () => QuranCubit(getQuranPageUseCase: sl(), mappingRepository: sl()),
+  );
   sl.registerFactory(() => QuranSettingsCubit(sharedPreferences: sl()));
+  sl.registerLazySingleton<QuranClipboardService>(
+    () => const QuranClipboardService(),
+  );
+  sl.registerLazySingleton<QuranShareService>(() => QuranShareService());
+
+  // Quran Bookmarks (Phase 2.6.3.4)
+  sl.registerLazySingleton<BaseQuranBookmarkLocalDataSource>(
+    () => QuranBookmarkLocalDataSourceImpl(sharedPreferences: sl()),
+  );
+  sl.registerLazySingleton<QuranBookmarkRepository>(
+    () => QuranBookmarkRepositoryImpl(localDataSource: sl()),
+  );
+  sl.registerLazySingleton(() => GetQuranBookmarksUseCase(sl()));
+  sl.registerLazySingleton(() => AddQuranBookmarkUseCase(sl()));
+  sl.registerLazySingleton(() => ToggleQuranBookmarkUseCase(sl()));
+  sl.registerLazySingleton(() => IsAyahBookmarkedUseCase(sl()));
+  sl.registerLazySingleton(() => RemoveQuranBookmarkUseCase(sl()));
+  sl.registerFactory(
+    () => QuranBookmarkCubit(
+      getBookmarksUseCase: sl(),
+      toggleBookmarkUseCase: sl(),
+      removeBookmarkUseCase: sl(),
+      addBookmarkUseCase: sl(),
+    ),
+  );
+
+  // Quran Tafseer (Phase 2.6.3.5)
+  sl.registerLazySingleton<BaseQuranTafseerLocalDataSource>(
+    () => QuranTafseerLocalDataSourceImpl(),
+  );
+  sl.registerLazySingleton<QuranTafseerRepository>(
+    () => QuranTafseerRepositoryImpl(localDataSource: sl()),
+  );
+  sl.registerLazySingleton(() => GetQuranTafseerUseCase(sl()));
+  sl.registerFactory(() => QuranTafseerCubit(getQuranTafseerUseCase: sl()));
 }

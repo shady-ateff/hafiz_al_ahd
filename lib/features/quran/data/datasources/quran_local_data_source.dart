@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:developer';
+import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
@@ -12,6 +13,56 @@ abstract class BaseQuranLocalDataSource {
 
 class QuranLocalDataSourceImpl implements BaseQuranLocalDataSource {
   static Database? _database;
+  static Map<int, QuranPageModel>? _inMemoryPages;
+  static Future<void>? _loadPagesFuture;
+
+  bool get _isDesktop =>
+      Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+
+  Future<void> _loadPagesFromAsset() async {
+    if (_inMemoryPages != null && _inMemoryPages!.isNotEmpty) return;
+    if (_loadPagesFuture != null) {
+      await _loadPagesFuture;
+      return;
+    }
+
+    _loadPagesFuture = _loadPagesFromAssetCore();
+    await _loadPagesFuture;
+  }
+
+  Future<void> _loadPagesFromAssetCore() async {
+    if (_inMemoryPages != null && _inMemoryPages!.isNotEmpty) return;
+    try {
+      final String jsonData =
+          await rootBundle.loadString('assets/quran/mushaf/quran_lines.json');
+      final List<dynamic> pages = jsonDecode(jsonData);
+      final Map<int, QuranPageModel> map = {};
+
+      for (var pageObj in pages) {
+        final int pageNumber = pageObj['page_number'] as int;
+        final List<dynamic> linesList = pageObj['lines'] as List<dynamic>;
+
+        final List<QuranLineModel> lines = [];
+        for (var line in linesList) {
+          lines.add(QuranLineModel(
+            lineNumber: line['line_number'] as int,
+            surahNumber: line['surah_number'] as int,
+            text: line['text'].toString().trim(),
+          ));
+        }
+
+        map[pageNumber] = QuranPageModel(
+          pageNumber: pageNumber,
+          lines: lines,
+        );
+      }
+      _inMemoryPages = map;
+      log("✅ Loaded ${_inMemoryPages!.length} Quran pages into in-memory cache.");
+    } catch (e) {
+      log("❌ Error loading Quran pages from asset: $e");
+      rethrow;
+    }
+  }
 
   Future<Database> get database async {
     if (_database != null) return _database!;
@@ -53,6 +104,12 @@ class QuranLocalDataSourceImpl implements BaseQuranLocalDataSource {
 
   @override
   Future<void> initDatabase() async {
+    if (_isDesktop) {
+      log("🖥️ Desktop platform detected: Initializing in-memory Quran cache...");
+      await _loadPagesFromAsset();
+      return;
+    }
+
     if (_initFuture != null) {
       await _initFuture;
       return;
@@ -63,24 +120,23 @@ class QuranLocalDataSourceImpl implements BaseQuranLocalDataSource {
   }
 
   Future<void> _initDatabaseCore() async {
-    final db = await database;
-    
-    // تأكد إذا كانت الداتا بيز مليانة ولا فاضية
-    int count = Sqflite.firstIntValue(
-      await db.rawQuery('SELECT COUNT(*) FROM quran_pages'),
-    ) ?? 0;
+    try {
+      final db = await database;
+      
+      int count = Sqflite.firstIntValue(
+        await db.rawQuery('SELECT COUNT(*) FROM quran_pages'),
+      ) ?? 0;
 
-    // FORCE RESET FOR DEBUGGING:
-    log("⚠️ Forcing Quran DB Reset...");
-    await db.delete('quran_pages');
-    count = 0;
-
-    if (count == 0) {
-      log("⏳ Seeding Quran database from quran_lines.json...");
-      await _seedDatabase(db);
-      log("✅ Quran database seeded successfully.");
-    } else {
-      log("✅ Quran database already seeded. Lines count: $count");
+      if (count == 0) {
+        log("⏳ Seeding Quran database from quran_lines.json...");
+        await _seedDatabase(db);
+        log("✅ Quran database seeded successfully.");
+      } else {
+        log("✅ Quran database already seeded. Lines count: $count");
+      }
+    } catch (e) {
+      log("⚠️ SQLite init failed, falling back to asset loader: $e");
+      await _loadPagesFromAsset();
     }
   }
 
@@ -95,7 +151,6 @@ class QuranLocalDataSourceImpl implements BaseQuranLocalDataSource {
         final int pageNumber = pageObj['page_number'] as int;
         final List<dynamic> lines = pageObj['lines'] as List<dynamic>;
 
-        int currentLineNumber = 1;
         for (var line in lines) {
           final String textQcf = line['text'].toString().trim();
           final int lineNumber = line['line_number'] as int;
@@ -120,29 +175,55 @@ class QuranLocalDataSourceImpl implements BaseQuranLocalDataSource {
 
   @override
   Future<QuranPageModel> getPage(int pageNumber) async {
-    final db = await database;
-    final List<Map<String, dynamic>> maps = await db.query(
-      'quran_pages',
-      where: 'page_number = ?',
-      whereArgs: [pageNumber],
-      orderBy: 'line_number ASC',
-    );
-
-    if (maps.isEmpty) {
-      throw Exception("Page $pageNumber not found");
+    // 1. If running on desktop, strictly use in-memory asset loader.
+    // sqflite does not support Windows/Linux/macOS desktop without sqflite_common_ffi native setup.
+    if (_isDesktop) {
+      await _loadPagesFromAsset();
+      final page = _inMemoryPages?[pageNumber];
+      if (page != null) return page;
+      throw Exception("Page $pageNumber not found in Quran asset cache");
     }
 
-    final List<QuranLineModel> lines = maps.map((map) {
-      return QuranLineModel(
-        lineNumber: map['line_number'] as int,
-        surahNumber: map['surah_number'] as int,
-        text: map['text_qcf'] as String,
-      );
-    }).toList();
+    // 2. If in-memory pages are already cached, use them directly
+    if (_inMemoryPages != null && _inMemoryPages!.containsKey(pageNumber)) {
+      return _inMemoryPages![pageNumber]!;
+    }
 
-    return QuranPageModel(
-      pageNumber: pageNumber,
-      lines: lines,
-    );
+    // 3. For mobile platforms (Android/iOS), query SQLite with asset fallback
+    try {
+      final db = await database;
+      final List<Map<String, dynamic>> maps = await db.query(
+        'quran_pages',
+        where: 'page_number = ?',
+        whereArgs: [pageNumber],
+        orderBy: 'line_number ASC',
+      );
+
+      if (maps.isEmpty) {
+        await _loadPagesFromAsset();
+        final fallbackPage = _inMemoryPages?[pageNumber];
+        if (fallbackPage != null) return fallbackPage;
+        throw Exception("Page $pageNumber not found");
+      }
+
+      final List<QuranLineModel> lines = maps.map((map) {
+        return QuranLineModel(
+          lineNumber: map['line_number'] as int,
+          surahNumber: map['surah_number'] as int,
+          text: map['text_qcf'] as String,
+        );
+      }).toList();
+
+      return QuranPageModel(
+        pageNumber: pageNumber,
+        lines: lines,
+      );
+    } catch (e) {
+      log("⚠️ getPage SQLite query failed, falling back to asset: $e");
+      await _loadPagesFromAsset();
+      final page = _inMemoryPages?[pageNumber];
+      if (page != null) return page;
+      throw Exception("Page $pageNumber not found");
+    }
   }
 }

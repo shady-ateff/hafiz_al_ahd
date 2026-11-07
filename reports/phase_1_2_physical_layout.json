@@ -1,0 +1,4850 @@
+{
+  "summary": {
+    "total_pages": 604,
+    "total_physical_lines": 9060,
+    "expected_physical_lines": 9060,
+    "breakdown": {
+      "text_lines": 8820,
+      "surah_header_lines": 114,
+      "independent_basmalah_lines": 112,
+      "decorative_frame_gap_lines": 14
+    },
+    "mathematical_formula": "8820 (text) + 114 (headers) + 112 (basmalahs) + 14 (decorative) = 9060",
+    "difference_explained": "9060 - 8820 = 240 non-text lines (114 surah headers + 112 independent basmalahs + 14 frame gaps on pages 1 & 2)",
+    "verdict": "PASS"
+  },
+  "pages": [
+    {
+      "page": 1,
+      "text_lines": 7,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 7,
+      "total_page_lines": 15
+    },
+    {
+      "page": 2,
+      "text_lines": 6,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 7,
+      "total_page_lines": 15
+    },
+    {
+      "page": 3,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 4,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 5,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 6,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 7,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 8,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 9,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 10,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 11,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 12,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 13,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 14,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 15,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 16,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 17,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 18,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 19,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 20,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 21,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 22,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 23,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 24,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 25,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 26,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 27,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 28,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 29,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 30,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 31,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 32,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 33,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 34,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 35,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 36,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 37,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 38,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 39,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 40,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 41,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 42,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 43,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 44,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 45,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 46,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 47,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 48,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 49,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 50,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 51,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 52,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 53,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 54,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 55,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 56,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 57,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 58,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 59,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 60,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 61,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 62,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 63,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 64,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 65,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 66,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 67,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 68,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 69,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 70,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 71,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 72,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 73,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 74,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 75,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 76,
+      "text_lines": 14,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 77,
+      "text_lines": 14,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 78,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 79,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 80,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 81,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 82,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 83,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 84,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 85,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 86,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 87,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 88,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 89,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 90,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 91,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 92,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 93,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 94,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 95,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 96,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 97,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 98,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 99,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 100,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 101,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 102,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 103,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 104,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 105,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 106,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 107,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 108,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 109,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 110,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 111,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 112,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 113,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 114,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 115,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 116,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 117,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 118,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 119,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 120,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 121,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 122,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 123,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 124,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 125,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 126,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 127,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 128,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 129,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 130,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 131,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 132,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 133,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 134,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 135,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 136,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 137,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 138,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 139,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 140,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 141,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 142,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 143,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 144,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 145,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 146,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 147,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 148,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 149,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 150,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 151,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 152,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 153,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 154,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 155,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 156,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 157,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 158,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 159,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 160,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 161,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 162,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 163,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 164,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 165,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 166,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 167,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 168,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 169,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 170,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 171,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 172,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 173,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 174,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 175,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 176,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 177,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 178,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 179,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 180,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 181,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 182,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 183,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 184,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 185,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 186,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 187,
+      "text_lines": 14,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 188,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 189,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 190,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 191,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 192,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 193,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 194,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 195,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 196,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 197,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 198,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 199,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 200,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 201,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 202,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 203,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 204,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 205,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 206,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 207,
+      "text_lines": 14,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 208,
+      "text_lines": 14,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 209,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 210,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 211,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 212,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 213,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 214,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 215,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 216,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 217,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 218,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 219,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 220,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 221,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 222,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 223,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 224,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 225,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 226,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 227,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 228,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 229,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 230,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 231,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 232,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 233,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 234,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 235,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 236,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 237,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 238,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 239,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 240,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 241,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 242,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 243,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 244,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 245,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 246,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 247,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 248,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 249,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 250,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 251,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 252,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 253,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 254,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 255,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 256,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 257,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 258,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 259,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 260,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 261,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 262,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 263,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 264,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 265,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 266,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 267,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 268,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 269,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 270,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 271,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 272,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 273,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 274,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 275,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 276,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 277,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 278,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 279,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 280,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 281,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 282,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 283,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 284,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 285,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 286,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 287,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 288,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 289,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 290,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 291,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 292,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 293,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 294,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 295,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 296,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 297,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 298,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 299,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 300,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 301,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 302,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 303,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 304,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 305,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 306,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 307,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 308,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 309,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 310,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 311,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 312,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 313,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 314,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 315,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 316,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 317,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 318,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 319,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 320,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 321,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 322,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 323,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 324,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 325,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 326,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 327,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 328,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 329,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 330,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 331,
+      "text_lines": 14,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 332,
+      "text_lines": 14,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 333,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 334,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 335,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 336,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 337,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 338,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 339,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 340,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 341,
+      "text_lines": 14,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 342,
+      "text_lines": 14,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 343,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 344,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 345,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 346,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 347,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 348,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 349,
+      "text_lines": 14,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 350,
+      "text_lines": 14,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 351,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 352,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 353,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 354,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 355,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 356,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 357,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 358,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 359,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 360,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 361,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 362,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 363,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 364,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 365,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 366,
+      "text_lines": 14,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 367,
+      "text_lines": 14,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 368,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 369,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 370,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 371,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 372,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 373,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 374,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 375,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 376,
+      "text_lines": 14,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 377,
+      "text_lines": 14,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 378,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 379,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 380,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 381,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 382,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 383,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 384,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 385,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 386,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 387,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 388,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 389,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 390,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 391,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 392,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 393,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 394,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 395,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 396,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 397,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 398,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 399,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 400,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 401,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 402,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 403,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 404,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 405,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 406,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 407,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 408,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 409,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 410,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 411,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 412,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 413,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 414,
+      "text_lines": 14,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 415,
+      "text_lines": 14,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 416,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 417,
+      "text_lines": 14,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 418,
+      "text_lines": 14,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 419,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 420,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 421,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 422,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 423,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 424,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 425,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 426,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 427,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 428,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 429,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 430,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 431,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 432,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 433,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 434,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 435,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 436,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 437,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 438,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 439,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 440,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 441,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 442,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 443,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 444,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 445,
+      "text_lines": 14,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 446,
+      "text_lines": 14,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 447,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 448,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 449,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 450,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 451,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 452,
+      "text_lines": 14,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 453,
+      "text_lines": 14,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 454,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 455,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 456,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 457,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 458,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 459,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 460,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 461,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 462,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 463,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 464,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 465,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 466,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 467,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 468,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 469,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 470,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 471,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 472,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 473,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 474,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 475,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 476,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 477,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 478,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 479,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 480,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 481,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 482,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 483,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 484,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 485,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 486,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 487,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 488,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 489,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 490,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 491,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 492,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 493,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 494,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 495,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 496,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 497,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 498,
+      "text_lines": 14,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 499,
+      "text_lines": 14,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 500,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 501,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 502,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 503,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 504,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 505,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 506,
+      "text_lines": 14,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 507,
+      "text_lines": 14,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 508,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 509,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 510,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 511,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 512,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 513,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 514,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 515,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 516,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 517,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 518,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 519,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 520,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 521,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 522,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 523,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 524,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 525,
+      "text_lines": 14,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 526,
+      "text_lines": 14,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 527,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 528,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 529,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 530,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 531,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 532,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 533,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 534,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 535,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 536,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 537,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 538,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 539,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 540,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 541,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 542,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 543,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 544,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 545,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 546,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 547,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 548,
+      "text_lines": 14,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 549,
+      "text_lines": 14,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 550,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 551,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 552,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 553,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 554,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 555,
+      "text_lines": 14,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 556,
+      "text_lines": 14,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 557,
+      "text_lines": 14,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 558,
+      "text_lines": 14,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 559,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 560,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 561,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 562,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 563,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 564,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 565,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 566,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 567,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 568,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 569,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 570,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 571,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 572,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 573,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 574,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 575,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 576,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 577,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 578,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 579,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 580,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 581,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 582,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 583,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 584,
+      "text_lines": 14,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 585,
+      "text_lines": 14,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 586,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 587,
+      "text_lines": 11,
+      "surah_headers": 2,
+      "independent_basmalah_lines": 2,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 588,
+      "text_lines": 15,
+      "surah_headers": 0,
+      "independent_basmalah_lines": 0,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 589,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 590,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 591,
+      "text_lines": 11,
+      "surah_headers": 2,
+      "independent_basmalah_lines": 2,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 592,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 593,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 594,
+      "text_lines": 13,
+      "surah_headers": 1,
+      "independent_basmalah_lines": 1,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 595,
+      "text_lines": 11,
+      "surah_headers": 2,
+      "independent_basmalah_lines": 2,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 596,
+      "text_lines": 11,
+      "surah_headers": 2,
+      "independent_basmalah_lines": 2,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 597,
+      "text_lines": 11,
+      "surah_headers": 2,
+      "independent_basmalah_lines": 2,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 598,
+      "text_lines": 11,
+      "surah_headers": 2,
+      "independent_basmalah_lines": 2,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 599,
+      "text_lines": 11,
+      "surah_headers": 2,
+      "independent_basmalah_lines": 2,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 600,
+      "text_lines": 11,
+      "surah_headers": 2,
+      "independent_basmalah_lines": 2,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 601,
+      "text_lines": 9,
+      "surah_headers": 3,
+      "independent_basmalah_lines": 3,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 602,
+      "text_lines": 9,
+      "surah_headers": 3,
+      "independent_basmalah_lines": 3,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 603,
+      "text_lines": 9,
+      "surah_headers": 3,
+      "independent_basmalah_lines": 3,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    },
+    {
+      "page": 604,
+      "text_lines": 9,
+      "surah_headers": 3,
+      "independent_basmalah_lines": 3,
+      "decorative_lines": 0,
+      "total_page_lines": 15
+    }
+  ]
+}
