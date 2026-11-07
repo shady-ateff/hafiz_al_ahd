@@ -6,9 +6,10 @@ import 'package:hafiz_al_ahd/core/theme/cubit/theme_cubit.dart';
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
 import 'package:hafiz_al_ahd/core/widgets/gradient_text.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:hafiz_al_ahd/core/services/rating_reminder_service.dart';
 
 class AboutAppScreen extends StatelessWidget {
-  const AboutAppScreen({Key? key}) : super(key: key);
+  const AboutAppScreen({super.key});
 
   Future<void> _launchUrl(String urlString) async {
     final Uri url = Uri.parse(urlString);
@@ -121,37 +122,56 @@ class AboutAppScreen extends StatelessWidget {
             const SizedBox(height: 12),
             _buildFeatureItem(
               'مواقيت الصلاة الدقيقة',
-              'حساب دقيق لأوقات الصلاة بناءً على موقعك الجغرافي.',
+              'حساب فلكي دقيق لأوقات الصلاة بناءً على موقعك الجغرافي وروزنامة بلدك المعتمدة.',
               Icons.access_time_filled_rounded,
               textColor,
             ),
             _buildFeatureItem(
-              'القرآن الكريم',
-              'مصحف المدينة المنورة مطابق تماماً للنسخة الورقية بخط واضح مع دعم القراءة الليلية.',
+              'المصحف التفاعلي الذكي',
+              'مطابقة تامة لمصحف المدينة الورقي (QCFv2) مع إمكانية النقر واختيار وتظليل الآيات وسهولة التصفح.',
               Icons.auto_stories_rounded,
               textColor,
             ),
             _buildFeatureItem(
-              'إشعارات وتنبيهات',
-              'تنبيهات مخصصة لكل صلاة.',
+              'التفسير الميسر المدمج (بدون إنترنت)',
+              'عرض فوري لتفسير ومعاني الآيات بمجرد النقر عليها دون الحاجة لأي اتصال بالإنترنت.',
+              Icons.menu_book_rounded,
+              textColor,
+            ),
+            _buildFeatureItem(
+              'الفواصل والإشارات المرجعية الملونة',
+              'حفظ مواضع القراءة والآيات مع وسوم ملونة مخصصة وتسميات توضيحية لسهولة الرجوع.',
+              Icons.bookmark_added_rounded,
+              textColor,
+            ),
+            _buildFeatureItem(
+              'مشاركة وبطاقات الآيات',
+              'توليد بطاقات صور إسلامية فائقة الجودة للآيات القرآنية ونسخ ومشاركة النصوص بسهولة.',
+              Icons.share_rounded,
+              textColor,
+            ),
+            
+            _buildFeatureItem(
+              'الأذكار وحصن المسلم',
+              'أذكار الصباح والمساء وما بعد الصلاة مع مسبحة إلكترونية وتتبع ذكي للأوراد اليومية.',
+              Icons.spa_rounded,
+              textColor,
+            ),
+            _buildFeatureItem(
+              'إشعارات وتنبيهات الأذان',
+              'تنبيهات مخصصة لكل صلاة، مع إشعار دائم والتحديث التلقائي للتوقيت الصيفي والشتوي.',
               Icons.notifications_active_rounded,
               textColor,
             ),
             _buildFeatureItem(
               'اتجاه القبلة',
-              'بوصلة دقيقة وسريعة لتحديد اتجاه القبلة أينما كنت.',
+              'بوصلة دقيقة وسريعة لتحديد اتجاه القبلة أينما كنت حول العالم.',
               Icons.explore_rounded,
               textColor,
             ),
             _buildFeatureItem(
-              'الأذكار اليومية',
-              'حصن المسلم من أذكار الصباح والمساء، وأذكار ما بعد الصلاة.',
-              Icons.menu_book_rounded,
-              textColor,
-            ),
-            _buildFeatureItem(
-              'تصميم عصري',
-              'واجهة مستخدم (UI/UX) نظيفة وسريعة توفر لك تجربة استخدام استثنائية.',
+              'تصميم عصري وهادئ',
+              'واجهة مستخدم نظيفة وسريعة تدعم الوضعين الليلي والنهاري وتوفر تجربة استخدام استثنائية.',
               Icons.palette_rounded,
               textColor,
             ),
@@ -220,7 +240,7 @@ class AboutAppScreen extends StatelessWidget {
                   ),
                   _buildDetailRow(
                     'تاريخ التحديث',
-                    '07/09/2026',
+                    '07/11/2026',
                     textColor,
                     dividerColor,
                   ),
@@ -328,6 +348,62 @@ class AboutAppScreen extends StatelessWidget {
                               color: textColor,
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      color: AppColors.secondaryGold,
+                      size: 16,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // Google Play Rating
+            InkWell(
+              onTap: () => RatingReminderService.showRatingDialog(context),
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: cardColor,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: AppColors.secondaryGold.withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.star_rounded,
+                      color: AppColors.secondaryGold,
+                      size: 28,
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'تقييم التطبيق على متجر Google Play',
+                            style: GoogleFonts.cairo(
+                              color: textColor,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            'رأيك يسعدنا ويدعم استمرار التطبيق',
+                            style: GoogleFonts.cairo(
+                              color: textColor.withOpacity(0.6),
+                              fontSize: 14,
                             ),
                           ),
                         ],

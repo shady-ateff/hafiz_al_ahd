@@ -4,7 +4,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hafiz_al_ahd/core/theme/cubit/theme_cubit.dart';
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
 import 'package:hafiz_al_ahd/core/widgets/app_loader.dart';
-import 'package:hafiz_al_ahd/core/widgets/gradient_text.dart';
 import 'package:hafiz_al_ahd/core/DI/service_locator.dart';
 import 'package:hafiz_al_ahd/features/home/domain/usecases/get_cached_location_usecase.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit/prayer_times_cubit.dart';
@@ -13,6 +12,7 @@ import 'package:hafiz_al_ahd/features/settings/domain/usecases/get_iqama_delays_
 import 'package:hafiz_al_ahd/features/settings/domain/usecases/save_iqama_delays_usecase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hafiz_al_ahd/features/settings/presentation/screens/about_app_screen.dart';
+import 'package:hafiz_al_ahd/core/services/rating_reminder_service.dart';
 import 'package:hafiz_al_ahd/features/quran/presentation/widgets/quran_theme_bottom_sheet.dart'
     as hafiz_quran_theme;
 import 'package:hafiz_al_ahd/core/utils/calculation_method_helper.dart';
@@ -1251,6 +1251,54 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               Expanded(
                                 child: Text(
                                   'معلومات عن التطبيق والمطور',
+                                  style: GoogleFonts.cairo(
+                                    color: textColor,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                              const Icon(
+                                Icons.arrow_forward_ios_rounded,
+                                color: AppColors.secondaryGold,
+                                size: 16,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    InkWell(
+                      onTap: () {
+                        RatingReminderService.showRatingDialog(context);
+                      },
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: cardColor,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: AppColors.secondaryGold.withOpacity(0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 16,
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.star_rounded,
+                                color: AppColors.secondaryGold,
+                                size: 24,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'تقييم التطبيق على متجر Google Play',
                                   style: GoogleFonts.cairo(
                                     color: textColor,
                                     fontSize: 16,

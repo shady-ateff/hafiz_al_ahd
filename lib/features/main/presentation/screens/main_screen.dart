@@ -16,6 +16,7 @@ import 'package:hafiz_al_ahd/features/gamification/presentation/widgets/achievem
 import 'package:hafiz_al_ahd/features/quran/presentation/cubit/quran_cubit.dart';
 import 'package:hafiz_al_ahd/features/quran/presentation/cubit/quran_state.dart';
 import 'package:hafiz_al_ahd/core/widgets/app_snackbar.dart';
+import 'package:hafiz_al_ahd/core/services/rating_reminder_service.dart';
 
 class MainScreen extends StatefulWidget {
   final int initialTab;
@@ -38,6 +39,11 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     // 👈 2. تهيئة الاتجاه الافتراضي
     _updateOrientation(_currentIndex);
     WidgetsBinding.instance.addObserver(this);
+
+    // التحقق بأدب من تذكير تقييم التطبيق
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      RatingReminderService.checkAndShowPrompt(context);
+    });
   }
 
   @override
