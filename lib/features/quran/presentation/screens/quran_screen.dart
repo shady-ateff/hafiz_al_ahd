@@ -28,6 +28,7 @@ import '../cubit/quran_bookmark_state.dart';
 import '../widgets/quran_bookmarks_bottom_sheet.dart';
 import '../widgets/quran_bookmark_edit_sheet.dart';
 import '../widgets/quran_tafseer_bottom_sheet.dart';
+import '../services/quran_atlas_prewarmer.dart';
 
 class QuranScreen extends StatefulWidget {
   final int? initialPage;
@@ -35,6 +36,7 @@ class QuranScreen extends StatefulWidget {
   final ValueChanged<QuranWord>? onWordLongPressed;
   final QuranClipboardService? clipboardService;
   final QuranShareService? shareService;
+  final BaseQuranAtlasPrewarmer? atlasPrewarmer;
 
   const QuranScreen({
     super.key,
@@ -43,6 +45,7 @@ class QuranScreen extends StatefulWidget {
     this.onWordLongPressed,
     this.clipboardService,
     this.shareService,
+    this.atlasPrewarmer,
   });
 
   static void showInstructionsDialog(BuildContext context) {
@@ -190,10 +193,15 @@ class QuranScreen extends StatefulWidget {
   State<QuranScreen> createState() => _QuranScreenState();
 }
 
-class _QuranScreenState extends State<QuranScreen> {
+class _QuranScreenState extends State<QuranScreen>
+    with WidgetsBindingObserver {
   late final PageController _pageController;
   late final ValueNotifier<int> _currentPageNotifier;
+  late final BaseQuranAtlasPrewarmer _atlasPrewarmer;
   bool _isFullScreen = false;
+  bool _isAppActive = true;
+
+  bool get _isRouteActive => ModalRoute.of(context)?.isCurrent ?? true;
 
   ModalBottomSheetRoute<void>? _activeAyahSheetRoute;
   bool _isAyahSheetOpen = false;
@@ -246,7 +254,17 @@ class _QuranScreenState extends State<QuranScreen> {
     final initial = widget.initialPage ?? 1;
     _pageController = PageController(initialPage: initial - 1);
     _currentPageNotifier = ValueNotifier<int>(initial);
+    _atlasPrewarmer = widget.atlasPrewarmer ?? QuranAtlasPrewarmer();
+    WidgetsBinding.instance.addObserver(this);
     _loadLastPage();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _isAppActive = state == AppLifecycleState.resumed;
+    if (!_isAppActive) {
+      _atlasPrewarmer.cancel();
+    }
   }
 
   Future<void> _loadLastPage() async {
@@ -261,6 +279,12 @@ class _QuranScreenState extends State<QuranScreen> {
       context.read<QuranCubit>().loadPage(lastPage);
       if (lastPage < 604) {
         context.read<QuranCubit>().preloadPage(lastPage + 1);
+        _atlasPrewarmer.schedulePrewarm(
+          targetPageNumber: lastPage + 1,
+          cubit: context.read<QuranCubit>(),
+          currentVisiblePage: lastPage,
+          isEligible: () => mounted && _isRouteActive && _isAppActive,
+        );
       }
       _checkFirstTimeOnboarding();
     });
@@ -281,6 +305,8 @@ class _QuranScreenState extends State<QuranScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _atlasPrewarmer.dispose();
     _closeActiveSheetRouteOnly();
     _pageController.dispose();
     _currentPageNotifier.dispose();
@@ -806,6 +832,7 @@ class _QuranScreenState extends State<QuranScreen> {
   }
 
   void _handleWordTapped(QuranWord word, int pageNumber) {
+    _atlasPrewarmer.cancel();
     final currentSelected = context.read<QuranCubit>().selectedAyahId;
     if (currentSelected == word.ayahId) {
       _handleAyahSelectionOrReopen(word.ayahId, pageNumber: pageNumber);
@@ -813,6 +840,7 @@ class _QuranScreenState extends State<QuranScreen> {
   }
 
   void _handleWordLongPressed(QuranWord word, int pageNumber) {
+    _atlasPrewarmer.cancel();
     _handleAyahSelectionOrReopen(word.ayahId, pageNumber: pageNumber);
   }
 
@@ -820,6 +848,7 @@ class _QuranScreenState extends State<QuranScreen> {
     AyahId ayahId, {
     required int pageNumber,
   }) async {
+    _atlasPrewarmer.cancel();
     final cubit = context.read<QuranCubit>();
     final currentSelected = cubit.selectedAyahId;
 
@@ -862,12 +891,14 @@ class _QuranScreenState extends State<QuranScreen> {
   }
 
   void _toggleFullScreen() {
+    _atlasPrewarmer.cancel();
     setState(() {
       _isFullScreen = !_isFullScreen;
     });
   }
 
   void _showPageJumpDialog() {
+    _atlasPrewarmer.cancel();
     final TextEditingController controller = TextEditingController();
     showDialog(
       context: context,
@@ -928,6 +959,7 @@ class _QuranScreenState extends State<QuranScreen> {
   }
 
   void _jumpToPage(String value) {
+    _atlasPrewarmer.cancel();
     int? page = int.tryParse(value);
     if (page != null && page >= 1 && page <= 604) {
       _pageController.jumpToPage(page - 1);
@@ -978,6 +1010,12 @@ class _QuranScreenState extends State<QuranScreen> {
 
                     if (pageNumber < 604) {
                       context.read<QuranCubit>().preloadPage(pageNumber + 1);
+                      _atlasPrewarmer.schedulePrewarm(
+                        targetPageNumber: pageNumber + 1,
+                        cubit: context.read<QuranCubit>(),
+                        currentVisiblePage: pageNumber,
+                        isEligible: () => mounted && _isRouteActive && _isAppActive,
+                      );
                     }
                     if (pageNumber > 1) {
                       context.read<QuranCubit>().preloadPage(pageNumber - 1);
