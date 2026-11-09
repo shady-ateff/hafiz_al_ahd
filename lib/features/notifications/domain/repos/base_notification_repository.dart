@@ -1,5 +1,7 @@
 // lib/features/notifications/domain/repositories/base_notification_repository.dart
 
+import '../entities/schedule_operation_result.dart';
+
 abstract class BaseNotificationRepository {
   /// تهيئة الإشعارات (Initialization)
   Future<void> initialize();
@@ -52,4 +54,36 @@ abstract class BaseNotificationRepository {
 
   /// إلغاء كل المنبهات (الأذان) اللي اتجدولت عن طريق باكيدج alarm
   Future<void> cancelAllAlarms();
+
+  /// إلغاء منبه محدد بأمان وفق عقد التحقق وسياسة Fail-Closed
+  /// يحمي الأذان النشط والمنبهات القريبة من الانطلاق ويتحقق من إزالة السجل
+  Future<EventCancellationStatus> cancelAlarmSafely(
+    int id, {
+    DateTime? expectedScheduledTime,
+    String? expectedAssetAudioPath,
+  });
+
+  /// إلغاء إشعار محدد بأمان وفق عقد التحقق وسياسة Fail-Closed
+  /// يتحقق من إزالة الـ pending request من FLN queue وينظف الـ fingerprint
+  Future<EventCancellationStatus> cancelNotificationSafely(int id);
+
+  /// التحقق من مطابقة المنبه المسجل في Level 2 (SQLite registry)
+  Future<EventVerificationStatus> verifyAlarm({
+    required int id,
+    required DateTime expectedScheduledTime,
+    String? expectedAssetAudioPath,
+    double? expectedVolume,
+    bool? expectedEnableVibration,
+  });
+
+  /// التحقق من مطابقة الإشعار المسجل في Level 2 (FLN queue + SharedPreferences ledger)
+  Future<EventVerificationStatus> verifyNotification({
+    required int id,
+    required DateTime expectedScheduledTime,
+    required String expectedPayload,
+    String? expectedTitle,
+    String? expectedBody,
+    String? expectedChannelId,
+    String? expectedSoundSource,
+  });
 }

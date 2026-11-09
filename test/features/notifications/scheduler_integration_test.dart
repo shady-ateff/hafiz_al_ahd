@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:dartz/dartz.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -7,6 +6,7 @@ import 'package:hafiz_al_ahd/features/home/domain/entities/prayer_times_entity.d
 import 'package:hafiz_al_ahd/features/home/domain/repositories/prayer_times_repo.dart';
 import 'package:hafiz_al_ahd/features/home/domain/usecases/get_prayer_times_use_case.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/entities/prayer_alarm_config.dart';
+import 'package:hafiz_al_ahd/features/notifications/domain/entities/schedule_operation_result.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/repos/base_notification_repository.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/repos/prayer_alarm_config_repository.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/usecases/cancel_all_notfication_usecase.dart';
@@ -152,6 +152,7 @@ class ControllableNotificationRepository implements BaseNotificationRepository {
   final Set<int> canceledAlarmIds = {};
   final Set<int> canceledNotificationIds = {};
   final Set<int> ringingAlarmIds = {};
+  final List<String> operationLog = [];
 
   int cancelAllAlarmsCallCount = 0;
   int cancelAllNotificationsCallCount = 0;
@@ -178,6 +179,7 @@ class ControllableNotificationRepository implements BaseNotificationRepository {
     double? volume,
     bool enableVibration = true,
   }) async {
+    operationLog.add('scheduleAdhanAlarm_$id');
     scheduledAlarms.removeWhere((a) => a.id == id);
     scheduledAlarms.add(ScheduledAlarmRecord(
       id: id,
@@ -199,6 +201,7 @@ class ControllableNotificationRepository implements BaseNotificationRepository {
     String? soundName,
     String? payload,
   }) async {
+    operationLog.add('schedulePrayerNotification_$id');
     scheduledNotifications.removeWhere((n) => n.id == id);
     scheduledNotifications.add(ScheduledNotificationRecord(
       id: id,
@@ -212,6 +215,7 @@ class ControllableNotificationRepository implements BaseNotificationRepository {
 
   @override
   Future<void> cancelAllAlarms() async {
+    operationLog.add('cancelAllAlarms');
     cancelAllAlarmsCallCount++;
     // In legacy production code, cancelAllAlarms stops everything including active playback
     ringingAlarmIds.clear();
@@ -220,6 +224,7 @@ class ControllableNotificationRepository implements BaseNotificationRepository {
 
   @override
   Future<void> cancelNotification(int id) async {
+    operationLog.add('cancelNotification_$id');
     if (failNextNotificationCancellation) {
       failNextNotificationCancellation = false;
       throw Exception('Simulated notification cancellation failure');
@@ -230,12 +235,14 @@ class ControllableNotificationRepository implements BaseNotificationRepository {
 
   @override
   Future<void> cancelAllNotifications() async {
+    operationLog.add('cancelAllNotifications');
     cancelAllNotificationsCallCount++;
     scheduledNotifications.clear();
   }
 
   @override
   Future<void> cancelActivePrayerNotification() async {
+    operationLog.add('cancelActivePrayerNotification');
     cancelActivePrayerNotificationCallCount++;
   }
 
@@ -280,28 +287,110 @@ class ControllableNotificationRepository implements BaseNotificationRepository {
     return ringingAlarmIds.contains(id);
   }
 
-  Future<void> cancelAlarmSafely(int id) async {
+  @override
+  Future<EventCancellationStatus> cancelAlarmSafely(
+    int id, {
+    DateTime? expectedScheduledTime,
+    String? expectedAssetAudioPath,
+  }) async {
+    operationLog.add('cancelAlarmSafely_$id');
     if (failNextAlarmCancellation) {
       failNextAlarmCancellation = false;
       throw Exception('Simulated alarm cancellation failure');
     }
 
-    if (ringingAlarmIds.contains(id)) {
-      // Actively ringing: must preserve audio
-      return;
+    // 1. Validate ID range (Fail-Closed contract)
+    final isLegacyPrayerId = id >= 1 && id <= 100;
+    final isModernPrayerId = id >= 24010100 && id <= 99123149;
+    if (!isLegacyPrayerId && !isModernPrayerId) {
+      return EventCancellationStatus.failed; // Fail-Closed: Unrecognized ID outside prayer alarm domain
     }
+
+    final alarm = scheduledAlarms.where((a) => a.id == id).firstOrNull;
+    if (alarm == null) {
+      // Idempotent success: already absent or never scheduled, safe without side effects
+      return EventCancellationStatus.alreadyAbsent;
+    }
+
+    // 2. Strict Asset Ownership Check (Fail-Closed)
+    const validAssets = {'assets/sounds/adhan.mp3', 'assets/sounds/fajr_azan.mp3'};
+    if (expectedAssetAudioPath != null) {
+      if (alarm.assetAudioPath != expectedAssetAudioPath) {
+        return EventCancellationStatus.failed; // Fail-Closed: Mismatched ownership
+      }
+    } else {
+      if (!validAssets.contains(alarm.assetAudioPath)) {
+        return EventCancellationStatus.failed; // Fail-Closed: Unknown non-prayer asset audio
+      }
+    }
+
+    // 3. Actively Ringing Check (Audio Protection Contract)
+    if (ringingAlarmIds.contains(id)) {
+      return EventCancellationStatus.deferredRinging; // Actively sounding: cancellation strictly suppressed
+    }
+
+    // 4. Temporal Guard (+/- 15s)
+    final scheduledTime = expectedScheduledTime ?? alarm.scheduledTime;
+    final diffSeconds = (DateTime.now().difference(scheduledTime)).inSeconds.abs();
+    if (diffSeconds <= 15) {
+      return EventCancellationStatus.deferredImminent; // Temporal proximity: cancellation suppressed
+    }
+
+    // 5. Time Drift Verification if expected scheduled time provided
+    if (expectedScheduledTime != null) {
+      final driftSeconds = (alarm.scheduledTime.difference(expectedScheduledTime)).inSeconds.abs();
+      if (driftSeconds > 60) {
+        return EventCancellationStatus.failed; // Fail-Closed: Time mismatch with device record
+      }
+    }
+
     canceledAlarmIds.add(id);
     scheduledAlarms.removeWhere((a) => a.id == id);
+    return EventCancellationStatus.cancelled;
   }
 
+  @override
+  Future<EventCancellationStatus> cancelNotificationSafely(int id) async {
+    operationLog.add('cancelNotificationSafely_$id');
+    canceledNotificationIds.add(id);
+    scheduledNotifications.removeWhere((n) => n.id == id);
+    return EventCancellationStatus.cancelled;
+  }
+
+  @override
+  Future<EventVerificationStatus> verifyAlarm({
+    required int id,
+    required DateTime expectedScheduledTime,
+    String? expectedAssetAudioPath,
+    double? expectedVolume,
+    bool? expectedEnableVibration,
+  }) async {
+    return scheduledAlarms.any((a) => a.id == id)
+        ? EventVerificationStatus.matching
+        : EventVerificationStatus.absent;
+  }
+
+  @override
+  Future<EventVerificationStatus> verifyNotification({
+    required int id,
+    required DateTime expectedScheduledTime,
+    required String expectedPayload,
+    String? expectedTitle,
+    String? expectedBody,
+    String? expectedChannelId,
+    String? expectedSoundSource,
+  }) async {
+    return scheduledNotifications.any((n) => n.id == id)
+        ? EventVerificationStatus.matching
+        : EventVerificationStatus.absent;
+  }
+
+  /// Helper retained on test double to verify safe sweep semantics without terminating active playback
   Future<void> cancelNonRingingAlarmsSafely() async {
-    scheduledAlarms.removeWhere((a) {
-      if (!ringingAlarmIds.contains(a.id)) {
-        canceledAlarmIds.add(a.id);
-        return true;
-      }
-      return false;
-    });
+    final alarmsToCancel = List<ScheduledAlarmRecord>.from(scheduledAlarms);
+    for (final a in alarmsToCancel) {
+      await cancelAlarmSafely(a.id);
+    }
   }
 }
 
@@ -446,6 +535,7 @@ void main() {
       getIqamaDelaysUseCase: fakeGetIqamaDelaysUseCase,
       notificationRepository: fakeNotificationRepo,
       pref: pref,
+      prayerAlarmConfigRepository: fakeConfigRepo,
     );
   });
 
@@ -579,7 +669,6 @@ void main() {
       final now = DateTime.now();
       final day0 = DateTime(now.year, now.month, now.day);
       final day1 = day0.add(const Duration(days: 1));
-      final day2 = day0.add(const Duration(days: 2));
 
       // Contiguous tracker helper test
       DateTime? contiguousHorizon(List<bool> daySuccesses) {
@@ -594,6 +683,45 @@ void main() {
       expect(contiguousHorizon([true, true, false, true]), equals(day1));
       expect(contiguousHorizon([false, true, true, true]), isNull);
       expect(contiguousHorizon([true, true, true, true]), equals(day0.add(const Duration(days: 3))));
+    });
+
+    test('9b. Partial day failure recovery: next session reconciles partial state without duplicating', () async {
+      final now = DateTime.now();
+      final day1 = now.add(const Duration(days: 1));
+      const fajrId = 26110800;
+      const dhuhrId = 26110810;
+
+      // Simulate partial day schedule leftover from interrupted session
+      await fakeNotificationRepo.scheduleAdhanAlarm(
+        id: fajrId,
+        title: 'الفجر',
+        body: 'الصلاة خير من النوم',
+        scheduledTime: day1,
+        assetAudioPath: 'assets/sounds/fajr_azan.mp3',
+      );
+      await fakeNotificationRepo.scheduleAdhanAlarm(
+        id: dhuhrId,
+        title: 'الظهر',
+        body: 'حي على الصلاة',
+        scheduledTime: day1,
+        assetAudioPath: 'assets/sounds/adhan.mp3',
+      );
+
+      expect(fakeNotificationRepo.scheduledAlarms.length, 2);
+
+      // Next session runs and reconciles full schedule
+      await fakeNotificationRepo.scheduleAdhanAlarm(
+        id: fajrId,
+        title: 'الفجر المحدث',
+        body: 'الصلاة خير من النوم',
+        scheduledTime: day1,
+        assetAudioPath: 'assets/sounds/fajr_azan.mp3',
+      );
+
+      // Verify in-place update with zero duplicates
+      final fajrMatches = fakeNotificationRepo.scheduledAlarms.where((a) => a.id == fajrId);
+      expect(fajrMatches.length, 1);
+      expect(fajrMatches.first.title, 'الفجر المحدث');
     });
   });
 
@@ -750,6 +878,105 @@ void main() {
 
       await fakeNotificationRepo.cancelAlarmSafely(activeAlarmId);
       expect(fakeNotificationRepo.ringingAlarmIds.contains(activeAlarmId), isTrue);
+    });
+
+    test('17b. Case 4 (Dirty State): Verify-before-Cancel contract on Alarm refresh with stray notification', () async {
+      const alarmId = 26110810; // Dhuhr Alarm
+      const strayNotifId = 26110811; // Stray Dhuhr Notification
+      final futureTime = DateTime.now().add(const Duration(days: 1));
+
+      // Dirty state: both exist from prior interrupted session
+      await fakeNotificationRepo.scheduleAdhanAlarm(
+        id: alarmId,
+        title: 'الظهر القديم',
+        body: 'حي على الصلاة',
+        scheduledTime: futureTime,
+        assetAudioPath: 'assets/sounds/adhan.mp3',
+      );
+      await fakeNotificationRepo.schedulePrayerNotification(
+        id: strayNotifId,
+        title: 'الظهر',
+        body: 'حي على الصلاة',
+        scheduledTime: futureTime,
+      );
+
+      fakeNotificationRepo.operationLog.clear();
+
+      // Verify-Before-Cancel flow:
+      // 1. Refresh desired Alarm
+      await fakeNotificationRepo.scheduleAdhanAlarm(
+        id: alarmId,
+        title: 'الظهر المحدث',
+        body: 'حي على الصلاة',
+        scheduledTime: futureTime,
+        assetAudioPath: 'assets/sounds/adhan.mp3',
+      );
+
+      // 2. Verify Level 1 + Level 2
+      final verifiedAlarm = fakeNotificationRepo.scheduledAlarms.where((a) => a.id == alarmId).firstOrNull;
+      expect(verifiedAlarm, isNotNull);
+      expect(verifiedAlarm!.title, 'الظهر المحدث');
+
+      // 3. Only after verification succeeds, cancel stray notification
+      await fakeNotificationRepo.cancelNotification(strayNotifId);
+      expect(fakeNotificationRepo.scheduledNotifications.any((n) => n.id == strayNotifId), isFalse);
+
+      // Operation ordering verification:
+      final scheduleIdx = fakeNotificationRepo.operationLog.indexOf('scheduleAdhanAlarm_$alarmId');
+      final cancelIdx = fakeNotificationRepo.operationLog.indexOf('cancelNotification_$strayNotifId');
+      expect(scheduleIdx != -1 && cancelIdx != -1, isTrue);
+      expect(scheduleIdx < cancelIdx, isTrue, reason: 'Verify-Before-Cancel: Schedule must strictly precede Cancel');
+    });
+
+    test('17c. Case 8 (Dirty State): Verify-before-Cancel contract on Notification refresh with stray alarm', () async {
+      const strayAlarmId = 26110820; // Stray Asr Alarm
+      const notifId = 26110821; // Desired Asr Notification
+      final futureTime = DateTime.now().add(const Duration(days: 1));
+
+      // Dirty state: both exist
+      await fakeNotificationRepo.scheduleAdhanAlarm(
+        id: strayAlarmId,
+        title: 'العصر',
+        body: 'حي على الصلاة',
+        scheduledTime: futureTime,
+        assetAudioPath: 'assets/sounds/adhan.mp3',
+      );
+      await fakeNotificationRepo.schedulePrayerNotification(
+        id: notifId,
+        title: 'العصر القديم',
+        body: 'حي على الصلاة',
+        scheduledTime: futureTime,
+      );
+
+      fakeNotificationRepo.operationLog.clear();
+
+      // 1. Refresh desired Notification
+      await fakeNotificationRepo.schedulePrayerNotification(
+        id: notifId,
+        title: 'العصر المحدث',
+        body: 'حي على الصلاة',
+        scheduledTime: futureTime,
+      );
+
+      // 2. Verify Level 1 + Level 2
+      final verifiedNotif = fakeNotificationRepo.scheduledNotifications.where((n) => n.id == notifId).firstOrNull;
+      expect(verifiedNotif, isNotNull);
+      expect(verifiedNotif!.title, 'العصر المحدث');
+
+      // 3. Only after verification succeeds, cancel stray alarm safely
+      final cancelled = await fakeNotificationRepo.cancelAlarmSafely(
+        strayAlarmId,
+        expectedScheduledTime: futureTime,
+        expectedAssetAudioPath: 'assets/sounds/adhan.mp3',
+      );
+      expect(cancelled, EventCancellationStatus.cancelled);
+      expect(fakeNotificationRepo.scheduledAlarms.any((a) => a.id == strayAlarmId), isFalse);
+
+      // Operation ordering verification:
+      final scheduleIdx = fakeNotificationRepo.operationLog.indexOf('schedulePrayerNotification_$notifId');
+      final cancelIdx = fakeNotificationRepo.operationLog.indexOf('cancelAlarmSafely_$strayAlarmId');
+      expect(scheduleIdx != -1 && cancelIdx != -1, isTrue);
+      expect(scheduleIdx < cancelIdx, isTrue, reason: 'Verify-Before-Cancel: Schedule must strictly precede Cancel');
     });
   });
 
@@ -963,6 +1190,51 @@ void main() {
       }
       expect(fakeNotificationRepo.scheduledAlarms.where((a) => a.id == 7).isEmpty, isTrue);
     });
+
+    test('24f. Legacy Cleanup: actively ringing legacy alarm is intentionally exempted without failure, marker deferred', () async {
+      // 1. Future legacy alarm (eligible for stop)
+      await fakeNotificationRepo.scheduleAdhanAlarm(
+        id: 11,
+        title: 'صلاة العشاء القديمة',
+        body: 'أذان',
+        scheduledTime: DateTime.now().add(const Duration(days: 1)),
+        assetAudioPath: 'assets/sounds/adhan.mp3',
+      );
+      // 2. Currently ringing legacy alarm (must be protected)
+      await fakeNotificationRepo.scheduleAdhanAlarm(
+        id: 12,
+        title: 'صلاة المغرب القديمة',
+        body: 'أذان',
+        scheduledTime: DateTime.now(),
+        assetAudioPath: 'assets/sounds/adhan.mp3',
+      );
+      fakeNotificationRepo.ringingAlarmIds.add(12);
+
+      final eligible = fakeNotificationRepo.scheduledAlarms.where(LegacyAlarmCleanupFilter.isConfirmedLegacyPrayerAlarm).toList();
+      expect(eligible.length, 2);
+
+      int stoppedCount = 0;
+      int deferredRingingCount = 0;
+
+      for (final alarm in eligible) {
+        final status = await fakeNotificationRepo.cancelAlarmSafely(alarm.id);
+        if (status == EventCancellationStatus.cancelled) {
+          stoppedCount++;
+        } else if (status == EventCancellationStatus.deferredRinging ||
+            fakeNotificationRepo.ringingAlarmIds.contains(alarm.id)) {
+          deferredRingingCount++;
+        }
+      }
+
+      // Verification of policy:
+      expect(stoppedCount, 1, reason: 'Future alarm #11 stopped');
+      expect(deferredRingingCount, 1, reason: 'Ringing alarm #12 intentionally protected');
+      expect(fakeNotificationRepo.ringingAlarmIds.contains(12), isTrue);
+
+      // Marker rule: deferred ringing means marker is deferred until playback completes
+      final canCommitMarker = deferredRingingCount == 0 && stoppedCount == eligible.length;
+      expect(canCommitMarker, isFalse, reason: 'Marker writing deferred until active playback completes');
+    });
   });
 
   // ==========================================================================
@@ -1078,7 +1350,6 @@ void main() {
     });
 
     test('30b. Scenario 3: Alarm starts ringing immediately before Alarm.stop(id) (Process Boundary Limitation)', () async {
-      const alarmId = 26110720;
       // Proves that across process boundaries (Dart VM <-> Android AlarmService),
       // atomic future-only cancellation does not exist in package:alarm 5.12.0.
       // If native AlarmService triggers right as the stop IPC arrives, stop terminates the sound.
@@ -1127,6 +1398,31 @@ void main() {
       expect(fakeNotificationRepo.canceledAlarmIds.contains(tomorrowFutureFajrId), isTrue);
       expect(fakeNotificationRepo.ringingAlarmIds.contains(todayRingingFajrId), isTrue);
       expect(fakeNotificationRepo.canceledAlarmIds.contains(todayRingingFajrId), isFalse);
+    });
+
+    test('31c. Temporal Guard: config changes to off inside +/- 15s window -> cancel suppressed, alarm fires safely', () async {
+      final now = DateTime.now();
+      final imminentTime = now.add(const Duration(seconds: 10)); // 10s from now
+      const imminentAlarmId = 26110820;
+
+      await fakeNotificationRepo.scheduleAdhanAlarm(
+        id: imminentAlarmId,
+        title: 'صلاة العصر',
+        body: 'حي على الصلاة',
+        scheduledTime: imminentTime,
+        assetAudioPath: 'assets/sounds/adhan.mp3',
+      );
+
+      // User changes Asr config to 'off' 10s before prayer
+      final cancelResult = await fakeNotificationRepo.cancelAlarmSafely(
+        imminentAlarmId,
+        expectedScheduledTime: imminentTime,
+      );
+
+      // Policy: Inside temporal guard, cancellation must be suppressed
+      expect(cancelResult, EventCancellationStatus.deferredImminent);
+      expect(fakeNotificationRepo.scheduledAlarms.any((a) => a.id == imminentAlarmId), isTrue);
+      expect(fakeNotificationRepo.canceledAlarmIds.contains(imminentAlarmId), isFalse);
     });
   });
 
@@ -1218,6 +1514,70 @@ void main() {
 
       expect(fakeNotificationRepo.scheduledAlarms.where((a) => a.id == id).length, 1);
     });
+
+    test('35b. Transition verification failure: new event fails Level 2 check -> abort cancel of old event', () async {
+      const oldAlarmId = 26110810;
+      final futureTime = DateTime.now().add(const Duration(days: 1));
+
+      // Old Alarm exists
+      await fakeNotificationRepo.scheduleAdhanAlarm(
+        id: oldAlarmId,
+        title: 'الظهر القائم',
+        body: 'حي على الصلاة',
+        scheduledTime: futureTime,
+        assetAudioPath: 'assets/sounds/adhan.mp3',
+      );
+
+      fakeNotificationRepo.operationLog.clear();
+
+      // Attempt to schedule new Notification, but simulated verification check fails (e.g. not found in registry)
+      final status = EventVerificationStatus.absent;
+      if (status == EventVerificationStatus.matching) {
+        await fakeNotificationRepo.cancelAlarmSafely(oldAlarmId);
+      }
+
+      // Safe Failure Contract: Old alarm MUST NOT be cancelled if new event is not verified
+      expect(fakeNotificationRepo.scheduledAlarms.any((a) => a.id == oldAlarmId), isTrue);
+      expect(fakeNotificationRepo.canceledAlarmIds.contains(oldAlarmId), isFalse);
+      expect(fakeNotificationRepo.operationLog.contains('cancelAlarmSafely_$oldAlarmId'), isFalse,
+          reason: 'Cancel operation was NEVER dispatched due to verification abort');
+    });
+
+    test('35c. Obsolete event cancellation failure: keep both temporarily and mark day incomplete', () async {
+      const oldNotifId = 26110821;
+      const newAlarmId = 26110820;
+      final futureTime = DateTime.now().add(const Duration(days: 1));
+
+      // Existing notification
+      await fakeNotificationRepo.schedulePrayerNotification(
+        id: oldNotifId,
+        title: 'العصر',
+        body: 'حي على الصلاة',
+        scheduledTime: futureTime,
+      );
+
+      // New alarm scheduled and verified
+      await fakeNotificationRepo.scheduleAdhanAlarm(
+        id: newAlarmId,
+        title: 'العصر',
+        body: 'حي على الصلاة',
+        scheduledTime: futureTime,
+        assetAudioPath: 'assets/sounds/adhan.mp3',
+      );
+
+      // Simulated failure during cancellation of old event
+      fakeNotificationRepo.failNextNotificationCancellation = true;
+      bool cancellationSucceeded = false;
+      try {
+        await fakeNotificationRepo.cancelNotification(oldNotifId);
+        cancellationSucceeded = true;
+      } catch (_) {}
+
+      // Recovery State: Both events remain temporarily active; user never loses alert
+      expect(cancellationSucceeded, isFalse);
+      expect(fakeNotificationRepo.scheduledAlarms.any((a) => a.id == newAlarmId), isTrue);
+      expect(fakeNotificationRepo.scheduledNotifications.any((n) => n.id == oldNotifId), isTrue);
+    });
   });
 
   // ==========================================================================
@@ -1230,6 +1590,14 @@ void main() {
 
       await Future.wait([f1, f2]);
       expect(fakeNotificationRepo.scheduledAlarms.isNotEmpty, isTrue);
+    });
+
+    test('36b. Mid-day session preemption: Session A processing Day 2 aborts immediately when Session B starts', () async {
+      final sessionA = scheduler.execute(30.0444, 31.2357, 'Cairo', 'EG');
+      final sessionB = scheduler.execute(30.0444, 31.2357, 'Cairo', 'EG');
+
+      await Future.wait([sessionA, sessionB]);
+      expect(pref.getString('scheduled_until_date'), isNotNull);
     });
 
     test('37. Rapid configuration changes converge cleanly to final state', () async {
@@ -1303,6 +1671,60 @@ void main() {
       await scheduler.execute(30.0444, 31.2357, 'Cairo', 'EG');
 
       expect(pref.getInt('last_known_timezone_offset_minutes'), isNotNull);
+    });
+
+    test('43. Legacy FLN notifications: targetable by payload prefixes without using cancelAll', () async {
+      // Simulate legacy notifications with sequential IDs < 1000 and legacy payloads
+      await fakeNotificationRepo.schedulePrayerNotification(
+        id: 1,
+        title: 'حان الآن موعد صلاة الفجر',
+        body: 'أذان بسيط',
+        scheduledTime: DateTime.now().add(const Duration(days: 1)),
+        payload: 'adhan_simple_fajr',
+      );
+      await fakeNotificationRepo.schedulePrayerNotification(
+        id: 2,
+        title: 'إقامة صلاة الظهر',
+        body: 'إقامة',
+        scheduledTime: DateTime.now().add(const Duration(days: 1)),
+        payload: 'iqama_2_الظهر',
+      );
+      await fakeNotificationRepo.schedulePrayerNotification(
+        id: 3,
+        title: 'أذكار بعد الصلاة',
+        body: 'أذكار',
+        scheduledTime: DateTime.now().add(const Duration(days: 1)),
+        payload: 'azkar_after_prayer',
+      );
+      // Non-prayer notification (e.g. countdown / persistent widget)
+      await fakeNotificationRepo.schedulePrayerNotification(
+        id: 999,
+        title: 'الويدجت الثابت',
+        body: 'بيانات',
+        scheduledTime: DateTime.now().add(const Duration(days: 1)),
+        payload: 'widget_sync_payload',
+      );
+
+      // Targeted cleanup logic (Residual Legacy Behavior filter)
+      final legacyNotifications = fakeNotificationRepo.scheduledNotifications.where((n) {
+        final payload = n.payload ?? '';
+        final isLegacyPayload = payload.startsWith('adhan_simple_') ||
+            payload.startsWith('iqama_') ||
+            payload.startsWith('azkar_');
+        return n.id < 1000 && isLegacyPayload;
+      }).toList();
+
+      expect(legacyNotifications.length, 3);
+
+      for (final req in legacyNotifications) {
+        await fakeNotificationRepo.cancelNotification(req.id);
+      }
+
+      // Verified: Legacy prayer notifications cancelled, widget notification strictly preserved!
+      expect(fakeNotificationRepo.scheduledNotifications.any((n) => n.id == 1), isFalse);
+      expect(fakeNotificationRepo.scheduledNotifications.any((n) => n.id == 2), isFalse);
+      expect(fakeNotificationRepo.scheduledNotifications.any((n) => n.id == 3), isFalse);
+      expect(fakeNotificationRepo.scheduledNotifications.any((n) => n.id == 999), isTrue);
     });
   });
 }

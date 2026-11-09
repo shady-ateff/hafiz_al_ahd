@@ -96,6 +96,7 @@ Future<void> init() async {
       getIqamaDelaysUseCase: sl(),
       notificationRepository: sl(),
       pref: sl(), // جاب الـ SharedPreferences لوحده
+      prayerAlarmConfigRepository: sl(),
     ),
   );
   sl.registerLazySingleton<BaseNotificationRepository>(

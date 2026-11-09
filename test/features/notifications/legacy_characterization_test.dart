@@ -1,10 +1,12 @@
-import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dartz/dartz.dart';
 import 'package:hafiz_al_ahd/features/home/domain/entities/prayer_times_entity.dart';
 import 'package:hafiz_al_ahd/features/home/domain/usecases/get_prayer_times_use_case.dart';
+import 'package:hafiz_al_ahd/features/notifications/domain/entities/prayer_alarm_config.dart';
+import 'package:hafiz_al_ahd/features/notifications/domain/entities/schedule_operation_result.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/repos/base_notification_repository.dart';
+import 'package:hafiz_al_ahd/features/notifications/domain/repos/prayer_alarm_config_repository.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/usecases/cancel_all_notfication_usecase.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/usecases/schedule_prayer_usecase.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/usecases/schedule_weekly_prayers_usecase.dart';
@@ -116,6 +118,50 @@ class FakeNotificationRepository implements BaseNotificationRepository {
   }
 
   @override
+  Future<EventCancellationStatus> cancelAlarmSafely(
+    int id, {
+    DateTime? expectedScheduledTime,
+    String? expectedAssetAudioPath,
+  }) async {
+    scheduledAlarms.removeWhere((a) => a.id == id);
+    return EventCancellationStatus.cancelled;
+  }
+
+  @override
+  Future<EventCancellationStatus> cancelNotificationSafely(int id) async {
+    cancelledNotificationIds.add(id);
+    return EventCancellationStatus.cancelled;
+  }
+
+  @override
+  Future<EventVerificationStatus> verifyAlarm({
+    required int id,
+    required DateTime expectedScheduledTime,
+    String? expectedAssetAudioPath,
+    double? expectedVolume,
+    bool? expectedEnableVibration,
+  }) async {
+    return scheduledAlarms.any((a) => a.id == id)
+        ? EventVerificationStatus.matching
+        : EventVerificationStatus.absent;
+  }
+
+  @override
+  Future<EventVerificationStatus> verifyNotification({
+    required int id,
+    required DateTime expectedScheduledTime,
+    required String expectedPayload,
+    String? expectedTitle,
+    String? expectedBody,
+    String? expectedChannelId,
+    String? expectedSoundSource,
+  }) async {
+    return scheduledNotifications.any((n) => n.id == id)
+        ? EventVerificationStatus.matching
+        : EventVerificationStatus.absent;
+  }
+
+  @override
   Future<void> cancelActivePrayerNotification() async {
     cancelActivePrayerNotificationCallCount++;
   }
@@ -204,6 +250,38 @@ class FakeGetIqamaDelaysUseCase implements GetIqamaDelaysUseCase {
   Future<Map<String, int>> execute() async => delays;
 }
 
+class FakeLegacyPrayerAlarmConfigRepository implements BasePrayerAlarmConfigRepository {
+  final Map<PrayerId, PrayerAlarmConfig> configs = {
+    PrayerId.fajr: const PrayerAlarmConfig(prayerId: PrayerId.fajr, alarmType: PrayerAlarmType.alarm),
+    PrayerId.dhuhr: const PrayerAlarmConfig(prayerId: PrayerId.dhuhr, alarmType: PrayerAlarmType.alarm),
+    PrayerId.asr: const PrayerAlarmConfig(prayerId: PrayerId.asr, alarmType: PrayerAlarmType.alarm),
+    PrayerId.maghrib: const PrayerAlarmConfig(prayerId: PrayerId.maghrib, alarmType: PrayerAlarmType.alarm),
+    PrayerId.isha: const PrayerAlarmConfig(prayerId: PrayerId.isha, alarmType: PrayerAlarmType.alarm),
+  };
+
+  @override
+  Future<Map<PrayerId, PrayerAlarmConfig>> getConfigs() async => Map.from(configs);
+
+  @override
+  Future<PrayerAlarmConfig> getConfig(PrayerId prayerId) async => configs[prayerId]!;
+
+  @override
+  Future<void> saveConfig(PrayerAlarmConfig config) async {
+    configs[config.prayerId] = config;
+  }
+
+  @override
+  Future<void> saveAllConfigs(Map<PrayerId, PrayerAlarmConfig> newConfigs) async {
+    configs.addAll(newConfigs);
+  }
+
+  @override
+  Future<bool> migrateLegacyConfigsIfNeeded() async => false;
+
+  @override
+  Future<int> getMigrationVersion() async => 1;
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -212,6 +290,7 @@ void main() {
   late FakeGetIqamaDelaysUseCase fakeGetIqamaDelays;
   late CancelAllNotificationsUseCase cancelAllUseCase;
   late SchedulePrayerUseCase schedulePrayerUseCase;
+  late FakeLegacyPrayerAlarmConfigRepository fakeConfigRepo;
   late SharedPreferences prefs;
 
   setUp(() async {
@@ -223,6 +302,7 @@ void main() {
     fakeGetIqamaDelays = FakeGetIqamaDelaysUseCase();
     cancelAllUseCase = CancelAllNotificationsUseCase(fakeRepo);
     schedulePrayerUseCase = SchedulePrayerUseCase(fakeRepo);
+    fakeConfigRepo = FakeLegacyPrayerAlarmConfigRepository();
   });
 
   ScheduleWeeklyPrayersUseCase createScheduler() {
@@ -233,6 +313,7 @@ void main() {
       getIqamaDelaysUseCase: fakeGetIqamaDelays,
       notificationRepository: fakeRepo,
       pref: prefs,
+      prayerAlarmConfigRepository: fakeConfigRepo,
     );
   }
 
