@@ -13,6 +13,7 @@ import 'package:hafiz_al_ahd/core/services/desktop_window_service.dart';
 import 'package:hafiz_al_ahd/features/main/presentation/screens/main_screen.dart';
 // 👈 استدعي الـ Base بدلاً من الـ Impl
 import 'package:hafiz_al_ahd/features/notifications/domain/repos/base_notification_repository.dart';
+import 'package:hafiz_al_ahd/features/notifications/domain/services/transition_coordinator.dart';
 import 'package:hafiz_al_ahd/features/notifications/presentation/screens/adhan_screen.dart';
 import 'package:hijri/hijri_calendar.dart';
 import 'package:launch_at_startup/launch_at_startup.dart';
@@ -98,6 +99,14 @@ void main(List<String> args) async {
   // ---------------------------------------------------------
   final notificationRepository = di.sl<BaseNotificationRepository>();
   await notificationRepository.initialize();
+
+  // 4.1 استرداد أي عمليات انتقال تنبيهات غير مكتملة (Process Death Recovery)
+  try {
+    final transitionCoordinator = di.sl<TransitionCoordinator>();
+    await transitionCoordinator.recoverIncompleteTransitions();
+  } catch (e) {
+    log("⚠️ Failed to recover incomplete transitions: $e");
+  }
   // الصلاحيات الآن بتتطلب من شاشة الـ Onboarding خطوة بخطوة
 
   HijriCalendar.setLocal("ar"); // Set Hijri calendar locale to Arabic

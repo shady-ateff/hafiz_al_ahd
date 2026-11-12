@@ -1,9 +1,11 @@
 import 'dart:developer';
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:hafiz_al_ahd/features/home/domain/usecases/get_prayer_times_use_case.dart';
 import 'package:hafiz_al_ahd/features/notifications/data/repos/notification_repository_impl.dart';
+import 'package:hafiz_al_ahd/features/notifications/domain/entities/audio_source_config.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/entities/calendar_alarm_id_contract.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/entities/prayer_alarm_config.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/entities/prayer_scheduling_decision.dart';
@@ -279,9 +281,9 @@ class ScheduleWeeklyPrayersUseCase {
             ));
           }
         } else {
-          // Imminent Window Check: [now - 15s, now + 60s]
-          final isImminent = prayer.time!.isAfter(now.subtract(const Duration(seconds: 15))) &&
-              prayer.time!.isBefore(now.add(const Duration(seconds: 60)));
+          // Imminent Window Check: [prayer.time - 15s, prayer.time + 60s]
+          final isImminent = !now.isBefore(prayer.time!.subtract(const Duration(seconds: 15))) &&
+              !now.isAfter(prayer.time!.add(const Duration(seconds: 60)));
           if (isImminent) {
             operations.add(ScheduleOperationResult.skippedImminent(
               eventId: alertId,
@@ -290,16 +292,35 @@ class ScheduleWeeklyPrayersUseCase {
             ));
           } else if (decision == PrayerAlertDecision.alarm) {
             log("⏲️ Reconciling ALARM for prayer: ${prayer.name} at ${prayer.time} with deterministic ID #$alertId");
-            final expectedAsset = prayer.name == 'الفجر'
-                ? 'assets/sounds/fajr_azan.mp3'
-                : 'assets/sounds/adhan.mp3';
+
+            final effectiveVolume = config.volume ?? adhanVolume;
+            final effectiveVibration = config.isVibrationEnabled ?? isAdhanVibrationEnabled;
+
+            // Non-Destructive Audio Source Resolution
+            String expectedAsset;
+            if (config.audioSource is BuiltInAudioSource) {
+              expectedAsset = (config.audioSource as BuiltInAudioSource).assetPath;
+            } else if (config.audioSource is CustomAudioSource) {
+              final custom = config.audioSource as CustomAudioSource;
+              final file = File(custom.localRelativePath);
+              if (file.existsSync()) {
+                expectedAsset = custom.localRelativePath;
+              } else {
+                log("⚠️ [Scheduler] Custom audio missing at '${custom.localRelativePath}'. Non-destructive fallback to built-in default.");
+                expectedAsset = AudioSourceConfig.defaultBuiltInFallback(isFajr: prayer.prayerId == PrayerId.fajr).assetPath;
+              }
+            } else {
+              expectedAsset = prayer.name == 'الفجر'
+                  ? 'assets/sounds/fajr_azan.mp3'
+                  : 'assets/sounds/adhan.mp3';
+            }
 
             final existingStatus = await notificationRepository.verifyAlarm(
               id: alarmId,
               expectedScheduledTime: prayer.time!,
               expectedAssetAudioPath: expectedAsset,
-              expectedVolume: adhanVolume,
-              expectedEnableVibration: isAdhanVibrationEnabled,
+              expectedVolume: effectiveVolume,
+              expectedEnableVibration: effectiveVibration,
             );
 
             if (existingStatus == EventVerificationStatus.unverifiable) {
@@ -348,8 +369,8 @@ class ScheduleWeeklyPrayersUseCase {
                       : 'حي على الصلاة، حي على الفلاح',
                   scheduledTime: prayer.time!,
                   assetAudioPath: expectedAsset,
-                  volume: adhanVolume,
-                  enableVibration: isAdhanVibrationEnabled,
+                  volume: effectiveVolume,
+                  enableVibration: effectiveVibration,
                 );
                 dispatchSuccess = true;
               } on PlatformException catch (e) {
@@ -374,8 +395,8 @@ class ScheduleWeeklyPrayersUseCase {
                   id: alarmId,
                   expectedScheduledTime: prayer.time!,
                   expectedAssetAudioPath: expectedAsset,
-                  expectedVolume: adhanVolume,
-                  expectedEnableVibration: isAdhanVibrationEnabled,
+                  expectedVolume: effectiveVolume,
+                  expectedEnableVibration: effectiveVibration,
                 );
 
                 if (postStatus == EventVerificationStatus.matching) {

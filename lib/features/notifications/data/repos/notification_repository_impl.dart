@@ -10,7 +10,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/entities/schedule_operation_result.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/repos/base_notification_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:timezone/data/latest.dart' as tz;
+import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
 StreamController<String> selectNotificationStream =
@@ -171,9 +171,9 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
       e is StateError;
 
   bool isWithinImminentWindow(DateTime actualScheduledTime, DateTime now) {
-    final difference = actualScheduledTime.difference(now);
-    return difference >= const Duration(seconds: -15) &&
-        difference <= const Duration(seconds: 60);
+    final start = actualScheduledTime.subtract(const Duration(seconds: 15));
+    final end = actualScheduledTime.add(const Duration(seconds: 60));
+    return !now.isBefore(start) && !now.isAfter(end);
   }
 
   @override
@@ -242,6 +242,11 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
     String? soundName,
     String? payload,
   }) async {
+    if (scheduledTime.isBefore(DateTime.now())) {
+      log('ℹ️ [schedulePrayerNotification] Skipped scheduling notification #$id in the past: $scheduledTime');
+      return;
+    }
+
     final String channelId = soundName != null
         ? 'prayer_channel_v10_$soundName'
         : 'prayer_channel_v10_default';
@@ -420,6 +425,11 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
     double? volume,
     bool enableVibration = true,
   }) async {
+    if (id != 888 && scheduledTime.isBefore(DateTime.now())) {
+      log('ℹ️ [scheduleAdhanAlarm] Skipped scheduling alarm #$id in the past: $scheduledTime');
+      return;
+    }
+
     if (id != 888 &&
         scheduledTime.difference(DateTime.now()).inMinutes < 1 &&
         scheduledTime.isBefore(

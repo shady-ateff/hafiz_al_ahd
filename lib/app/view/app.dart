@@ -22,6 +22,7 @@ import 'package:hafiz_al_ahd/features/gamification/presentation/cubit/gamificati
 import 'package:hafiz_al_ahd/features/quran/presentation/cubit/quran_cubit.dart'; // 👈 استيراد المصحف
 import 'package:hafiz_al_ahd/features/quran/presentation/cubit/quran_settings_cubit.dart';
 import 'package:hafiz_al_ahd/features/quran/presentation/cubit/quran_bookmark_cubit.dart'; // 👈 استيراد اعدادات المصحف
+import 'package:hafiz_al_ahd/features/notifications/presentation/cubit/prayer_alarm_settings_cubit.dart';
 import 'package:hafiz_al_ahd/features/splash/splash_screen.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:tray_manager/tray_manager.dart';
@@ -105,6 +106,9 @@ class _AppState extends State<App> with TrayListener, WindowListener {
         BlocProvider(
           create: (context) =>
               sl<PrayerTimesCubit>()..fetchPrayerTimesByLocation(),
+        ),
+        BlocProvider(
+          create: (context) => sl<PrayerAlarmSettingsCubit>()..loadSettings(),
         ),
         BlocProvider(
           create: (context) => TimeCubit(

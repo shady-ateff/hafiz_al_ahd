@@ -72,9 +72,25 @@ class PrayerTimesLocalDataSource {
       timezoneId = 'Africa/Casablanca';
     }
 
-    final tz.Location targetLocation = timezoneId != null
-        ? tz.getLocation(timezoneId)
-        : tz.local;
+    tz.Location targetLocation = tz.local;
+    if (timezoneId != null) {
+      try {
+        targetLocation = tz.getLocation(timezoneId);
+      } catch (_) {
+        // Fallback for GCC/Arabian Peninsula if specific alias is missing
+        try {
+          if (['Asia/Kuwait', 'Asia/Bahrain', 'Asia/Qatar', 'Asia/Aden'].contains(timezoneId)) {
+            targetLocation = tz.getLocation('Asia/Riyadh');
+          } else if (['Asia/Dubai', 'Asia/Muscat'].contains(timezoneId)) {
+            targetLocation = tz.getLocation('Asia/Dubai');
+          } else {
+            targetLocation = tz.local;
+          }
+        } catch (_) {
+          targetLocation = tz.local;
+        }
+      }
+    }
 
     // 4. التحويل النهائي (Mapping to UI / Cubit):
     // ----------------------------------------------------------------------
@@ -123,7 +139,7 @@ class PrayerTimesLocalDataSource {
 
   void _ensureTimezonesInitialized() {
     try {
-      tz.getLocation('Africa/Casablanca');
+      tz.getLocation('Asia/Kuwait');
     } catch (_) {
       tz.initializeTimeZones();
     }

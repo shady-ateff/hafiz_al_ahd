@@ -3,7 +3,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dartz/dartz.dart';
 import 'package:hafiz_al_ahd/features/home/domain/entities/prayer_times_entity.dart';
 import 'package:hafiz_al_ahd/features/home/domain/usecases/get_prayer_times_use_case.dart';
+import 'package:hafiz_al_ahd/features/notifications/domain/entities/calendar_alarm_id_contract.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/entities/prayer_alarm_config.dart';
+import 'package:hafiz_al_ahd/features/notifications/domain/entities/prayer_scheduling_decision.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/entities/schedule_operation_result.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/repos/base_notification_repository.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/repos/prayer_alarm_config_repository.dart';
@@ -329,9 +331,8 @@ void main() {
       // Future times ensure all 5 prayers per day are scheduled
       await scheduler.execute(30.0444, 31.2357, 'Cairo', 'EG');
 
-      // 1. Initial cleanup was called
-      expect(fakeRepo.cancelAllAlarmsCallCount, equals(1));
-      expect(fakeRepo.cancelActivePrayerNotificationCallCount, equals(1));
+      // 1. Targeted reconciliation preserves sister alarms (zero blind cancelAllAlarms)
+      expect(fakeRepo.cancelAllAlarmsCallCount, equals(0));
 
       // 2. Verified 5-day horizon (days 0, 1, 2, 3, 4)
       expect(fakeGetPrayerTimes.requestedDates.length, equals(5));
@@ -367,12 +368,15 @@ void main() {
       await prefs.setBool('isIqamaEnabled', false);
       await prefs.setBool('isAzkarReminderEnabled', false);
 
+      for (final id in PrayerId.values) {
+        fakeConfigRepo.configs[id] = PrayerAlarmConfig(prayerId: id, alarmType: PrayerAlarmType.notification);
+      }
+
       final scheduler = createScheduler();
       await scheduler.execute(30.0444, 31.2357, 'Cairo', 'EG');
 
-      // 1. Initial cleanup called
-      expect(fakeRepo.cancelAllAlarmsCallCount, equals(1));
-      expect(fakeRepo.cancelActivePrayerNotificationCallCount, equals(1));
+      // 1. Targeted reconciliation preserves sister alarms
+      expect(fakeRepo.cancelAllAlarmsCallCount, equals(0));
 
       // 2. No full-screen alarms scheduled
       expect(fakeRepo.scheduledAlarms, isEmpty);
@@ -386,12 +390,12 @@ void main() {
 
       for (final notif in fajrNotifs) {
         expect(notif.soundName, equals('fajr_azan'));
-        expect(notif.payload, equals('adhan_simple_fajr'));
+        expect(notif.payload, startsWith('prayer_'));
       }
 
       for (final notif in otherNotifs) {
         expect(notif.soundName, equals('adhan'));
-        expect(notif.payload, startsWith('adhan_simple_'));
+        expect(notif.payload, startsWith('prayer_'));
       }
     });
 
@@ -400,12 +404,15 @@ void main() {
       await prefs.setBool('isIqamaEnabled', false);
       await prefs.setBool('isAzkarReminderEnabled', false);
 
+      for (final id in PrayerId.values) {
+        fakeConfigRepo.configs[id] = PrayerAlarmConfig(prayerId: id, alarmType: PrayerAlarmType.off);
+      }
+
       final scheduler = createScheduler();
       await scheduler.execute(30.0444, 31.2357, 'Cairo', 'EG');
 
-      // 1. Initial cleanup still called
-      expect(fakeRepo.cancelAllAlarmsCallCount, equals(1));
-      expect(fakeRepo.cancelActivePrayerNotificationCallCount, equals(1));
+      // 1. Targeted reconciliation preserves sister alarms
+      expect(fakeRepo.cancelAllAlarmsCallCount, equals(0));
 
       // 2. Zero alarms and zero notifications scheduled
       expect(fakeRepo.scheduledAlarms, isEmpty);
@@ -428,7 +435,7 @@ void main() {
       expect(fakeRepo.scheduledNotifications, isEmpty);
     });
 
-    test('Alarm IDs are sequential integers starting at 1', () async {
+    test('Alarm IDs conform to deterministic calendar ID contract', () async {
       await prefs.setString('adhanStyle', 'alarm');
       await prefs.setBool('isIqamaEnabled', false);
       await prefs.setBool('isAzkarReminderEnabled', false);
@@ -437,10 +444,13 @@ void main() {
       await scheduler.execute(30.0444, 31.2357, 'Cairo', 'EG');
 
       final ids = fakeRepo.scheduledAlarms.map((a) => a.id).toList();
-      expect(ids.first, equals(1));
-      for (int i = 0; i < ids.length - 1; i++) {
-        expect(ids[i + 1], equals(ids[i] + 1), reason: 'IDs must increment sequentially');
-      }
+      final tomorrowFajrId = CalendarAlarmIdContract.prayerAlertId(
+        date: fakeGetPrayerTimes.requestedDates[1],
+        prayer: PrayerId.fajr,
+        decision: PrayerAlertDecision.alarm,
+      );
+      expect(ids, contains(tomorrowFajrId));
+      expect(ids.first, equals(fakeRepo.scheduledAlarms.first.id));
     });
 
     test('Concurrent sessions: newer session invalidates and cancels older session work', () async {
@@ -456,8 +466,8 @@ void main() {
 
       await Future.wait([future1, future2]);
 
-      // cancelAllAlarms is called by both sessions (at start of each)
-      expect(fakeRepo.cancelAllAlarmsCallCount, equals(2));
+      // Targeted reconciliation avoids blind cancelAllAlarms
+      expect(fakeRepo.cancelAllAlarmsCallCount, equals(0));
       // scheduled_until_date is successfully updated by the winning session
       expect(prefs.getString('scheduled_until_date'), isNotNull);
     });

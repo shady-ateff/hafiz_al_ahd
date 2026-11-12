@@ -26,7 +26,7 @@ void main() {
       final migrated = await dataSource.migrateLegacyIfNeeded();
 
       expect(migrated, isTrue);
-      expect(await dataSource.getVersion(), equals(1));
+      expect(await dataSource.getVersion(), equals(PrayerAlarmConfigLocalDataSourceImpl.currentVersion));
 
       final configs = await dataSource.getConfigs();
       expect(configs.length, equals(5));
@@ -59,7 +59,7 @@ void main() {
 
       expect(migrated, isTrue);
       // Version marker must now be written
-      expect(await dataSource.getVersion(), equals(1));
+      expect(await dataSource.getVersion(), equals(PrayerAlarmConfigLocalDataSourceImpl.currentVersion));
 
       // All 5 prayers must be fully present and valid
       final configs = await dataSource.getConfigs();
@@ -103,7 +103,7 @@ void main() {
       await prefs.setString('prayer_alarm_type_asr', 'off');
       await prefs.setString('prayer_alarm_type_maghrib', 'alarm');
       await prefs.setString('prayer_alarm_type_isha', 'alarm');
-      await prefs.setInt(PrayerAlarmConfigLocalDataSourceImpl.versionKey, 1);
+      await prefs.setInt(PrayerAlarmConfigLocalDataSourceImpl.versionKey, PrayerAlarmConfigLocalDataSourceImpl.currentVersion);
 
       // Corrupt the atomic JSON key with garbage syntax
       await prefs.setString(
