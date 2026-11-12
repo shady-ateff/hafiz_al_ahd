@@ -299,7 +299,8 @@ class ScheduleWeeklyPrayersUseCase {
             // Non-Destructive Audio Source Resolution
             String expectedAsset;
             if (config.audioSource is BuiltInAudioSource) {
-              expectedAsset = (config.audioSource as BuiltInAudioSource).assetPath;
+              expectedAsset = (config.audioSource as BuiltInAudioSource)
+                  .resolveAssetPath(isFajr: prayer.prayerId == PrayerId.fajr);
             } else if (config.audioSource is CustomAudioSource) {
               final custom = config.audioSource as CustomAudioSource;
               final file = File(custom.localRelativePath);
@@ -307,7 +308,8 @@ class ScheduleWeeklyPrayersUseCase {
                 expectedAsset = custom.localRelativePath;
               } else {
                 log("⚠️ [Scheduler] Custom audio missing at '${custom.localRelativePath}'. Non-destructive fallback to built-in default.");
-                expectedAsset = AudioSourceConfig.defaultBuiltInFallback(isFajr: prayer.prayerId == PrayerId.fajr).assetPath;
+                expectedAsset = AudioSourceConfig.defaultBuiltInFallback(isFajr: prayer.prayerId == PrayerId.fajr)
+                    .resolveAssetPath(isFajr: prayer.prayerId == PrayerId.fajr);
               }
             } else {
               expectedAsset = prayer.name == 'الفجر'

@@ -110,6 +110,23 @@ class PrayerAlarmSettingsCubit extends Cubit<PrayerAlarmSettingsState> {
     );
   }
 
+  /// Sets alert mode (alarm, notification, off) across all 5 prayers simultaneously.
+  Future<void> setAllPrayersMode(PrayerAlarmType targetMode) async {
+    emit(state.copyWith(isUpdatingAllPrayers: true));
+    try {
+      for (final id in PrayerId.values) {
+        if (state.getEffectiveMode(id) != targetMode) {
+          await _executeModeTransition(
+            prayerId: id,
+            targetMode: targetMode,
+          );
+        }
+      }
+    } finally {
+      emit(state.copyWith(isUpdatingAllPrayers: false));
+    }
+  }
+
   Future<void> _executeModeTransition({
     required PrayerId prayerId,
     required PrayerAlarmType targetMode,
@@ -235,7 +252,7 @@ class PrayerAlarmSettingsCubit extends Cubit<PrayerAlarmSettingsState> {
   }
 
   /// Starts or toggles an audio preview without interfering with AlarmService.
-  Future<void> playAudioPreview(AudioSourceConfig source) async {
+  Future<void> playAudioPreview(AudioSourceConfig source, {bool isFajr = false}) async {
     try {
       if (state.isPreviewPlaying && state.playingPreviewSource?.id == source.id) {
         await stopAudioPreview();
@@ -250,7 +267,7 @@ class PrayerAlarmSettingsCubit extends Cubit<PrayerAlarmSettingsState> {
       ));
 
       if (source is BuiltInAudioSource) {
-        final rawPath = source.assetPath;
+        final rawPath = source.resolveAssetPath(isFajr: isFajr);
         final cleanPath = rawPath.startsWith('assets/') ? rawPath.substring(7) : rawPath;
         await _audioPlayer.play(AssetSource(cleanPath));
       } else if (source is CustomAudioSource) {

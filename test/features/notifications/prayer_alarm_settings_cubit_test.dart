@@ -288,15 +288,19 @@ void main() {
           id: 'builtIn:custom_global',
           displayName: 'الأذان المدني',
           assetPath: 'assets/sounds/madinah.mp3',
+          fajrAssetPath: 'assets/sounds/madinah_fajr.mp3',
         );
         await cubit.updateGlobalAudioSource(customGlobal);
 
-        // Non-Fajr prayer without override inherits global audio source
+        // Prayers without override inherit global audio source
         expect(cubit.state.getEffectiveAudioSource(PrayerId.dhuhr), equals(customGlobal));
         expect(cubit.state.getEffectiveAudioSource(PrayerId.asr), equals(customGlobal));
-
-        // Fajr without override inherits dedicated Fajr audio (not general global source)
-        expect(cubit.state.getEffectiveAudioSource(PrayerId.fajr).displayName, contains('الفجر'));
+        expect(cubit.state.getEffectiveAudioSource(PrayerId.fajr), equals(customGlobal));
+        expect(
+          (cubit.state.getEffectiveAudioSource(PrayerId.fajr) as BuiltInAudioSource)
+              .resolveAssetPath(isFajr: true),
+          equals('assets/sounds/madinah_fajr.mp3'),
+        );
 
         // Custom override on a prayer takes precedence
         const specialAudio = BuiltInAudioSource(
@@ -310,6 +314,27 @@ void main() {
         // Clearing override returns Dhuhr to inheriting customGlobal
         await cubit.updatePrayerAudioSource(PrayerId.dhuhr, null, clearOverride: true);
         expect(cubit.state.getEffectiveAudioSource(PrayerId.dhuhr), equals(customGlobal));
+      });
+
+      test('setAllPrayersMode transitions all 5 prayers simultaneously', () async {
+        await cubit.loadSettings();
+
+        // Initially all are alarm
+        expect(cubit.state.allPrayersAreAlarm, isTrue);
+
+        // Transition all to notification
+        await cubit.setAllPrayersMode(PrayerAlarmType.notification);
+        expect(cubit.state.allPrayersAreNotification, isTrue);
+        for (final id in PrayerId.values) {
+          expect(cubit.state.getEffectiveMode(id), equals(PrayerAlarmType.notification));
+        }
+
+        // Transition all back to alarm
+        await cubit.setAllPrayersMode(PrayerAlarmType.alarm);
+        expect(cubit.state.allPrayersAreAlarm, isTrue);
+        for (final id in PrayerId.values) {
+          expect(cubit.state.getEffectiveMode(id), equals(PrayerAlarmType.alarm));
+        }
       });
     });
   });

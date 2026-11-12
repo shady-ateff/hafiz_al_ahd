@@ -53,7 +53,7 @@ void main() {
       };
       final fallback1 = AudioSourceConfig.fromJson(unknownTypeJson);
       expect(fallback1, isA<BuiltInAudioSource>());
-      expect(fallback1.id, equals('builtIn:default_general'));
+      expect(fallback1.id, equals('builtIn:mishary_alafasy'));
 
       // Malformed custom JSON missing required fields
       final malformedCustomJson = {
@@ -62,7 +62,9 @@ void main() {
       };
       final fallback2 = AudioSourceConfig.fromJson(malformedCustomJson, isFajr: true);
       expect(fallback2, isA<BuiltInAudioSource>());
-      expect(fallback2.id, equals('builtIn:default_fajr'));
+      expect(fallback2.id, equals('builtIn:mishary_alafasy'));
+      expect((fallback2 as BuiltInAudioSource).resolveAssetPath(isFajr: true),
+          equals('assets/sounds/fajr_azan.mp3'));
     });
 
     // -------------------------------------------------------------------------
@@ -149,9 +151,13 @@ void main() {
       expect(configs[PrayerId.maghrib]!.alarmType, equals(PrayerAlarmType.alarm));
       expect(configs[PrayerId.isha]!.alarmType, equals(PrayerAlarmType.notification));
 
-      // Seeded default v2 values
-      expect(configs[PrayerId.fajr]!.audioSource.id, equals('builtIn:default_fajr'));
-      expect(configs[PrayerId.dhuhr]!.audioSource.id, equals('builtIn:default_general'));
+      // Seeded default v2 values (unified Mishary Alafasy)
+      expect(configs[PrayerId.fajr]!.audioSource.id, equals('builtIn:mishary_alafasy'));
+      expect(configs[PrayerId.dhuhr]!.audioSource.id, equals('builtIn:mishary_alafasy'));
+      expect((configs[PrayerId.fajr]!.audioSource as BuiltInAudioSource).resolveAssetPath(isFajr: true),
+          equals('assets/sounds/fajr_azan.mp3'));
+      expect((configs[PrayerId.dhuhr]!.audioSource as BuiltInAudioSource).resolveAssetPath(isFajr: false),
+          equals('assets/sounds/adhan.mp3'));
       expect(configs[PrayerId.fajr]!.volume, isNull);
       expect(configs[PrayerId.fajr]!.isVibrationEnabled, isNull);
 

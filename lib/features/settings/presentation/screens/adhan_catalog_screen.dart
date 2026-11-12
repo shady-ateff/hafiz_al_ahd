@@ -24,16 +24,7 @@ class _AdhanCatalogScreenState extends State<AdhanCatalogScreen> {
   late AudioSourceConfig _selected;
 
   static const List<BuiltInAudioSource> _builtInSources = [
-    BuiltInAudioSource(
-      id: 'builtIn:default_fajr',
-      displayName: 'أذان الفجر (الافتراضي)',
-      assetPath: 'assets/sounds/fajr_azan.mp3',
-    ),
-    BuiltInAudioSource(
-      id: 'builtIn:default_general',
-      displayName: 'الأذان العام (الافتراضي)',
-      assetPath: 'assets/sounds/adhan.mp3',
-    ),
+    AudioSourceConfig.defaultMishary,
   ];
 
   @override
@@ -86,7 +77,10 @@ class _AdhanCatalogScreenState extends State<AdhanCatalogScreen> {
               ),
             ),
             ..._builtInSources.map((source) {
-              final isSelected = _selected.id == source.id;
+              final isSelected = _selected.id == source.id ||
+                  (_selected is BuiltInAudioSource &&
+                      (_selected.id == 'builtIn:default_general' ||
+                          _selected.id == 'builtIn:default_fajr'));
 
               return BlocBuilder<PrayerAlarmSettingsCubit, PrayerAlarmSettingsState>(
                 builder: (context, state) {
@@ -116,7 +110,9 @@ class _AdhanCatalogScreenState extends State<AdhanCatalogScreen> {
                           if (isPlayingThis) {
                             context.read<PrayerAlarmSettingsCubit>().stopAudioPreview();
                           } else {
-                            context.read<PrayerAlarmSettingsCubit>().playAudioPreview(source);
+                            context
+                                .read<PrayerAlarmSettingsCubit>()
+                                .playAudioPreview(source, isFajr: widget.isFajr);
                           }
                         },
                       ),
@@ -129,7 +125,9 @@ class _AdhanCatalogScreenState extends State<AdhanCatalogScreen> {
                         ),
                       ),
                       subtitle: Text(
-                        'ملف صوتي مدمج',
+                        widget.isFajr
+                            ? 'يشمل أذان الفجر (الصلاة خير من النوم)'
+                            : 'الأذان لجميع الصلوات (افتراضي)',
                         style: GoogleFonts.cairo(
                           fontSize: 12,
                           color: textColor.withOpacity(0.6),

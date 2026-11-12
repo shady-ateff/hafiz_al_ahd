@@ -88,7 +88,11 @@ class PrayerAlarmConfig {
       _audioSource ?? AudioSourceConfig.defaultBuiltInFallback(isFajr: prayerId == PrayerId.fajr);
 
   /// Whether this prayer has an explicit audio source override configured.
-  bool get hasAudioOverride => _audioSource != null;
+  bool get hasAudioOverride =>
+      _audioSource != null &&
+      _audioSource.id != AudioSourceConfig.defaultMishary.id &&
+      _audioSource.id != 'builtIn:default_general' &&
+      _audioSource.id != 'builtIn:default_fajr';
 
   /// Returns the explicit audio source override, or null if inheriting global default.
   AudioSourceConfig? get audioSourceOverride => _audioSource;

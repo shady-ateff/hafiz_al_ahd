@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
+import 'package:hafiz_al_ahd/core/widgets/app_loader.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/entities/audio_source_config.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/entities/prayer_alarm_config.dart';
 import 'package:hafiz_al_ahd/features/notifications/presentation/cubit/prayer_alarm_settings_cubit.dart';
@@ -88,7 +89,123 @@ class PrayerAlarmSettingsScreen extends StatelessWidget {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   child: Column(
                     children: [
-                      // 1. Default Muadhin Tile
+                      // 1. All Prayers Alert Mode Radio Selector (أذان كامل / إشعار بسيط / إيقاف الكل)
+                      ClipRRect(
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                        child: Stack(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        'وضع التنبيه لجميع الصلوات',
+                                        style: GoogleFonts.cairo(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                          color: textColor,
+                                        ),
+                                      ),
+                                      if (state.hasMixedModes)
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: Colors.amber.withValues(alpha: 0.15),
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Text(
+                                            'مخصص (مختلف بين الصلوات)',
+                                            style: GoogleFonts.cairo(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.amber.shade700,
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  _buildGlobalModeRadioTile(
+                                    context: context,
+                                    title: 'أذان كامل لجميع الصلوات',
+                                    subtitle: 'تشغيل الأذان بصوت المؤذن مع شاشة التنبيه',
+                                    mode: PrayerAlarmType.alarm,
+                                    selectedMode: state.dominantGlobalMode,
+                                    icon: Icons.notifications_active_rounded,
+                                    iconColor: AppColors.secondaryGold,
+                                    textColor: textColor,
+                                    isLoading: state.isUpdatingAllPrayers,
+                                    onTap: () => cubit.setAllPrayersMode(PrayerAlarmType.alarm),
+                                  ),
+                                  const Divider(height: 1, indent: 40),
+                                  _buildGlobalModeRadioTile(
+                                    context: context,
+                                    title: 'إشعار بسيط لجميع الصلوات',
+                                    subtitle: 'تنبيه نظام هادئ بدون صوت أذان',
+                                    mode: PrayerAlarmType.notification,
+                                    selectedMode: state.dominantGlobalMode,
+                                    icon: Icons.notifications_none_rounded,
+                                    iconColor: textColor.withValues(alpha: 0.7),
+                                    textColor: textColor,
+                                    isLoading: state.isUpdatingAllPrayers,
+                                    onTap: () => cubit.setAllPrayersMode(PrayerAlarmType.notification),
+                                  ),
+                                  const Divider(height: 1, indent: 40),
+                                  _buildGlobalModeRadioTile(
+                                    context: context,
+                                    title: 'إيقاف التنبيهات لجميع الصلوات (صامت)',
+                                    subtitle: 'تعطيل التنبيهات والإشعارات لكافة الصلوات',
+                                    mode: PrayerAlarmType.off,
+                                    selectedMode: state.dominantGlobalMode,
+                                    icon: Icons.notifications_off_outlined,
+                                    iconColor: Colors.grey,
+                                    textColor: textColor,
+                                    isLoading: state.isUpdatingAllPrayers,
+                                    onTap: () => cubit.setAllPrayersMode(PrayerAlarmType.off),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (state.isUpdatingAllPrayers)
+                              Positioned.fill(
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: cardColor.withValues(alpha: 0.88),
+                                  ),
+                                  child: Center(
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const SizedBox(
+                                          width: 75,
+                                          height: 75,
+                                          child: AppLoader(),
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Text(
+                                          'جاري تحديث وضع الصلوات...',
+                                          style: GoogleFonts.cairo(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.secondaryGold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+
+                      Divider(color: dividerColor, height: 1, indent: 16, endIndent: 16),
+
+                      // 2. Default Muadhin Tile
                       ListTile(
                         contentPadding:
                             const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -257,18 +374,13 @@ class PrayerAlarmSettingsScreen extends StatelessWidget {
                         prayerId: prayerId,
                         alarmType: PrayerAlarmType.alarm,
                       );
-                  final effectiveMode = state.getEffectiveMode(prayerId);
-                  final effectiveAudio = state.getEffectiveAudioSource(prayerId);
-                  final isTransitioning = state.isTransitioning(prayerId);
 
                   return _buildPrayerSummaryCard(
                     context,
                     prayerId: prayerId,
                     prayerName: prayerName,
                     config: config,
-                    effectiveMode: effectiveMode,
-                    effectiveAudio: effectiveAudio,
-                    isTransitioning: isTransitioning,
+                    state: state,
                     cardColor: cardColor,
                     textColor: textColor,
                   );
@@ -402,12 +514,14 @@ class PrayerAlarmSettingsScreen extends StatelessWidget {
     required PrayerId prayerId,
     required String prayerName,
     required PrayerAlarmConfig config,
-    required PrayerAlarmType effectiveMode,
-    required AudioSourceConfig effectiveAudio,
-    required bool isTransitioning,
+    required PrayerAlarmSettingsState state,
     required Color cardColor,
     required Color textColor,
   }) {
+    final effectiveMode = state.getEffectiveMode(prayerId);
+    final effectiveAudio = state.getEffectiveAudioSource(prayerId);
+    final isTransitioning = state.isTransitioning(prayerId);
+
     final String modeLabel;
     final IconData modeIcon;
     final Color modeColor;
@@ -430,8 +544,19 @@ class PrayerAlarmSettingsScreen extends StatelessWidget {
         break;
     }
 
-    final hasAudioCustomization = config.hasAudioOverride;
-    final hasVolumeCustomization = config.volume != null;
+    // Check if this prayer has actual customization that differs from global defaults
+    final isAudioCustomized = config.hasAudioOverride &&
+        config.audioSource.id != state.globalAudioSource.id;
+    final isVolumeCustomized = config.volume != null &&
+        (config.volume! - state.globalAdhanVolume).abs() > 0.01;
+    final isVibrationCustomized = config.isVibrationEnabled != null &&
+        config.isVibrationEnabled != state.isGlobalAdhanVibrationEnabled;
+    final isModeCustomized = state.hasMixedModes &&
+        state.dominantGlobalMode != null &&
+        effectiveMode != state.dominantGlobalMode;
+
+    final hasCustomization =
+        isAudioCustomized || isVolumeCustomized || isVibrationCustomized || isModeCustomized;
 
     return Card(
       color: cardColor,
@@ -486,7 +611,7 @@ class PrayerAlarmSettingsScreen extends StatelessWidget {
                             color: textColor,
                           ),
                         ),
-                        if (hasAudioCustomization || hasVolumeCustomization) ...[
+                        if (hasCustomization) ...[
                           const SizedBox(width: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -530,6 +655,67 @@ class PrayerAlarmSettingsScreen extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGlobalModeRadioTile({
+    required BuildContext context,
+    required String title,
+    required String subtitle,
+    required PrayerAlarmType mode,
+    required PrayerAlarmType? selectedMode,
+    required IconData icon,
+    required Color iconColor,
+    required Color textColor,
+    required bool isLoading,
+    required VoidCallback onTap,
+  }) {
+    final isSelected = selectedMode == mode;
+
+    return InkWell(
+      onTap: isLoading ? null : onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? AppColors.secondaryGold : iconColor,
+              size: 22,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: GoogleFonts.cairo(
+                      fontSize: 13,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                      color: isSelected ? AppColors.secondaryGold : textColor,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: GoogleFonts.cairo(
+                      fontSize: 11,
+                      color: textColor.withValues(alpha: 0.55),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Radio<PrayerAlarmType>(
+              value: mode,
+              groupValue: selectedMode,
+              onChanged: isLoading ? null : (_) => onTap(),
+              activeColor: AppColors.secondaryGold,
+            ),
+          ],
         ),
       ),
     );

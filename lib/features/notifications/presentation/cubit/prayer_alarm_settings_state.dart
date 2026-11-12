@@ -6,11 +6,7 @@ import 'package:hafiz_al_ahd/features/notifications/domain/entities/prayer_alert
 enum SettingsStatus { initial, loading, loaded, error }
 
 class PrayerAlarmSettingsState extends Equatable {
-  static const AudioSourceConfig defaultGeneralAudio = BuiltInAudioSource(
-    id: 'builtIn:default_general',
-    displayName: 'الأذان العام (الافتراضي)',
-    assetPath: 'assets/sounds/adhan.mp3',
-  );
+  static const AudioSourceConfig defaultGeneralAudio = AudioSourceConfig.defaultMishary;
 
   final SettingsStatus status;
   final Map<PrayerId, PrayerAlarmConfig> configs;
@@ -20,6 +16,7 @@ class PrayerAlarmSettingsState extends Equatable {
   final AudioSourceConfig globalAudioSource;
   final AudioSourceConfig? playingPreviewSource;
   final bool isPreviewPlaying;
+  final bool isUpdatingAllPrayers;
   final String? errorMessage;
   final String? infoMessage;
 
@@ -32,6 +29,7 @@ class PrayerAlarmSettingsState extends Equatable {
     this.globalAudioSource = defaultGeneralAudio,
     this.playingPreviewSource,
     this.isPreviewPlaying = false,
+    this.isUpdatingAllPrayers = false,
     this.errorMessage,
     this.infoMessage,
   });
@@ -62,11 +60,36 @@ class PrayerAlarmSettingsState extends Equatable {
     if (config != null && config.hasAudioOverride) {
       return config.audioSource;
     }
-    if (prayerId == PrayerId.fajr) {
-      return AudioSourceConfig.defaultBuiltInFallback(isFajr: true);
-    }
     return globalAudioSource;
   }
+
+  /// Whether all 5 prayers are set to full alarm.
+  bool get allPrayersAreAlarm =>
+      PrayerId.values.every((id) => getEffectiveMode(id) == PrayerAlarmType.alarm);
+
+  /// Whether all 5 prayers are set to simple notification.
+  bool get allPrayersAreNotification =>
+      PrayerId.values.every((id) => getEffectiveMode(id) == PrayerAlarmType.notification);
+
+  /// Whether all 5 prayers are turned off.
+  bool get allPrayersAreOff =>
+      PrayerId.values.every((id) => getEffectiveMode(id) == PrayerAlarmType.off);
+
+  /// Whether prayers have mixed/customized alert modes.
+  bool get hasMixedModes =>
+      !allPrayersAreAlarm && !allPrayersAreNotification && !allPrayersAreOff;
+
+  /// Returns the unified global mode if all prayers share the same mode, otherwise null.
+  PrayerAlarmType? get dominantGlobalMode {
+    if (allPrayersAreAlarm) return PrayerAlarmType.alarm;
+    if (allPrayersAreNotification) return PrayerAlarmType.notification;
+    if (allPrayersAreOff) return PrayerAlarmType.off;
+    return null;
+  }
+
+  /// Whether any of the 5 prayers is currently undergoing a mode transition.
+  bool get isAnyPrayerTransitioning =>
+      isUpdatingAllPrayers || PrayerId.values.any((id) => isTransitioning(id));
 
   /// Whether a transition is actively pending or waiting for an imminent alarm.
   bool isTransitioning(PrayerId prayerId) {
@@ -94,6 +117,7 @@ class PrayerAlarmSettingsState extends Equatable {
     AudioSourceConfig? playingPreviewSource,
     bool clearPreview = false,
     bool? isPreviewPlaying,
+    bool? isUpdatingAllPrayers,
     String? errorMessage,
     bool clearError = false,
     String? infoMessage,
@@ -111,6 +135,7 @@ class PrayerAlarmSettingsState extends Equatable {
           ? null
           : (playingPreviewSource ?? this.playingPreviewSource),
       isPreviewPlaying: isPreviewPlaying ?? this.isPreviewPlaying,
+      isUpdatingAllPrayers: isUpdatingAllPrayers ?? this.isUpdatingAllPrayers,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       infoMessage: clearInfo ? null : (infoMessage ?? this.infoMessage),
     );
@@ -126,6 +151,7 @@ class PrayerAlarmSettingsState extends Equatable {
         globalAudioSource,
         playingPreviewSource,
         isPreviewPlaying,
+        isUpdatingAllPrayers,
         errorMessage,
         infoMessage,
       ];

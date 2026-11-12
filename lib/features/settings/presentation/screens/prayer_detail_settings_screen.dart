@@ -152,7 +152,7 @@ class PrayerDetailSettingsScreen extends StatelessWidget {
                           } else {
                             context
                                 .read<PrayerAlarmSettingsCubit>()
-                                .playAudioPreview(effectiveAudio);
+                                .playAudioPreview(effectiveAudio, isFajr: prayerId == PrayerId.fajr);
                           }
                         },
                       ),
@@ -167,9 +167,7 @@ class PrayerDetailSettingsScreen extends StatelessWidget {
                       subtitle: Text(
                         isAudioCustomized
                             ? 'صوت مخصص لهذه الصلاة (اضغط للتغيير)'
-                            : (prayerId == PrayerId.fajr
-                                ? 'أذان الفجر الافتراضي (اضغط للتخصيص)'
-                                : 'حسب الصوت العام الافتراضي (اضغط للتخصيص)'),
+                            : 'حسب المؤذن الافتراضي (اضغط للتخصيص)',
                         style: GoogleFonts.cairo(
                           fontSize: 12,
                           color: isAudioCustomized

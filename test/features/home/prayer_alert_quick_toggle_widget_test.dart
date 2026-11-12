@@ -125,9 +125,9 @@ void main() {
     });
 
     // -------------------------------------------------------------------------
-    // TEST-C-24: Sunrise Suppression
+    // TEST-C-24: Sunrise Always Muted Indicator
     // -------------------------------------------------------------------------
-    testWidgets('TEST-C-24: Sunrise card suppresses toggle widget completely', (tester) async {
+    testWidgets('TEST-C-24: Sunrise card displays always-muted notification icon and tap explanation', (tester) async {
       await tester.pumpWidget(
         createWidgetUnderTest(
           prayerId: null,
@@ -137,8 +137,14 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.byType(IconButton), findsNothing);
-      expect(find.byType(PrayerAlertQuickToggle), findsOneWidget);
+      expect(find.byIcon(Icons.notifications_off_outlined), findsOneWidget);
+      expect(find.byType(IconButton), findsOneWidget);
+
+      await tester.tap(find.byType(IconButton));
+      await tester.pump();
+
+      expect(find.byType(SnackBar), findsOneWidget);
+      expect(find.textContaining('وقت الشروق صامت دائماً'), findsOneWidget);
     });
 
     // -------------------------------------------------------------------------

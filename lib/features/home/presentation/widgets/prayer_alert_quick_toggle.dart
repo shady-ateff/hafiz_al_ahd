@@ -31,9 +31,41 @@ class _PrayerAlertQuickToggleState extends State<PrayerAlertQuickToggle> {
 
   @override
   Widget build(BuildContext context) {
-    // 🌅 Rule 1: Sunrise suppression
+    // 🌅 Rule 1: Sunrise special handling (Always Muted / Off)
     if (widget.prayerId == null || widget.prayerName == 'الشروق') {
-      return const SizedBox.shrink();
+      const semanticLabel = 'وقت الشروق: صامت دائماً (لا يوجد أذان للشروق)';
+      return Semantics(
+        label: semanticLabel,
+        button: true,
+        child: IconButton(
+          tooltip: 'وقت الشروق صامت دائماً',
+          padding: EdgeInsets.zero,
+          icon: Icon(
+            Icons.notifications_off_outlined,
+            color: Colors.grey.withValues(alpha: 0.6),
+          ),
+          onPressed: () {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                duration: const Duration(seconds: 3),
+                backgroundColor: const Color(0xFF2C2C2E),
+                content: Text(
+                  'وقت الشروق صامت دائماً (لا يوجد أذان للشروق).',
+                  style: GoogleFonts.cairo(color: Colors.white, fontSize: 13),
+                ),
+              ),
+            );
+          },
+          style: ButtonStyle(
+            shape: WidgetStateProperty.all(
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            padding: WidgetStateProperty.all(EdgeInsets.zero),
+            backgroundColor: WidgetStateProperty.all(Colors.transparent),
+          ),
+        ),
+      );
     }
 
     final prayerId = widget.prayerId!;
@@ -92,7 +124,7 @@ class _PrayerAlertQuickToggleState extends State<PrayerAlertQuickToggle> {
 
           case PrayerAlarmType.off:
             iconData = Icons.notifications_off_outlined;
-            iconColor = Colors.grey.withOpacity(0.6);
+            iconColor = Colors.grey.withValues(alpha: 0.6);
             semanticLabel =
                 'صلاة ${widget.prayerName}: التنبيهات معطلة بالكامل. اضغط لفتح الإعدادات';
             break;

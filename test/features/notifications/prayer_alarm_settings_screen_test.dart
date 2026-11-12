@@ -149,10 +149,18 @@ void main() {
 
       // Section A: Global defaults
       expect(find.text('الإعدادات العامة التلقائية'), findsOneWidget);
+      expect(find.text('وضع التنبيه لجميع الصلوات'), findsOneWidget);
+      expect(find.text('أذان كامل لجميع الصلوات'), findsOneWidget);
+      expect(find.text('إشعار بسيط لجميع الصلوات'), findsOneWidget);
+      expect(find.text('إيقاف التنبيهات لجميع الصلوات (صامت)'), findsOneWidget);
       expect(find.text('المؤذن الافتراضي العام'), findsOneWidget);
       expect(find.text('مستوى صوت الأذان الافتراضي'), findsOneWidget);
       expect(find.text('80%'), findsOneWidget); // Initial volume 0.8
       expect(find.text('الاهتزاز الافتراضي مع الأذان'), findsOneWidget);
+
+      // Verify no customized tags exist when following defaults
+      expect(find.text('مخصص'), findsNothing);
+      expect(find.text('مخصص (مختلف بين الصلوات)'), findsNothing);
 
       // Section B: 5 Prayers
       expect(find.text('التحكم المستقل لكل صلاة'), findsOneWidget);
@@ -165,6 +173,38 @@ void main() {
       // Section C: Catalog entry
       expect(find.text('مكتبة أصوات المؤذنين'), findsOneWidget);
       expect(find.text('تصفح وإدارة أصوات الأذان'), findsOneWidget);
+    });
+
+    testWidgets('Tapping global notification mode switches all prayers', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await cubit.loadSettings();
+      await tester.pumpWidget(buildTestApp());
+      await tester.pumpAndSettle();
+
+      // Tap 'إشعار بسيط لجميع الصلوات' in Section A
+      await tester.tap(find.text('إشعار بسيط لجميع الصلوات'));
+      await tester.pumpAndSettle();
+
+      expect(cubit.state.allPrayersAreNotification, isTrue);
+    });
+
+    testWidgets('Tapping turn off all mode turns off all prayers simultaneously', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await cubit.loadSettings();
+      await tester.pumpWidget(buildTestApp());
+      await tester.pumpAndSettle();
+
+      // Tap 'إيقاف التنبيهات لجميع الصلوات (صامت)' in Section A
+      await tester.tap(find.text('إيقاف التنبيهات لجميع الصلوات (صامت)'));
+      await tester.pumpAndSettle();
+
+      expect(cubit.state.allPrayersAreOff, isTrue);
     });
 
     testWidgets('Tapping global vibration switch toggles global vibration', (tester) async {

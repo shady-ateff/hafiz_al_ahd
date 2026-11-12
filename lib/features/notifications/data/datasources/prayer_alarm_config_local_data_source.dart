@@ -265,7 +265,8 @@ class PrayerAlarmConfigLocalDataSourceImpl implements BasePrayerAlarmConfigLocal
       if (entry.value.audioSource is BuiltInAudioSource) {
         await prefs.setString(
           alarmSoundKey(entry.key.key),
-          (entry.value.audioSource as BuiltInAudioSource).assetPath,
+          (entry.value.audioSource as BuiltInAudioSource)
+              .resolveAssetPath(isFajr: entry.key == PrayerId.fajr),
         );
       }
       if (entry.value.volume != null) {

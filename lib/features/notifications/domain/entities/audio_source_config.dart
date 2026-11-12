@@ -31,30 +31,39 @@ sealed class AudioSourceConfig {
     }
   }
 
+  /// Default built-in audio source (Sheikh Mishary Rashid Al-Afasy).
+  static const BuiltInAudioSource defaultMishary = BuiltInAudioSource(
+    id: 'builtIn:mishary_alafasy',
+    displayName: 'الشيخ مشاري راشد العفاسي',
+    assetPath: 'assets/sounds/adhan.mp3',
+    fajrAssetPath: 'assets/sounds/fajr_azan.mp3',
+  );
+
   /// Default built-in audio source fallback.
-  static BuiltInAudioSource defaultBuiltInFallback({bool isFajr = false}) => isFajr
-      ? const BuiltInAudioSource(
-          id: 'builtIn:default_fajr',
-          displayName: 'أذان الفجر (الافتراضي)',
-          assetPath: 'assets/sounds/fajr_azan.mp3',
-        )
-      : const BuiltInAudioSource(
-          id: 'builtIn:default_general',
-          displayName: 'الأذان العام (الافتراضي)',
-          assetPath: 'assets/sounds/adhan.mp3',
-        );
+  static BuiltInAudioSource defaultBuiltInFallback({bool isFajr = false}) => defaultMishary;
 }
 
 /// Built-in app asset audio source.
 @immutable
 class BuiltInAudioSource extends AudioSourceConfig {
   final String assetPath;
+  final String? fajrAssetPath;
 
   const BuiltInAudioSource({
     required super.id,
     required super.displayName,
     required this.assetPath,
+    this.fajrAssetPath,
   });
+
+  /// Resolves the specific audio asset path for the given prayer context.
+  /// If it is Fajr and a specific [fajrAssetPath] is present, returns [fajrAssetPath]; otherwise returns [assetPath].
+  String resolveAssetPath({bool isFajr = false}) {
+    if (isFajr && fajrAssetPath != null && fajrAssetPath!.isNotEmpty) {
+      return fajrAssetPath!;
+    }
+    return assetPath;
+  }
 
   @override
   Map<String, dynamic> toJson() => {
@@ -62,13 +71,24 @@ class BuiltInAudioSource extends AudioSourceConfig {
         'id': id,
         'displayName': displayName,
         'assetPath': assetPath,
+        if (fajrAssetPath != null) 'fajrAssetPath': fajrAssetPath,
       };
 
   factory BuiltInAudioSource.fromJson(Map<String, dynamic> json) {
+    final id = json['id'] as String? ?? 'builtIn:mishary_alafasy';
+
+    // Normalize legacy v1 IDs to the unified Mishary Alafasy source
+    if (id == 'builtIn:default_general' ||
+        id == 'builtIn:default_fajr' ||
+        id == 'builtIn:mishary_alafasy') {
+      return AudioSourceConfig.defaultMishary;
+    }
+
     return BuiltInAudioSource(
-      id: json['id'] as String? ?? 'builtIn:default_general',
-      displayName: json['displayName'] as String? ?? 'الأذان العام (الافتراضي)',
+      id: id,
+      displayName: json['displayName'] as String? ?? 'الشيخ مشاري راشد العفاسي',
       assetPath: json['assetPath'] as String? ?? 'assets/sounds/adhan.mp3',
+      fajrAssetPath: json['fajrAssetPath'] as String?,
     );
   }
 
@@ -78,13 +98,15 @@ class BuiltInAudioSource extends AudioSourceConfig {
       other is BuiltInAudioSource &&
           id == other.id &&
           displayName == other.displayName &&
-          assetPath == other.assetPath;
+          assetPath == other.assetPath &&
+          fajrAssetPath == other.fajrAssetPath;
 
   @override
-  int get hashCode => Object.hash(id, displayName, assetPath);
+  int get hashCode => Object.hash(id, displayName, assetPath, fajrAssetPath);
 
   @override
-  String toString() => 'BuiltInAudioSource(id: $id, displayName: $displayName, assetPath: $assetPath)';
+  String toString() =>
+      'BuiltInAudioSource(id: $id, displayName: $displayName, assetPath: $assetPath, fajrAssetPath: $fajrAssetPath)';
 }
 
 /// User-imported custom audio source stored in private app storage.

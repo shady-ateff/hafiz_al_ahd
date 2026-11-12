@@ -146,7 +146,7 @@ Future<void> init() async {
         body: prayerId == PrayerId.fajr ? 'الصلاة خير من النوم' : 'حي على الصلاة، حي على الفلاح',
         scheduledTime: dt,
         assetAudioPath: audio is BuiltInAudioSource
-            ? audio.assetPath
+            ? audio.resolveAssetPath(isFajr: prayerId == PrayerId.fajr)
             : (audio as CustomAudioSource).localRelativePath,
         volume: vol,
         enableVibration: vib,
