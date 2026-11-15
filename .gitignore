@@ -4,6 +4,8 @@
 *.pyc
 *.swp
 .env
+.env.*
+.env.deploy
 .DS_Store
 .atom/
 .build/
