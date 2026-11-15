@@ -1,13 +1,16 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
+import 'dart:io';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hafiz_al_ahd/features/notifications/data/datasources/prayer_alert_transition_local_data_source.dart';
+import 'package:hafiz_al_ahd/features/notifications/data/services/custom_audio_storage_service.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/entities/audio_source_config.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/entities/prayer_alarm_config.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/repos/prayer_alarm_config_repository.dart';
+import 'package:hafiz_al_ahd/features/notifications/domain/services/audio_storage_lock.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/services/transition_coordinator.dart';
 import 'package:hafiz_al_ahd/features/notifications/presentation/cubit/prayer_alarm_settings_state.dart';
 
@@ -16,6 +19,8 @@ class PrayerAlarmSettingsCubit extends Cubit<PrayerAlarmSettingsState> {
   final TransitionCoordinator transitionCoordinator;
   final BasePrayerAlertTransitionLocalDataSource transitionDataSource;
   final SharedPreferences prefs;
+  final BaseAudioStorageLock audioStorageLock;
+  final CustomAudioStorageService storageService;
   final AudioPlayer _audioPlayer;
   StreamSubscription<void>? _playerCompleteSub;
 
@@ -24,6 +29,8 @@ class PrayerAlarmSettingsCubit extends Cubit<PrayerAlarmSettingsState> {
     required this.transitionCoordinator,
     required this.transitionDataSource,
     required this.prefs,
+    required this.audioStorageLock,
+    required this.storageService,
     AudioPlayer? audioPlayer,
   })  : _audioPlayer = audioPlayer ?? AudioPlayer(),
         super(const PrayerAlarmSettingsState()) {
@@ -190,28 +197,51 @@ class PrayerAlarmSettingsCubit extends Cubit<PrayerAlarmSettingsState> {
   }
 
   /// Updates global default audio source (propagates to all non-Fajr prayers without audio override).
-  Future<void> updateGlobalAudioSource(AudioSourceConfig source) async {
-    await prefs.setString('global_adhan_audio_source', jsonEncode(source.toJson()));
-    emit(state.copyWith(globalAudioSource: source));
+  Future<bool> updateGlobalAudioSource(AudioSourceConfig source) async {
+    try {
+      await audioStorageLock.synchronized(() async {
+        if (source is CustomAudioSource) {
+          await storageService.validatePathContainment(source.localRelativePath);
+        }
+        await prefs.setString('global_adhan_audio_source', jsonEncode(source.toJson()));
+      });
+      emit(state.copyWith(globalAudioSource: source, clearError: true));
+      return true;
+    } on FileSystemException catch (e) {
+      emit(state.copyWith(errorMessage: e.message));
+      return false;
+    } catch (e) {
+      emit(state.copyWith(errorMessage: 'فشل حفظ الصوت العام: $e'));
+      return false;
+    }
   }
 
   /// Updates audio source for a specific prayer.
-  Future<void> updatePrayerAudioSource(
+  Future<bool> updatePrayerAudioSource(
     PrayerId prayerId,
     AudioSourceConfig? audioSource, {
     bool clearOverride = false,
   }) async {
     final current = state.configs[prayerId];
-    if (current == null) return;
+    if (current == null) return false;
 
-    final updated = clearOverride || audioSource == null
-        ? current.copyWith(clearAudioOverride: true)
-        : current.copyWith(audioSource: audioSource);
-    await configRepository.saveConfig(updated);
+    try {
+      final updated = clearOverride || audioSource == null
+          ? current.copyWith(clearAudioOverride: true)
+          : current.copyWith(audioSource: audioSource);
+      await configRepository.saveConfig(updated);
 
-    final updatedConfigs = Map<PrayerId, PrayerAlarmConfig>.from(state.configs);
-    updatedConfigs[prayerId] = updated;
-    emit(state.copyWith(configs: updatedConfigs));
+      final updatedConfigs = Map<PrayerId, PrayerAlarmConfig>.from(state.configs);
+      updatedConfigs[prayerId] = updated;
+      emit(state.copyWith(configs: updatedConfigs, clearError: true));
+      return true;
+    } on FileSystemException catch (e) {
+      emit(state.copyWith(errorMessage: e.message));
+      return false;
+    } catch (e) {
+      emit(state.copyWith(errorMessage: 'فشل حفظ إعداد الصوت: $e'));
+      return false;
+    }
   }
 
   /// Updates volume (clamped between 0.1 and 1.0) for a specific prayer.
