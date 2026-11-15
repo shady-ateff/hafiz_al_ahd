@@ -152,7 +152,18 @@ abstract final class CatalogConfig {
     }
 
     final cleanBase = base.endsWith('/') ? base.substring(0, base.length - 1) : base;
-    final cleanKey = key.startsWith('/') ? key.substring(1) : key;
+    var cleanKey = key.startsWith('/') ? key.substring(1) : key;
+
+    // Deduplicate trailing folder segment if cleanKey repeats the base directory
+    // (e.g. cleanBase is "https://example.com/catalog" and cleanKey is "catalog/audio/file.mp3")
+    final baseSegments = baseUri.pathSegments.where((s) => s.isNotEmpty).toList();
+    if (baseSegments.isNotEmpty) {
+      final lastSegment = baseSegments.last;
+      if (cleanKey.startsWith('$lastSegment/')) {
+        cleanKey = cleanKey.substring(lastSegment.length + 1);
+      }
+    }
+
     final resolvedUri = Uri.tryParse('$cleanBase/$cleanKey');
     if (resolvedUri == null) return null;
 

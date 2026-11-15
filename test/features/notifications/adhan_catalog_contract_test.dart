@@ -534,6 +534,30 @@ void main() {
       expect(CatalogConfig.audioUrl('audio/../../etc.mp3'), isNull);
     });
 
+    test('audioUrl deduplicates redundant base directory in objectKey', () {
+      final url = CatalogConfig.audioUrl(
+        'catalog/audio/mishary.mp3',
+        customBaseUrl: 'https://cdn.example.com/catalog',
+      );
+      expect(url, equals('https://cdn.example.com/catalog/audio/mishary.mp3'));
+    });
+
+    test('audioUrl deduplicates base directory when baseUrl ends with catalog.json', () {
+      final url = CatalogConfig.audioUrl(
+        'catalog/audio/mishary.mp3',
+        customBaseUrl: 'https://cdn.example.com/catalog/catalog.json',
+      );
+      expect(url, equals('https://cdn.example.com/catalog/audio/mishary.mp3'));
+    });
+
+    test('audioUrl preserves objectKey when baseUrl is domain root', () {
+      final url = CatalogConfig.audioUrl(
+        'catalog/audio/mishary.mp3',
+        customBaseUrl: 'https://cdn.example.com',
+      );
+      expect(url, equals('https://cdn.example.com/catalog/audio/mishary.mp3'));
+    });
+
     test('catalogJsonUrl includes correct object key suffix', () {
       // Even unconfigured, the suffix must be correct
       expect(CatalogConfig.catalogJsonUrl, contains(kCatalogJsonObjectKey));
