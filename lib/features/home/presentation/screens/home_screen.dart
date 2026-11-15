@@ -147,9 +147,9 @@ class _HomeScreenState extends State<HomeScreen>
         child: RefreshIndicator(
           color: AppColors.secondaryGold,
           onRefresh: () async {
-            final cubit = context.read<PrayerTimesCubit>();
-            await cubit.fetchLocation();
-            await cubit.fetchPrayerTimes(forceRefresh: true);
+            await context.read<PrayerTimesCubit>().fetchPrayerTimesByLocation(
+              forceRescheduleAlarms: true,
+            );
           },
           child: LayoutBuilder(
             builder: (context, constraints) {
