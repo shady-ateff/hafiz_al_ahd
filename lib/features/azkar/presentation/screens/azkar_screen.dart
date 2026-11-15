@@ -340,7 +340,7 @@ class _AzkarScreenState extends State<AzkarScreen> {
       color: AppColors.secondaryGold,
       onRefresh: () async {
         context.read<AzkarCubit>().loadAzkar();
-        context.read<GamificationCubit>().loadGamificationData();
+        context.read<GamificationCubit>().init();
       },
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),

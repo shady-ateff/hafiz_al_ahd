@@ -43,7 +43,7 @@ class ProfileScreen extends StatelessWidget {
             final profile = state.profile;
             return RefreshIndicator(
               color: AppColors.secondaryGold,
-              onRefresh: () => context.read<GamificationCubit>().loadGamificationData(),
+              onRefresh: () => context.read<GamificationCubit>().init(),
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(20),

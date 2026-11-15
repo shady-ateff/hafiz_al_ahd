@@ -21,6 +21,9 @@ class GamificationCubit extends Cubit<GamificationState> {
     );
   }
 
+  /// Alias for refreshing gamification data on pull-to-refresh
+  Future<void> loadGamificationData() => init();
+
   Future<void> _loadProfile() async {
     final result = await repository.getUserProfile();
     result.fold(
