@@ -1,5 +1,6 @@
 import 'dart:developer';
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -71,6 +72,15 @@ class ScheduleWeeklyPrayersUseCase {
     final isIqamaEnabled = pref.getBool('isIqamaEnabled') ?? true;
     final isAzkarReminderEnabled = pref.getBool('isAzkarReminderEnabled') ?? true;
 
+    AudioSourceConfig globalAudioSource = AudioSourceConfig.defaultMishary;
+    final audioJson = pref.getString('global_adhan_audio_source');
+    if (audioJson != null) {
+      try {
+        final decoded = jsonDecode(audioJson) as Map<String, dynamic>;
+        globalAudioSource = AudioSourceConfig.fromJson(decoded);
+      } catch (_) {}
+    }
+
     // 4. البدء في جدولة الأيام الخمسة بمصالحة مستهدفة (Targeted Reconciliation) دون مسح شامل
     log("📅 Scheduling notifications for the next 5 days with targeted reconciliation...");
 
@@ -114,6 +124,7 @@ class ScheduleWeeklyPrayersUseCase {
             isIqamaEnabled: isIqamaEnabled,
             isAzkarReminderEnabled: isAzkarReminderEnabled,
             isToday: i == 0,
+            globalAudioSource: globalAudioSource,
           );
         },
       );
@@ -186,6 +197,7 @@ class ScheduleWeeklyPrayersUseCase {
     required bool isIqamaEnabled,
     required bool isAzkarReminderEnabled,
     required bool isToday,
+    required AudioSourceConfig globalAudioSource,
   }) async {
     final now = DateTime.now();
     final List<ScheduleOperationResult> operations = [];
@@ -306,19 +318,26 @@ class ScheduleWeeklyPrayersUseCase {
             final effectiveVolume = config.volume ?? adhanVolume;
             final effectiveVibration = config.isVibrationEnabled ?? isAdhanVibrationEnabled;
 
+            final effectiveAudioSource = config.hasAudioOverride
+                ? config.audioSource
+                : (prayer.prayerId == PrayerId.fajr &&
+                        globalAudioSource.id == AudioSourceConfig.defaultMishary.id
+                    ? AudioSourceConfig.defaultBuiltInFallback(isFajr: true)
+                    : globalAudioSource);
+
             // Non-Destructive Audio Source Resolution
             String expectedAsset;
             if (_resolver != null) {
               final resolved = await _resolver!.resolveAudio(
-                config.audioSource,
+                effectiveAudioSource,
                 isFajr: prayer.prayerId == PrayerId.fajr,
               );
               expectedAsset = resolved.path;
-            } else if (config.audioSource is BuiltInAudioSource) {
-              expectedAsset = (config.audioSource as BuiltInAudioSource)
+            } else if (effectiveAudioSource is BuiltInAudioSource) {
+              expectedAsset = (effectiveAudioSource as BuiltInAudioSource)
                   .resolveAssetPath(isFajr: prayer.prayerId == PrayerId.fajr);
-            } else if (config.audioSource is CustomAudioSource) {
-              final custom = config.audioSource as CustomAudioSource;
+            } else if (effectiveAudioSource is CustomAudioSource) {
+              final custom = effectiveAudioSource as CustomAudioSource;
               final file = File(custom.localRelativePath);
               if (file.existsSync()) {
                 expectedAsset = custom.localRelativePath;
@@ -626,13 +645,16 @@ class ScheduleWeeklyPrayersUseCase {
             String? customIqamaPath;
             final config = prayerConfigs[prayer.prayerId];
             if (config != null) {
+              final effectiveSource = config.hasAudioOverride
+                  ? config.audioSource
+                  : globalAudioSource;
               if (_resolver != null) {
-                final resolvedIqama = await _resolver!.resolveIqamaAudio(config.audioSource);
+                final resolvedIqama = await _resolver!.resolveIqamaAudio(effectiveSource);
                 if (!resolvedIqama.isAsset) {
                   customIqamaPath = resolvedIqama.path;
                 }
-              } else if (config.audioSource is CustomAudioSource) {
-                final custom = config.audioSource as CustomAudioSource;
+              } else if (effectiveSource is CustomAudioSource) {
+                final custom = effectiveSource as CustomAudioSource;
                 if (custom.iqamaLocalRelativePath != null) {
                   final file = File(custom.iqamaLocalRelativePath!);
                   if (file.existsSync()) {

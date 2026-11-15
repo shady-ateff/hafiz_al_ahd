@@ -11,6 +11,7 @@ import 'package:hafiz_al_ahd/core/DI/service_locator.dart' as di;
 import 'package:hafiz_al_ahd/core/services/background_service_manager.dart'; // 👈 استيراد خدمة الخلفية
 import 'package:hafiz_al_ahd/core/services/desktop_window_service.dart';
 import 'package:hafiz_al_ahd/features/main/presentation/screens/main_screen.dart';
+import 'package:hafiz_al_ahd/features/notifications/domain/entities/calendar_alarm_id_contract.dart';
 // 👈 استدعي الـ Base بدلاً من الـ Impl
 import 'package:hafiz_al_ahd/features/notifications/domain/repos/base_notification_repository.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/services/transition_coordinator.dart';

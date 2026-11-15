@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:developer';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hafiz_al_ahd/core/DI/service_locator.dart';
@@ -301,6 +302,15 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
     final pref = sl<SharedPreferences>();
     final double adhanVolume = pref.getDouble('adhan_volume') ?? 1.0;
 
+    AudioSourceConfig globalAudioSource = AudioSourceConfig.defaultMishary;
+    final audioJson = pref.getString('global_adhan_audio_source');
+    if (audioJson != null) {
+      try {
+        final decoded = jsonDecode(audioJson) as Map<String, dynamic>;
+        globalAudioSource = AudioSourceConfig.fromJson(decoded);
+      } catch (_) {}
+    }
+
     if (sound == 1 || sound == 2) {
       final isFajr = sound == 2;
       String audioPath = isFajr ? 'assets/sounds/fajr_azan.mp3' : 'assets/sounds/adhan.mp3';
@@ -313,16 +323,20 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
           final targetPrayer = isFajr ? PrayerId.fajr : PrayerId.dhuhr;
           final config = configs[targetPrayer];
 
-          if (config != null) {
-            volume = config.volume ?? adhanVolume;
-            enableVibration = config.isVibrationEnabled ?? enableVibration;
-            if (sl.isRegistered<BasePlayableAudioResolver>()) {
-              final resolved = await sl<BasePlayableAudioResolver>().resolveAudio(
-                config.audioSource,
-                isFajr: isFajr,
-              );
-              audioPath = resolved.path;
-            }
+          final effectiveSource = (config != null && config.hasAudioOverride)
+              ? config.audioSource
+              : (isFajr && globalAudioSource.id == AudioSourceConfig.defaultMishary.id
+                  ? AudioSourceConfig.defaultBuiltInFallback(isFajr: true)
+                  : globalAudioSource);
+
+          volume = config?.volume ?? adhanVolume;
+          enableVibration = config?.isVibrationEnabled ?? enableVibration;
+          if (sl.isRegistered<BasePlayableAudioResolver>()) {
+            final resolved = await sl<BasePlayableAudioResolver>().resolveAudio(
+              effectiveSource,
+              isFajr: isFajr,
+            );
+            audioPath = resolved.path;
           }
         }
       } catch (e) {
@@ -347,11 +361,13 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
             sl.isRegistered<BasePlayableAudioResolver>()) {
           final configs = await sl<GetPrayerAlarmConfigsUseCase>().execute();
           final config = configs[PrayerId.dhuhr];
-          if (config != null) {
-            final resolved = await sl<BasePlayableAudioResolver>().resolveIqamaAudio(config.audioSource);
-            if (!resolved.isAsset) {
-              customIqamaPath = resolved.path;
-            }
+          final effectiveSource = (config != null && config.hasAudioOverride)
+              ? config.audioSource
+              : globalAudioSource;
+
+          final resolved = await sl<BasePlayableAudioResolver>().resolveIqamaAudio(effectiveSource);
+          if (!resolved.isAsset) {
+            customIqamaPath = resolved.path;
           }
         }
       } catch (e) {
