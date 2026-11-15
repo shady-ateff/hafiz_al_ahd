@@ -94,8 +94,14 @@ abstract final class CatalogConfig {
 
   /// Full URL to the catalog JSON file.
   /// Example: `https://cdn.example.com/adhan_catalog.json`
-  static String get catalogJsonUrl =>
-      validateAndResolveUrl(kCatalogJsonObjectKey) ?? '$baseUrl/$kCatalogJsonObjectKey';
+  static String get catalogJsonUrl {
+    if (!isConfigured) return '$baseUrl/$kCatalogJsonObjectKey';
+    final trimmed = baseUrl.trim();
+    if (trimmed.toLowerCase().endsWith('.json')) {
+      return trimmed;
+    }
+    return validateAndResolveUrl(kCatalogJsonObjectKey) ?? '$baseUrl/$kCatalogJsonObjectKey';
+  }
 
   /// Resolves and strictly validates the full HTTPS URL for a remote audio file.
   ///
@@ -111,11 +117,20 @@ abstract final class CatalogConfig {
 
   /// Secure URL resolver and validator.
   static String? validateAndResolveUrl(String objectKey, {String? customBaseUrl}) {
-    final base = (customBaseUrl ?? (isConfigured ? baseUrl : null))?.trim();
+    var base = (customBaseUrl ?? (isConfigured ? baseUrl : null))?.trim();
     if (base == null || base.isEmpty) return null;
 
     final key = objectKey.trim();
     if (key.isEmpty) return null;
+
+    // If the base URL was passed pointing directly to a .json file, strip the filename
+    // to obtain the base directory for resolving audio object keys.
+    if (base.toLowerCase().endsWith('.json')) {
+      final lastSlash = base.lastIndexOf('/');
+      if (lastSlash != -1) {
+        base = base.substring(0, lastSlash);
+      }
+    }
 
     // Strict path traversal and scheme injection guards
     if (key.contains('..') ||

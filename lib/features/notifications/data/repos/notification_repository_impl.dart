@@ -408,6 +408,9 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
     required String body,
     required DateTime nextPrayerTime,
   }) async {
+    if (!Platform.isAndroid && !Platform.isIOS) {
+      return;
+    }
     FlutterBackgroundService().invoke('updatePrayerNotification', {
       'title': title,
       'body': body,
