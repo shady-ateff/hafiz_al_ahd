@@ -7,6 +7,8 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:hafiz_al_ahd/features/notifications/data/datasources/prayer_alarm_config_local_data_source.dart';
 import 'package:hafiz_al_ahd/features/notifications/data/datasources/prayer_alert_transition_local_data_source.dart';
 import 'package:hafiz_al_ahd/features/notifications/data/repos/prayer_alarm_config_repository_impl.dart';
+import 'package:hafiz_al_ahd/features/notifications/data/services/audio_storage_lock_impl.dart';
+import 'package:hafiz_al_ahd/features/notifications/data/services/custom_audio_storage_service.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/entities/audio_source_config.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/entities/prayer_alarm_config.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/entities/schedule_operation_result.dart';
@@ -38,7 +40,13 @@ void main() async {
 
   final prefs = await SharedPreferences.getInstance();
   final configDataSource = PrayerAlarmConfigLocalDataSourceImpl(prefs: prefs);
-  final configRepo = PrayerAlarmConfigRepositoryImpl(localDataSource: configDataSource);
+  final storageLock = AudioStorageLock();
+  final storageService = CustomAudioStorageService();
+  final configRepo = PrayerAlarmConfigRepositoryImpl(
+    localDataSource: configDataSource,
+    audioStorageLock: storageLock,
+    storageService: storageService,
+  );
   final transitionDataSource = PrayerAlertTransitionLocalDataSourceImpl(prefs: prefs);
 
   const int fajrAlarmId = 999911; // Fajr: Alarm Mode

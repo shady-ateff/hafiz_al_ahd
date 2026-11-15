@@ -32,6 +32,22 @@ import 'package:hafiz_al_ahd/features/notifications/data/services/custom_audio_s
 import 'package:hafiz_al_ahd/features/notifications/domain/entities/audio_source_config.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/entities/prayer_alarm_config.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/services/transition_coordinator.dart';
+import 'package:http/http.dart' as http;
+import 'package:hafiz_al_ahd/features/notifications/data/datasources/adhan_catalog_local_data_source.dart';
+import 'package:hafiz_al_ahd/features/notifications/data/datasources/adhan_catalog_remote_data_source.dart';
+import 'package:hafiz_al_ahd/features/notifications/data/repos/adhan_catalog_repository_impl.dart';
+import 'package:hafiz_al_ahd/features/notifications/data/services/audio_download_service_impl.dart';
+import 'package:hafiz_al_ahd/features/notifications/data/services/audio_storage_lock_impl.dart';
+import 'package:hafiz_al_ahd/features/notifications/data/services/adhan_storage_manager_service_impl.dart';
+import 'package:hafiz_al_ahd/features/notifications/data/services/playable_audio_resolver_impl.dart';
+import 'package:hafiz_al_ahd/features/notifications/domain/repos/adhan_catalog_repository.dart';
+import 'package:hafiz_al_ahd/features/notifications/domain/services/audio_storage_lock.dart';
+import 'package:hafiz_al_ahd/features/notifications/domain/services/adhan_storage_manager_service.dart';
+import 'package:hafiz_al_ahd/features/notifications/domain/services/audio_download_service.dart';
+import 'package:hafiz_al_ahd/features/notifications/domain/services/playable_audio_resolver.dart';
+import 'package:hafiz_al_ahd/features/notifications/presentation/cubit/adhan_catalog_cubit/adhan_catalog_cubit.dart';
+import 'package:hafiz_al_ahd/core/config/catalog_config.dart';
+import 'package:hafiz_al_ahd/features/notifications/developer/di/developer_service_locator.dart';
 import 'package:hafiz_al_ahd/features/notifications/presentation/cubit/prayer_alarm_settings_cubit.dart';
 
 // --- Quran Imports ---
@@ -70,6 +86,7 @@ Future<void> init() async {
   // ---------------------------------------------------
   final sharedPreferences = await SharedPreferences.getInstance();
   sl.registerLazySingleton(() => sharedPreferences);
+  sl.registerLazySingleton<http.Client>(() => http.Client());
 
   // ---------------------------------------------------
   // 2. الـ UseCases (هنسجل القدام والجداد)
@@ -104,10 +121,16 @@ Future<void> init() async {
       notificationRepository: sl(),
       pref: sl(), // جاب الـ SharedPreferences لوحده
       prayerAlarmConfigRepository: sl(),
+      playableAudioResolver: sl(),
     ),
   );
   sl.registerLazySingleton<BaseNotificationRepository>(
     () => NotificationRepositoryImpl(),
+  );
+
+  // Audio Storage Concurrency & Reference Lock
+  sl.registerLazySingleton<BaseAudioStorageLock>(
+    () => AudioStorageLock(),
   );
 
   // Prayer Alarm Config
@@ -115,7 +138,11 @@ Future<void> init() async {
     () => PrayerAlarmConfigLocalDataSourceImpl(prefs: sl()),
   );
   sl.registerLazySingleton<BasePrayerAlarmConfigRepository>(
-    () => PrayerAlarmConfigRepositoryImpl(localDataSource: sl()),
+    () => PrayerAlarmConfigRepositoryImpl(
+      localDataSource: sl(),
+      audioStorageLock: sl(),
+      storageService: sl(),
+    ),
   );
   sl.registerLazySingleton(() => GetPrayerAlarmConfigsUseCase(sl()));
   sl.registerLazySingleton(() => SavePrayerAlarmConfigUseCase(sl()));
@@ -125,6 +152,42 @@ Future<void> init() async {
     () => PrayerAlertTransitionLocalDataSourceImpl(prefs: sl()),
   );
   sl.registerLazySingleton(() => CustomAudioStorageService());
+
+  // Remote Adhan Audio Catalog (Phase 2)
+  sl.registerLazySingleton<BaseAdhanCatalogRemoteDataSource>(
+    () => AdhanCatalogRemoteDataSourceImpl(client: sl()),
+  );
+  sl.registerLazySingleton<BaseAdhanCatalogLocalDataSource>(
+    () => AdhanCatalogLocalDataSourceImpl(prefs: sl()),
+  );
+  sl.registerLazySingleton<BaseAdhanCatalogRepository>(
+    () => AdhanCatalogRepositoryImpl(
+      remoteDataSource: sl(),
+      localDataSource: sl(),
+    ),
+  );
+  sl.registerLazySingleton<BaseAudioDownloadService>(
+    () => AudioDownloadServiceImpl(
+      client: sl(),
+      storageService: sl(),
+      quotaAdmissionGuard: (requiredBytes) =>
+          sl<BaseAdhanStorageManagerService>().checkQuota(requiredBytes: requiredBytes),
+    ),
+  );
+  sl.registerLazySingleton<BasePlayableAudioResolver>(
+    () => PlayableAudioResolverImpl(
+      storageService: sl(),
+    ),
+  );
+  sl.registerLazySingleton<BaseAdhanStorageManagerService>(
+    () => AdhanStorageManagerServiceImpl(
+      storageService: sl(),
+      prayerConfigDataSource: sl(),
+      downloadService: sl(),
+      audioStorageLock: sl(),
+      prefs: sl(),
+    ),
+  );
 
   sl.registerLazySingleton(
     () => TransitionCoordinator(
@@ -192,6 +255,16 @@ Future<void> init() async {
       transitionCoordinator: sl(),
       transitionDataSource: sl(),
       prefs: sl(),
+      audioStorageLock: sl(),
+      storageService: sl(),
+    ),
+  );
+  sl.registerFactory(
+    () => AdhanCatalogCubit(
+      catalogRepository: sl(),
+      downloadService: sl(),
+      playableAudioResolver: sl(),
+      storageManagerService: sl(),
     ),
   );
 
@@ -287,4 +360,11 @@ Future<void> init() async {
   );
   sl.registerLazySingleton(() => GetQuranTafseerUseCase(sl()));
   sl.registerFactory(() => QuranTafseerCubit(getQuranTafseerUseCase: sl()));
+
+  // ---------------------------------------------------
+  // 5. Developer Tools (Phase 4 - Debug Mode Only)
+  // ---------------------------------------------------
+  if (isCatalogDeveloperToolsActive) {
+    registerDeveloperServices(sl);
+  }
 }

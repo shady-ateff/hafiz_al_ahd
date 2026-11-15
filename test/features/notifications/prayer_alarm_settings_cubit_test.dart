@@ -1,9 +1,10 @@
-import 'dart:async';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hafiz_al_ahd/features/notifications/data/datasources/prayer_alert_transition_local_data_source.dart';
+import 'package:hafiz_al_ahd/features/notifications/data/services/audio_storage_lock_impl.dart';
+import 'package:hafiz_al_ahd/features/notifications/data/services/custom_audio_storage_service.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/entities/audio_source_config.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/entities/prayer_alarm_config.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/entities/schedule_operation_result.dart';
@@ -110,6 +111,8 @@ void main() {
       transitionCoordinator: coordinator,
       transitionDataSource: transitionDataSource,
       prefs: prefs,
+      audioStorageLock: AudioStorageLock(),
+      storageService: CustomAudioStorageService(),
       audioPlayer: audioPlayer,
     );
   });

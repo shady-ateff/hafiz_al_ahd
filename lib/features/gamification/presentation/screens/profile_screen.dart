@@ -41,8 +41,12 @@ class ProfileScreen extends StatelessWidget {
 
           if (state is GamificationLoaded) {
             final profile = state.profile;
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
+            return RefreshIndicator(
+              color: AppColors.secondaryGold,
+              onRefresh: () => context.read<GamificationCubit>().init(),
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -107,7 +111,8 @@ class ProfileScreen extends StatelessWidget {
                         ),
                 ],
               ),
-            );
+            ),
+          );
           }
 
           return const SizedBox.shrink();

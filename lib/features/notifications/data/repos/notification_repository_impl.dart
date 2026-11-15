@@ -4,6 +4,7 @@ import 'dart:developer';
 import 'dart:io';
 
 import 'package:alarm/alarm.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -408,6 +409,9 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
     required String body,
     required DateTime nextPrayerTime,
   }) async {
+    if (!Platform.isAndroid && !Platform.isIOS) {
+      return;
+    }
     FlutterBackgroundService().invoke('updatePrayerNotification', {
       'title': title,
       'body': body,
@@ -424,6 +428,8 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
     required String assetAudioPath,
     double? volume,
     bool enableVibration = true,
+    bool androidFullScreenIntent = true,
+    String? stopButton = 'إيقاف الأذان',
   }) async {
     if (id != 888 && scheduledTime.isBefore(DateTime.now())) {
       log('ℹ️ [scheduleAdhanAlarm] Skipped scheduling alarm #$id in the past: $scheduledTime');
@@ -438,13 +444,54 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
       return;
     }
 
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      final delay = scheduledTime.difference(DateTime.now());
+      final effectiveDelay = delay.isNegative ? Duration.zero : delay;
+      Timer(effectiveDelay, () async {
+        try {
+          final player = AudioPlayer();
+          if (assetAudioPath.startsWith('assets/')) {
+            final clean = assetAudioPath.replaceFirst('assets/', '');
+            await player.play(AssetSource(clean), volume: volume ?? 1.0);
+          } else {
+            await player.play(DeviceFileSource(assetAudioPath), volume: volume ?? 1.0);
+          }
+        } catch (e) {
+          log('⚠️ [Desktop Alarm] Failed to play audio: $e');
+        }
+
+        try {
+          const androidDetails = AndroidNotificationDetails(
+            'adhan_alarms_channel',
+            'منبه الأذان',
+            channelDescription: 'منبه مواقيت الصلاة والأذان',
+            importance: Importance.max,
+            priority: Priority.high,
+          );
+          const notificationDetails = NotificationDetails(
+            android: androidDetails,
+          );
+          await flutterLocalNotificationsPlugin.show(
+            id: id,
+            title: title,
+            body: body,
+            notificationDetails: notificationDetails,
+          );
+        } catch (e) {
+          log('⚠️ [Desktop Alarm] Failed to show notification: $e');
+        }
+      });
+      log('🔔 Scheduled Desktop Adhan alarm #$id at $scheduledTime ($assetAudioPath)');
+      return;
+    }
+
     final alarmSettings = AlarmSettings(
       id: id,
       dateTime: scheduledTime,
       assetAudioPath: assetAudioPath,
       loopAudio: false,
       vibrate: enableVibration,
-      androidFullScreenIntent: true,
+      androidFullScreenIntent: androidFullScreenIntent,
       androidStopAlarmOnTermination: false,
       volumeSettings: volume == 0.0
           ? VolumeSettings.fade(
@@ -459,7 +506,7 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
       notificationSettings: NotificationSettings(
         title: title,
         body: body,
-        stopButton: 'إيقاف الأذان',
+        stopButton: stopButton,
         icon: 'ic_stat_icon',
       ),
     );
@@ -480,6 +527,9 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
     DateTime? expectedScheduledTime,
     String? expectedAssetAudioPath,
   }) async {
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      return EventCancellationStatus.alreadyAbsent;
+    }
     try {
       // 0. Validate ID Range
       final isLegacyPrayerId = id >= 1 && id <= 100;
@@ -687,6 +737,9 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
     double? expectedVolume,
     bool? expectedEnableVibration,
   }) async {
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      return EventVerificationStatus.absent;
+    }
     try {
       final alarm = await Alarm.getAlarm(id);
       if (alarm == null) {

@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/widgets/prayer_alert_quick_toggle.dart';
 import 'package:hafiz_al_ahd/features/notifications/data/datasources/prayer_alert_transition_local_data_source.dart';
+import 'package:hafiz_al_ahd/features/notifications/data/services/audio_storage_lock_impl.dart';
+import 'package:hafiz_al_ahd/features/notifications/data/services/custom_audio_storage_service.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/entities/prayer_alarm_config.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/entities/schedule_operation_result.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/repos/prayer_alarm_config_repository.dart';
@@ -79,6 +81,8 @@ void main() {
       transitionCoordinator: coordinator,
       transitionDataSource: transitionDataSource,
       prefs: prefs,
+      audioStorageLock: AudioStorageLock(),
+      storageService: CustomAudioStorageService(),
     )..loadSettings();
 
     return MaterialApp(

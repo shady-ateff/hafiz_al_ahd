@@ -90,6 +90,73 @@ class CustomAudioStorageService {
     }
     return File(resolvedPath).exists();
   }
+
+  /// Validates that [localRelativePath] points to an existing file strictly contained
+  /// inside the `adhan_sounds` directory.
+  ///
+  /// Guarantees:
+  /// - Strict path traversal rejection (`..`, leading `/` or `\`).
+  /// - Prefix validation (must start with `adhan_sounds/`).
+  /// - Path component containment check using `p.isWithin` (strictly rejecting sibling directories e.g. `adhan_sounds_backup`).
+  /// - Physical existence verification (`exists() == true`).
+  /// - Symlink resolution containment check (resolves symlinks and ensures real target is within storage root).
+  Future<File> validatePathContainment(String localRelativePath) async {
+    if (localRelativePath.contains('..') ||
+        localRelativePath.startsWith('/') ||
+        localRelativePath.startsWith('\\')) {
+      throw FileSystemException(
+        'مسار ملف الأذان غير مصرح به أو يحتوي على مسار رجوع نسبي',
+        localRelativePath,
+      );
+    }
+
+    final normRel = p.normalize(localRelativePath).replaceAll('\\', '/');
+    if (!normRel.startsWith('adhan_sounds/')) {
+      throw FileSystemException(
+        'مسار ملف الأذان يجب أن يكون داخل مجلد الأصوات adhan_sounds',
+        localRelativePath,
+      );
+    }
+
+    final storageDir = await getStorageDirectory();
+    final canonicalRoot = p.canonicalize(storageDir.path);
+    final physicalPath = p.normalize(p.join(storageDir.parent.path, normRel));
+    final canonicalTarget = p.canonicalize(physicalPath);
+
+    if (!p.isWithin(canonicalRoot, canonicalTarget)) {
+      throw FileSystemException(
+        'مسار ملف الأذان يقع خارج مجلد الأصوات المعتمد',
+        localRelativePath,
+      );
+    }
+
+    final targetFile = File(canonicalTarget);
+    if (!await targetFile.exists()) {
+      throw FileSystemException(
+        'لا يمكن تخصيص ملف أذان محذوف أو غير موجود محلياً',
+        localRelativePath,
+      );
+    }
+
+    try {
+      final resolvedRoot = p.canonicalize(await storageDir.resolveSymbolicLinks());
+      final realTarget = p.canonicalize(await targetFile.resolveSymbolicLinks());
+      if (!p.isWithin(resolvedRoot, realTarget)) {
+        throw FileSystemException(
+          'الرابط الرمزي لملف الأذان يشير إلى مسار خارج مجلد الأصوات',
+          localRelativePath,
+        );
+      }
+    } catch (e) {
+      if (e is FileSystemException) rethrow;
+      throw FileSystemException(
+        'تعذر التحقق من أمان الرابط الرمزي لملف الأذان',
+        localRelativePath,
+      );
+    }
+
+    return targetFile;
+  }
 }
 
 class SecurityException implements Exception {

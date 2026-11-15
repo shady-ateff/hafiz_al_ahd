@@ -11,6 +11,7 @@ import 'package:hafiz_al_ahd/core/DI/service_locator.dart' as di;
 import 'package:hafiz_al_ahd/core/services/background_service_manager.dart'; // 👈 استيراد خدمة الخلفية
 import 'package:hafiz_al_ahd/core/services/desktop_window_service.dart';
 import 'package:hafiz_al_ahd/features/main/presentation/screens/main_screen.dart';
+import 'package:hafiz_al_ahd/features/notifications/domain/entities/calendar_alarm_id_contract.dart';
 // 👈 استدعي الـ Base بدلاً من الـ Impl
 import 'package:hafiz_al_ahd/features/notifications/domain/repos/base_notification_repository.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/services/transition_coordinator.dart';
@@ -170,6 +171,13 @@ void main(List<String> args) async {
            return;
         }
 
+        // إشعارات الإقامة: يتم تشغيل الصوت والإشعار فقط دون فتح شاشة الأذان الكاملة
+        if (CalendarAlarmIdContract.isIqamaId(latestAlarm.id) ||
+            latestAlarm.notificationSettings.title.contains('إقامة')) {
+          log("[alarm ringing] Iqama notification ringing: ${latestAlarm.id}. Preserving notification without opening AdhanScreen.");
+          return;
+        }
+
         log(
           "[alarm ringing] Alarm ringing: ${latestAlarm.id} - ${latestAlarm.notificationSettings.title}",
         );
@@ -239,6 +247,9 @@ void main(List<String> args) async {
         } else if (DateTime.now().difference(latestRingingAlarm.dateTime).inMinutes > 5) {
            await Alarm.stop(latestRingingAlarm.id);
            log("[cold start] Stopped expired ringing alarm: ${latestRingingAlarm.id}");
+        } else if (CalendarAlarmIdContract.isIqamaId(latestRingingAlarm.id) ||
+            latestRingingAlarm.notificationSettings.title.contains('إقامة')) {
+          log("[cold start] Ringing alarm is Iqama: ${latestRingingAlarm.id}. Not opening AdhanScreen.");
         } else {
           _openAdhanScreen(
             payload: 'adhan_${latestRingingAlarm.id}_${latestRingingAlarm.notificationSettings.title}',

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
+import 'package:hafiz_al_ahd/core/widgets/app_loader.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/entities/prayer_alarm_config.dart';
 import 'package:hafiz_al_ahd/features/notifications/presentation/cubit/prayer_alarm_settings_cubit.dart';
 import 'package:hafiz_al_ahd/features/notifications/presentation/cubit/prayer_alarm_settings_state.dart';
@@ -88,14 +89,9 @@ class _PrayerAlertQuickToggleState extends State<PrayerAlertQuickToggle> {
               height: 48,
               child: Center(
                 child: SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      AppColors.secondaryGold,
-                    ),
-                  ),
+                  width: 20,
+                  height: 20,
+                  child: AppLoader(width: 20, height: 20),
                 ),
               ),
             ),

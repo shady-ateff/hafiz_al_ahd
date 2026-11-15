@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hafiz_al_ahd/features/notifications/data/datasources/prayer_alarm_config_local_data_source.dart';
-import 'package:hafiz_al_ahd/features/notifications/data/models/prayer_alarm_config_model.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/entities/audio_source_config.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/entities/prayer_alarm_config.dart';
 
