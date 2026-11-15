@@ -84,6 +84,10 @@ class FakePlayableAudioResolverForPhysicalFault implements BasePlayableAudioReso
       const ResolvedPlayableAudio(path: 'assets/sounds/adhan.mp3', isAsset: true, isFallback: false);
 
   @override
+  Future<ResolvedPlayableAudio> resolveIqamaAudio(AudioSourceConfig source) async =>
+      const ResolvedPlayableAudio(path: 'assets/sounds/iqama_sound.mp3', isAsset: true, isFallback: false);
+
+  @override
   Future<CatalogEntryResolution> resolveCatalogEntry(AdhanCatalogEntry entry) async =>
       const CatalogEntryResolution(status: AudioPlayableStatus.requiresDownload);
 

@@ -170,6 +170,13 @@ void main(List<String> args) async {
            return;
         }
 
+        // إشعارات الإقامة: يتم تشغيل الصوت والإشعار فقط دون فتح شاشة الأذان الكاملة
+        if (CalendarAlarmIdContract.isIqamaId(latestAlarm.id) ||
+            latestAlarm.notificationSettings.title.contains('إقامة')) {
+          log("[alarm ringing] Iqama notification ringing: ${latestAlarm.id}. Preserving notification without opening AdhanScreen.");
+          return;
+        }
+
         log(
           "[alarm ringing] Alarm ringing: ${latestAlarm.id} - ${latestAlarm.notificationSettings.title}",
         );
@@ -239,6 +246,9 @@ void main(List<String> args) async {
         } else if (DateTime.now().difference(latestRingingAlarm.dateTime).inMinutes > 5) {
            await Alarm.stop(latestRingingAlarm.id);
            log("[cold start] Stopped expired ringing alarm: ${latestRingingAlarm.id}");
+        } else if (CalendarAlarmIdContract.isIqamaId(latestRingingAlarm.id) ||
+            latestRingingAlarm.notificationSettings.title.contains('إقامة')) {
+          log("[cold start] Ringing alarm is Iqama: ${latestRingingAlarm.id}. Not opening AdhanScreen.");
         } else {
           _openAdhanScreen(
             payload: 'adhan_${latestRingingAlarm.id}_${latestRingingAlarm.notificationSettings.title}',

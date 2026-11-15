@@ -162,6 +162,8 @@ class StatefulNotificationRepositoryFake extends Fake implements BaseNotificatio
     required String assetAudioPath,
     double? volume,
     bool enableVibration = true,
+    bool androidFullScreenIntent = true,
+    String? stopButton = 'إيقاف الأذان',
   }) async {
     operationLog.add('scheduleAdhanAlarm_$id');
 

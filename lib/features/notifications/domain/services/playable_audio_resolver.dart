@@ -80,6 +80,15 @@ abstract class BasePlayableAudioResolver {
     required bool isFajr,
   });
 
+  /// Resolves the verified playable audio target for Iqama.
+  ///
+  /// If [source] is a [CustomAudioSource] with a valid [iqamaLocalRelativePath]
+  /// on disk, it is returned. Otherwise, returns a safe fallback to built-in
+  /// iqama sound (`assets/sounds/iqama_sound.mp3`).
+  Future<ResolvedPlayableAudio> resolveIqamaAudio(
+    AudioSourceConfig source,
+  );
+
   /// Resolves the playable availability of a remote catalog entry.
   Future<CatalogEntryResolution> resolveCatalogEntry(
     AdhanCatalogEntry entry,

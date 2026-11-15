@@ -607,14 +607,40 @@ class ScheduleWeeklyPrayersUseCase {
           }
         } else {
           try {
-            await notificationRepository.schedulePrayerNotification(
-              id: iqamaAlertId,
-              title: 'إقامة صلاة ${prayer.name}',
-              body: 'تجهز للصلاة، ستقام الصلاة الآن',
-              scheduledTime: iqamaTime,
-              soundName: 'iqama_sound',
-              payload: 'iqama_${iqamaAlertId}_${prayer.name}',
-            );
+            String? customIqamaPath;
+            final config = prayerConfigs[prayer.prayerId];
+            if (config != null && config.audioSource is CustomAudioSource) {
+              final custom = config.audioSource as CustomAudioSource;
+              if (custom.iqamaLocalRelativePath != null) {
+                final file = File(custom.iqamaLocalRelativePath!);
+                if (file.existsSync()) {
+                  customIqamaPath = custom.iqamaLocalRelativePath;
+                }
+              }
+            }
+
+            if (customIqamaPath != null) {
+              // Custom Iqama audio exists on disk: schedule via alarm without full screen (notification only)
+              await notificationRepository.scheduleAdhanAlarm(
+                id: iqamaAlertId,
+                title: 'إقامة صلاة ${prayer.name}',
+                body: 'تجهز للصلاة، ستقام الصلاة الآن',
+                scheduledTime: iqamaTime,
+                assetAudioPath: customIqamaPath,
+                androidFullScreenIntent: false,
+                stopButton: null,
+              );
+            } else {
+              // Default built-in iqama: standard notification
+              await notificationRepository.schedulePrayerNotification(
+                id: iqamaAlertId,
+                title: 'إقامة صلاة ${prayer.name}',
+                body: 'تجهز للصلاة، ستقام الصلاة الآن',
+                scheduledTime: iqamaTime,
+                soundName: 'iqama_sound',
+                payload: 'iqama_${iqamaAlertId}_${prayer.name}',
+              );
+            }
             operations.add(ScheduleOperationResult.scheduled(
               eventId: iqamaAlertId,
               eventType: ScheduleEventType.iqama,

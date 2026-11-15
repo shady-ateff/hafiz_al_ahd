@@ -113,6 +113,7 @@ class BuiltInAudioSource extends AudioSourceConfig {
 @immutable
 class CustomAudioSource extends AudioSourceConfig {
   final String localRelativePath;
+  final String? iqamaLocalRelativePath;
   final String originalFileName;
   final int fileSize;
 
@@ -120,6 +121,7 @@ class CustomAudioSource extends AudioSourceConfig {
     required super.id,
     required super.displayName,
     required this.localRelativePath,
+    this.iqamaLocalRelativePath,
     required this.originalFileName,
     required this.fileSize,
   });
@@ -130,6 +132,8 @@ class CustomAudioSource extends AudioSourceConfig {
         'id': id,
         'displayName': displayName,
         'localRelativePath': localRelativePath,
+        if (iqamaLocalRelativePath != null)
+          'iqamaLocalRelativePath': iqamaLocalRelativePath,
         'originalFileName': originalFileName,
         'fileSize': fileSize,
       };
@@ -143,6 +147,7 @@ class CustomAudioSource extends AudioSourceConfig {
       id: json['id'] as String? ?? 'custom:${DateTime.now().millisecondsSinceEpoch}',
       displayName: json['displayName'] as String? ?? 'صوت مخصص',
       localRelativePath: localPath,
+      iqamaLocalRelativePath: json['iqamaLocalRelativePath'] as String?,
       originalFileName: json['originalFileName'] as String? ?? 'custom_audio',
       fileSize: (json['fileSize'] as num?)?.toInt() ?? 0,
     );
@@ -155,14 +160,22 @@ class CustomAudioSource extends AudioSourceConfig {
           id == other.id &&
           displayName == other.displayName &&
           localRelativePath == other.localRelativePath &&
+          iqamaLocalRelativePath == other.iqamaLocalRelativePath &&
           originalFileName == other.originalFileName &&
           fileSize == other.fileSize;
 
   @override
-  int get hashCode => Object.hash(id, displayName, localRelativePath, originalFileName, fileSize);
+  int get hashCode => Object.hash(
+        id,
+        displayName,
+        localRelativePath,
+        iqamaLocalRelativePath,
+        originalFileName,
+        fileSize,
+      );
 
   @override
   String toString() =>
-      'CustomAudioSource(id: $id, displayName: $displayName, path: $localRelativePath, original: $originalFileName, size: $fileSize)';
+      'CustomAudioSource(id: $id, displayName: $displayName, path: $localRelativePath, iqama: $iqamaLocalRelativePath, size: $fileSize)';
 }
 

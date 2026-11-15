@@ -427,6 +427,8 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
     required String assetAudioPath,
     double? volume,
     bool enableVibration = true,
+    bool androidFullScreenIntent = true,
+    String? stopButton = 'إيقاف الأذان',
   }) async {
     if (id != 888 && scheduledTime.isBefore(DateTime.now())) {
       log('ℹ️ [scheduleAdhanAlarm] Skipped scheduling alarm #$id in the past: $scheduledTime');
@@ -447,7 +449,7 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
       assetAudioPath: assetAudioPath,
       loopAudio: false,
       vibrate: enableVibration,
-      androidFullScreenIntent: true,
+      androidFullScreenIntent: androidFullScreenIntent,
       androidStopAlarmOnTermination: false,
       volumeSettings: volume == 0.0
           ? VolumeSettings.fade(
@@ -462,7 +464,7 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
       notificationSettings: NotificationSettings(
         title: title,
         body: body,
-        stopButton: 'إيقاف الأذان',
+        stopButton: stopButton,
         icon: 'ic_stat_icon',
       ),
     );

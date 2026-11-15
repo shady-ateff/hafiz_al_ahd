@@ -119,6 +119,16 @@ class FakePlayableAudioResolver implements BasePlayableAudioResolver {
   }
 
   @override
+  Future<ResolvedPlayableAudio> resolveIqamaAudio(AudioSourceConfig source) async {
+    return audioResolutions['iqama:${source.id}'] ??
+        const ResolvedPlayableAudio(
+          path: 'assets/sounds/iqama_sound.mp3',
+          isAsset: true,
+          isFallback: false,
+        );
+  }
+
+  @override
   Future<bool> isAudioPlayableLocally(AudioSourceConfig source) async => true;
 }
 

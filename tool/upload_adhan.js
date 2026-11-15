@@ -54,6 +54,8 @@ async function main() {
   let audioType = 'general';
   let description = '';
   let durationSeconds = 0;
+  let iqamaFilePath = '';
+  let iqamaDurationSeconds = 0;
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--file') filePath = args[++i];
@@ -62,6 +64,8 @@ async function main() {
     else if (args[i] === '--type') audioType = args[++i];
     else if (args[i] === '--desc') description = args[++i];
     else if (args[i] === '--duration') durationSeconds = parseInt(args[++i], 10);
+    else if (args[i] === '--iqama-file') iqamaFilePath = args[++i];
+    else if (args[i] === '--iqama-duration') iqamaDurationSeconds = parseInt(args[++i], 10);
   }
 
   const rl = readline.createInterface({
@@ -107,6 +111,20 @@ async function main() {
 
     if (!description && !args.includes('--desc')) {
       description = (await ask(rl, '📝 وصف مختصر (اختياري - اضغط Enter للتخطي): ')).trim();
+    }
+
+    if (audioType === 'general' && !iqamaFilePath) {
+      const hasIqama = (await ask(rl, '\n🕌 هل يتوفر ملف صوت إقامة لهذا الأذان العام؟ [y/N]: ')).trim().toLowerCase();
+      if (hasIqama === 'y' || hasIqama === 'yes' || hasIqama === 'نعم') {
+        iqamaFilePath = (await ask(rl, '📁 مسار ملف صوت الإقامة (اسحب الملف هنا أو اكتب مساره): ')).trim().replace(/['"]/g, '');
+        if (!fs.existsSync(iqamaFilePath)) {
+          console.warn(`⚠️ ملف الإقامة غير موجود في المسار: ${iqamaFilePath}، سيتم المتابعة بدون إقامة.`);
+          iqamaFilePath = '';
+        } else {
+          const iqDurStr = (await ask(rl, '⏱️  مدة صوت الإقامة بالثواني (الافتراضي: 25): ')).trim();
+          iqamaDurationSeconds = parseInt(iqDurStr, 10) || 25;
+        }
+      }
     }
   } finally {
     rl.close();
@@ -154,6 +172,49 @@ async function main() {
   }
   console.log('✅ تم رفع ملف الصوت بنجاح!');
 
+  // 3b. Upload Companion Iqama File if present
+  let iqamaInfo = null;
+  if (iqamaFilePath && fs.existsSync(iqamaFilePath)) {
+    console.log('\n⏳ جاري قراءة ملف الإقامة وحساب الحجم والبصمة الرقمية (SHA-256)...');
+    const iqBytes = fs.readFileSync(iqamaFilePath);
+    const iqSizeBytes = iqBytes.length;
+    const iqSha256 = sha256(iqBytes);
+    const rawIqFileName = path.basename(iqamaFilePath);
+    const iqExt = path.extname(rawIqFileName).toLowerCase() || '.mp3';
+    const iqTargetFileName = `${cleanSheikh}_iqama_${iqSha256.substring(0, 16)}${iqExt}`;
+    const iqObjectKey = `${audioPrefix}${iqTargetFileName}`;
+
+    console.log(`✅ حجم الإقامة: ${(iqSizeBytes / (1024 * 1024)).toFixed(2)} ميجابايت (${iqSizeBytes} بايت)`);
+    console.log(`✅ SHA-256 للإقامة: ${iqSha256}`);
+    console.log(`✅ مسار رفع الإقامة في R2: ${iqObjectKey}`);
+
+    console.log('\n🚀 جاري رفع ملف صوت الإقامة إلى Cloudflare R2...');
+    const iqUploadRes = await s3Request({
+      accountId,
+      bucket,
+      key: iqObjectKey,
+      method: 'PUT',
+      body: iqBytes,
+      contentType: iqExt === '.wav' ? 'audio/wav' : iqExt === '.m4a' ? 'audio/mp4' : 'audio/mpeg',
+      accessKeyId,
+      secretAccessKey,
+    });
+
+    if (iqUploadRes.status !== 200 && iqUploadRes.status !== 201) {
+      const errText = await iqUploadRes.text();
+      console.error(`❌ فشل رفع ملف الإقامة (كود ${iqUploadRes.status}):`, errText);
+      process.exit(1);
+    }
+    console.log('✅ تم رفع ملف صوت الإقامة بنجاح!');
+
+    iqamaInfo = {
+      object_key: iqObjectKey,
+      file_size_bytes: iqSizeBytes,
+      sha256: iqSha256,
+      duration_seconds: iqamaDurationSeconds,
+    };
+  }
+
   // 4. Fetch Current Catalog JSON
   console.log('\n📥 جاري جلب ملف الكتالوج الحالي لتحديثه...');
   let catalog = {
@@ -198,7 +259,12 @@ async function main() {
     file_size_bytes: fileSizeBytes,
     sha256: fileSha256,
     preview_offset_seconds: 0,
+    if_iqama: iqamaInfo || undefined,
   };
+  if (iqamaInfo) {
+    newEntry.iqama = iqamaInfo;
+  }
+  delete newEntry.if_iqama;
 
   // Filter out any invalid placeholder entries (must be valid 64-hex SHA-256) and remove duplicate ID
   catalog.entries = catalog.entries.filter((e) => /^[0-9a-f]{64}$/i.test(e.sha256) && e.id !== id);

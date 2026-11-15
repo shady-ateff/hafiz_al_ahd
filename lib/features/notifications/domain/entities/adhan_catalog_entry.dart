@@ -37,6 +37,71 @@ enum AdhanAudioType {
   }
 }
 
+/// Companion Iqama audio information optionally attached to a general adhan entry.
+@immutable
+class AdhanCatalogIqamaInfo {
+  /// R2 object key for the iqama audio file.
+  final String objectKey;
+
+  /// Expected file size in bytes.
+  final int fileSizeBytes;
+
+  /// Expected SHA-256 hex digest (64 lowercase hex chars).
+  final String sha256;
+
+  /// Playback duration in seconds.
+  final int durationSeconds;
+
+  const AdhanCatalogIqamaInfo({
+    required this.objectKey,
+    required this.fileSizeBytes,
+    required this.sha256,
+    required this.durationSeconds,
+  });
+
+  /// Returns true if this iqama info satisfies all constraints.
+  bool get isValid {
+    if (objectKey.isEmpty || objectKey.contains('..')) return false;
+    if (fileSizeBytes <= 0 || fileSizeBytes > kRemoteAudioMaxBytes) return false;
+    if (!RegExp(r'^[0-9a-f]{64}$').hasMatch(sha256)) return false;
+    return true;
+  }
+
+  static AdhanCatalogIqamaInfo? fromJson(Map<String, dynamic>? json) {
+    if (json == null) return null;
+    try {
+      final info = AdhanCatalogIqamaInfo(
+        objectKey: json['object_key'] as String? ?? '',
+        fileSizeBytes: (json['file_size_bytes'] as num?)?.toInt() ?? 0,
+        sha256: json['sha256'] as String? ?? '',
+        durationSeconds: (json['duration_seconds'] as num?)?.toInt() ?? 0,
+      );
+      return info.isValid ? info : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Map<String, dynamic> toJson() => {
+        'object_key': objectKey,
+        'file_size_bytes': fileSizeBytes,
+        'sha256': sha256,
+        'duration_seconds': durationSeconds,
+      };
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AdhanCatalogIqamaInfo &&
+          objectKey == other.objectKey &&
+          sha256 == other.sha256 &&
+          fileSizeBytes == other.fileSizeBytes &&
+          durationSeconds == other.durationSeconds;
+
+  @override
+  int get hashCode => Object.hash(objectKey, sha256, fileSizeBytes, durationSeconds);
+}
+
 /// A single entry in the remote adhan audio catalog.
 ///
 /// Each entry represents one audio file hosted on Cloudflare R2. After the
@@ -87,6 +152,9 @@ class AdhanCatalogEntry {
   /// Offset in seconds to begin the audio preview from (default: 0).
   final int previewOffsetSeconds;
 
+  /// Optional companion Iqama audio information (for general adhan entries).
+  final AdhanCatalogIqamaInfo? iqama;
+
   const AdhanCatalogEntry({
     required this.id,
     required this.sheikhName,
@@ -98,6 +166,7 @@ class AdhanCatalogEntry {
     required this.fileSizeBytes,
     required this.sha256,
     this.previewOffsetSeconds = 0,
+    this.iqama,
   });
 
   // ---------------------------------------------------------------------------
@@ -110,6 +179,7 @@ class AdhanCatalogEntry {
     if (objectKey.isEmpty || objectKey.contains('..')) return false;
     if (!_isValidSha256(sha256)) return false;
     if (fileSizeBytes <= 0 || fileSizeBytes > kRemoteAudioMaxBytes) return false;
+    if (iqama != null && !iqama!.isValid) return false;
     return true;
   }
 
@@ -134,6 +204,9 @@ class AdhanCatalogEntry {
       errors.add('fileSizeBytes must be > 0 (got: $fileSizeBytes)');
     } else if (fileSizeBytes > kRemoteAudioMaxBytes) {
       errors.add('fileSizeBytes must be <= $kRemoteAudioMaxBytes (got: $fileSizeBytes)');
+    }
+    if (iqama != null && !iqama!.isValid) {
+      errors.add('iqama contains invalid metadata');
     }
     return errors;
   }
@@ -160,6 +233,13 @@ class AdhanCatalogEntry {
       final audioType = AdhanAudioType.fromKey(audioTypeKey);
       if (audioType == null) return null; // unknown type — skip gracefully
 
+      AdhanCatalogIqamaInfo? iqama;
+      if (json.containsKey('iqama') && json['iqama'] != null) {
+        if (json['iqama'] is! Map<String, dynamic>) return null;
+        iqama = AdhanCatalogIqamaInfo.fromJson(json['iqama'] as Map<String, dynamic>);
+        if (iqama == null) return null; // Invalid companion iqama rejects the entry
+      }
+
       final entry = AdhanCatalogEntry(
         id: json['id'] as String? ?? '',
         sheikhName: json['sheikh_name'] as String? ?? '',
@@ -171,6 +251,7 @@ class AdhanCatalogEntry {
         fileSizeBytes: (json['file_size_bytes'] as num?)?.toInt() ?? 0,
         sha256: json['sha256'] as String? ?? '',
         previewOffsetSeconds: (json['preview_offset_seconds'] as num?)?.toInt() ?? 0,
+        iqama: iqama,
       );
 
       return entry.isValid ? entry : null;
@@ -190,6 +271,7 @@ class AdhanCatalogEntry {
         'file_size_bytes': fileSizeBytes,
         'sha256': sha256,
         if (previewOffsetSeconds != 0) 'preview_offset_seconds': previewOffsetSeconds,
+        if (iqama != null) 'iqama': iqama!.toJson(),
       };
 
   // ---------------------------------------------------------------------------
@@ -202,10 +284,11 @@ class AdhanCatalogEntry {
       other is AdhanCatalogEntry &&
           id == other.id &&
           objectKey == other.objectKey &&
-          sha256 == other.sha256;
+          sha256 == other.sha256 &&
+          iqama == other.iqama;
 
   @override
-  int get hashCode => Object.hash(id, objectKey, sha256);
+  int get hashCode => Object.hash(id, objectKey, sha256, iqama);
 
   @override
   String toString() =>

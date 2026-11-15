@@ -79,6 +79,8 @@ class FakeNotificationRepository implements BaseNotificationRepository {
     required String assetAudioPath,
     double? volume,
     bool enableVibration = true,
+    bool androidFullScreenIntent = true,
+    String? stopButton = 'إيقاف الأذان',
   }) async {
     scheduledAlarms.add(
       RecordedAlarmCall(

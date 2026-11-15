@@ -247,6 +247,56 @@ void main() {
       expect(parsed.fileSizeBytes, equals(original.fileSizeBytes));
       expect(parsed.sha256, equals(original.sha256));
       expect(parsed.previewOffsetSeconds, equals(original.previewOffsetSeconds));
+      expect(parsed.iqama, isNull);
+    });
+
+    test('entry with companion iqama parses and round-trips correctly', () {
+      const iqamaInfo = AdhanCatalogIqamaInfo(
+        objectKey: 'catalog/audio/iqama_test.mp3',
+        fileSizeBytes: 450000,
+        sha256: 'deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef',
+        durationSeconds: 25,
+      );
+
+      const entryWithIqama = AdhanCatalogEntry(
+        id: 'remote:mishary_with_iqama',
+        sheikhName: 'الشيخ مشاري',
+        audioType: AdhanAudioType.general,
+        displayName: 'أذان وإقامة',
+        durationSeconds: 70,
+        objectKey: 'catalog/audio/adhan_test.mp3',
+        fileSizeBytes: 1500000,
+        sha256: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+        iqama: iqamaInfo,
+      );
+
+      expect(entryWithIqama.isValid, isTrue);
+
+      final json = entryWithIqama.toJson();
+      expect(json['iqama'], isNotNull);
+      expect(json['iqama']['object_key'], equals('catalog/audio/iqama_test.mp3'));
+
+      final reparsed = AdhanCatalogEntry.fromJson(json);
+      expect(reparsed, isNotNull);
+      expect(reparsed!.iqama, isNotNull);
+      expect(reparsed.iqama!.objectKey, equals(iqamaInfo.objectKey));
+      expect(reparsed.iqama!.fileSizeBytes, equals(iqamaInfo.fileSizeBytes));
+      expect(reparsed.iqama!.sha256, equals(iqamaInfo.sha256));
+      expect(reparsed.iqama!.durationSeconds, equals(iqamaInfo.durationSeconds));
+    });
+
+    test('entry with invalid companion iqama (traversal) is rejected', () {
+      final json = {
+        ..._validEntryJson(),
+        'iqama': {
+          'object_key': '../forbidden/iqama.mp3',
+          'file_size_bytes': 1000,
+          'sha256': '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+          'duration_seconds': 20,
+        },
+      };
+      final entry = AdhanCatalogEntry.fromJson(json);
+      expect(entry, isNull, reason: 'Invalid companion iqama must cause entry rejection');
     });
   });
 

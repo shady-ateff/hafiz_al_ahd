@@ -119,6 +119,64 @@ class PlayableAudioResolverImpl implements BasePlayableAudioResolver {
   }
 
   @override
+  Future<ResolvedPlayableAudio> resolveIqamaAudio(
+    AudioSourceConfig source,
+  ) async {
+    const defaultIqamaAsset = 'assets/sounds/iqama_sound.mp3';
+
+    if (source is CustomAudioSource && source.iqamaLocalRelativePath != null) {
+      final iqamaRel = source.iqamaLocalRelativePath!;
+      if (iqamaRel.contains('..') || iqamaRel.contains(r'\')) {
+        log("⚠️ [PlayableAudioResolver] Traversal attempt in iqama path '$iqamaRel'. Using default.");
+        return const ResolvedPlayableAudio(
+          path: defaultIqamaAsset,
+          isAsset: true,
+          isFallback: true,
+          fallbackReason: 'مسار صوت الإقامة غير آمن',
+        );
+      }
+
+      final storageDir = await storageService.getStorageDirectory();
+      final resolvedPath = p.normalize(p.join(storageDir.parent.path, iqamaRel));
+      if (!resolvedPath.startsWith(storageDir.path)) {
+        log("⚠️ [PlayableAudioResolver] Iqama path outside storage in '$resolvedPath'. Using default.");
+        return const ResolvedPlayableAudio(
+          path: defaultIqamaAsset,
+          isAsset: true,
+          isFallback: true,
+          fallbackReason: 'مسار صوت الإقامة خارج مجلد التطبيق المخصص',
+        );
+      }
+
+      final file = File(resolvedPath);
+      if (await file.exists()) {
+        final length = await file.length();
+        if (length > 0) {
+          return ResolvedPlayableAudio(
+            path: resolvedPath,
+            isAsset: false,
+            isFallback: false,
+          );
+        }
+      }
+
+      log("⚠️ [PlayableAudioResolver] Custom iqama audio missing at '$resolvedPath'. Fallback to built-in default.");
+      return const ResolvedPlayableAudio(
+        path: defaultIqamaAsset,
+        isAsset: true,
+        isFallback: true,
+        fallbackReason: 'ملف صوت الإقامة المخصص غير موجود على الهاتف',
+      );
+    }
+
+    return const ResolvedPlayableAudio(
+      path: defaultIqamaAsset,
+      isAsset: true,
+      isFallback: false,
+    );
+  }
+
+  @override
   Future<CatalogEntryResolution> resolveCatalogEntry(
     AdhanCatalogEntry entry,
   ) async {
@@ -135,10 +193,20 @@ class PlayableAudioResolverImpl implements BasePlayableAudioResolver {
     if (await targetFile.exists()) {
       final length = await targetFile.length();
       if (length > 0) {
+        String? iqamaRelativePath;
+        if (entry.iqama != null) {
+          final iqamaFileName = AudioDownloadServiceImpl.buildIqamaTargetFileName(entry);
+          final iqamaFile = File(p.join(storageDir.path, iqamaFileName));
+          if (await iqamaFile.exists() && await iqamaFile.length() > 0) {
+            iqamaRelativePath = p.join('adhan_sounds', iqamaFileName);
+          }
+        }
+
         final localSource = CustomAudioSource(
           id: 'custom:${entry.id}',
           displayName: entry.displayName,
           localRelativePath: p.join('adhan_sounds', targetFileName),
+          iqamaLocalRelativePath: iqamaRelativePath,
           originalFileName: p.basename(entry.objectKey),
           fileSize: length,
         );

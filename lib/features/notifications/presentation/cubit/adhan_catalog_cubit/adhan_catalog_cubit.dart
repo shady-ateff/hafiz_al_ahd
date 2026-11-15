@@ -175,6 +175,11 @@ class AdhanCatalogCubit extends Cubit<AdhanCatalogState> {
     try {
       final deleteResult = await _storageManagerService.deleteAudioFile(relativePath);
 
+      if (entry.iqama != null) {
+        final iqamaFileName = AudioDownloadServiceImpl.buildIqamaTargetFileName(entry);
+        await _storageManagerService.deleteAudioFile('adhan_sounds/$iqamaFileName');
+      }
+
       return deleteResult.fold(
         (failure) {
           emit(state.copyWith(userNotice: failure.message));

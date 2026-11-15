@@ -115,6 +115,26 @@ class AudioDownloadServiceImpl implements BaseAudioDownloadService {
     return 'remote_${slug}_$shaPrefix$safeExt';
   }
 
+  /// Derives an immutable, content-addressed target filename for companion iqama audio:
+  /// `remote_${slug}_iqama_${shaPrefix24}${ext}`
+  static String buildIqamaTargetFileName(AdhanCatalogEntry entry) {
+    final slug = entry.id
+        .replaceFirst('remote:', '')
+        .replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '_');
+    final sha = entry.iqama?.sha256 ?? entry.sha256;
+    final shaPrefix = sha.length >= 24
+        ? sha.substring(0, 24).toLowerCase()
+        : sha.toLowerCase();
+    final ext = entry.iqama != null
+        ? p.extension(entry.iqama!.objectKey).toLowerCase()
+        : '.mp3';
+    final safeExt = (ext.isEmpty || !CustomAudioStorageService.allowedExtensions.contains(ext))
+        ? '.mp3'
+        : ext;
+
+    return 'remote_${slug}_iqama_$shaPrefix$safeExt';
+  }
+
   @override
   Future<bool> isAudioDownloaded(String entryId) async {
     final storageDir = await storageService.getStorageDirectory();
@@ -123,7 +143,7 @@ class AudioDownloadServiceImpl implements BaseAudioDownloadService {
 
     for (final file in files) {
       final name = p.basename(file.path);
-      if (name.startsWith('remote_${cleanSlug}_')) {
+      if (name.startsWith('remote_${cleanSlug}_') && !name.contains('_iqama_')) {
         return true;
       }
     }
@@ -149,14 +169,16 @@ class AudioDownloadServiceImpl implements BaseAudioDownloadService {
     final token = _DownloadCancellationToken(++_tokenSequence);
     _activeToken = token;
 
+    final totalRequiredBytes = entry.fileSizeBytes + (entry.iqama?.fileSizeBytes ?? 0);
+
     // 2. Atomic Quota Admission Guard (Guarantees effectiveRemoteUsageBytes + requestedBytes <= quota)
     if (quotaAdmissionGuard != null) {
-      final quotaResult = await quotaAdmissionGuard!(entry.fileSizeBytes);
+      final quotaResult = await quotaAdmissionGuard!(totalRequiredBytes);
       if (!quotaResult.isAllowed) {
         _activeEntryId = null;
         _activeToken = null;
         final failure = AudioDownloadQuotaExceededFailure(
-          requiredBytes: entry.fileSizeBytes,
+          requiredBytes: totalRequiredBytes,
           availableBytes: quotaResult.availableQuotaBytes,
         );
         _emit(AudioDownloadTask.failed(entryId: entry.id, failure: failure));
@@ -164,22 +186,12 @@ class AudioDownloadServiceImpl implements BaseAudioDownloadService {
       }
     }
 
-    IOSink? sink;
-    File? tempFile;
-    int bytesWritten = 0;
+    File? tempMainFile;
+    File? tempIqamaFile;
 
     try {
       if (token.isCancelled) {
         throw AudioDownloadCancelledFailure();
-      }
-
-      // 2. URL Resolution & SSRF Guard
-      final resolvedUrl = CatalogConfig.validateAndResolveUrl(
-        entry.objectKey,
-        customBaseUrl: customBaseUrl,
-      );
-      if (resolvedUrl == null) {
-        throw AudioDownloadSecurityFailure();
       }
 
       // 3. Existing File Verification Check
@@ -191,179 +203,100 @@ class AudioDownloadServiceImpl implements BaseAudioDownloadService {
         throw AudioDownloadSecurityFailure(message: 'مسار الملف غير آمن');
       }
 
+      final iqamaFileName = entry.iqama != null ? buildIqamaTargetFileName(entry) : null;
+      final iqamaTargetPath = iqamaFileName != null
+          ? p.normalize(p.join(storageDir.path, iqamaFileName))
+          : null;
+
+      if (iqamaTargetPath != null && !iqamaTargetPath.startsWith(storageDir.path)) {
+        throw AudioDownloadSecurityFailure(message: 'مسار ملف الإقامة غير آمن');
+      }
+
       if (token.isCancelled) {
         throw AudioDownloadCancelledFailure();
       }
 
       final targetFile = File(targetPath);
+      bool mainAlreadyDownloaded = false;
       if (await targetFile.exists()) {
         final existingSize = await targetFile.length();
         if (existingSize == entry.fileSizeBytes) {
           final existingHash = await _calculateFileSha256(targetFile);
           if (existingHash == entry.sha256.toLowerCase()) {
-            final customSource = CustomAudioSource(
-              id: 'custom:${entry.id}',
-              displayName: entry.displayName,
-              localRelativePath: p.join('adhan_sounds', targetFileName),
-              originalFileName: p.basename(entry.objectKey),
-              fileSize: existingSize,
-            );
-            _emit(AudioDownloadTask.completed(entryId: entry.id, source: customSource));
-            return Right(customSource);
+            mainAlreadyDownloaded = true;
           }
         }
-        // Corrupt file exists with same name: safely delete it
-        await targetFile.delete();
+        if (!mainAlreadyDownloaded) {
+          await targetFile.delete();
+        }
+      }
+
+      bool iqamaAlreadyDownloaded = false;
+      if (iqamaTargetPath != null) {
+        final iqamaFile = File(iqamaTargetPath);
+        if (await iqamaFile.exists()) {
+          final existingIqamaSize = await iqamaFile.length();
+          if (existingIqamaSize == entry.iqama!.fileSizeBytes) {
+            final existingHash = await _calculateFileSha256(iqamaFile);
+            if (existingHash == entry.iqama!.sha256.toLowerCase()) {
+              iqamaAlreadyDownloaded = true;
+            }
+          }
+          if (!iqamaAlreadyDownloaded) {
+            await iqamaFile.delete();
+          }
+        }
+      }
+
+      final bool needsIqama = entry.iqama != null;
+      if (mainAlreadyDownloaded && (!needsIqama || iqamaAlreadyDownloaded)) {
+        final customSource = CustomAudioSource(
+          id: 'custom:${entry.id}',
+          displayName: entry.displayName,
+          localRelativePath: p.join('adhan_sounds', targetFileName),
+          iqamaLocalRelativePath: iqamaFileName != null ? p.join('adhan_sounds', iqamaFileName) : null,
+          originalFileName: p.basename(entry.objectKey),
+          fileSize: entry.fileSizeBytes + (entry.iqama?.fileSizeBytes ?? 0),
+        );
+        _emit(AudioDownloadTask.completed(entryId: entry.id, source: customSource));
+        return Right(customSource);
       }
 
       if (token.isCancelled) {
         throw AudioDownloadCancelledFailure();
       }
 
-      // 4. Temp Directory Setup on the same filesystem
-      final tempDir = Directory(p.join(storageDir.path, '.tmp'));
-      if (!await tempDir.exists()) {
-        await tempDir.create(recursive: true);
-      }
-
-      tempFile = File(p.join(
-        tempDir.path,
-        'dl_${token.id}_${DateTime.now().millisecondsSinceEpoch}.tmp',
-      ));
-
+      // 4. Download files
       _emit(AudioDownloadTask.downloading(
         entryId: entry.id,
-        progress: DownloadProgress.initial(totalBytes: entry.fileSizeBytes),
+        progress: DownloadProgress.initial(totalBytes: totalRequiredBytes),
       ));
 
-      final request = http.Request('GET', Uri.parse(resolvedUrl))
-        ..followRedirects = false;
-
-      final streamedResponse =
-          await client.send(request).timeout(kAudioDownloadTimeout);
-
-      if (streamedResponse.isRedirect ||
-          streamedResponse.statusCode == 301 ||
-          streamedResponse.statusCode == 302 ||
-          streamedResponse.statusCode == 307 ||
-          streamedResponse.statusCode == 308) {
-        throw AudioDownloadSecurityFailure(message: 'تم حظر التحويل التلقائي لملف الصوت');
-      }
-
-      if (streamedResponse.statusCode == 404) {
-        throw AudioDownloadNetworkFailure(message: 'ملف الصوت غير موجود على الخادم (404)');
-      }
-
-      if (streamedResponse.statusCode < 200 || streamedResponse.statusCode >= 300) {
-        throw AudioDownloadNetworkFailure(
-          message: 'فشل تحميل الصوت من الخادم (HTTP ${streamedResponse.statusCode})',
-        );
-      }
-
-      sink = tempFile.openWrite();
-
-      bytesWritten = 0;
-      final completer = Completer<void>();
-      token.streamCompleter = completer;
-
-      late final StreamSubscription<List<int>> subscription;
-      subscription = streamedResponse.stream.listen(
-        (chunk) {
-          if (token.isCancelled) {
-            subscription.cancel();
-            if (!completer.isCompleted) {
-              completer.completeError(AudioDownloadCancelledFailure());
-            }
-            return;
-          }
-
-          bytesWritten += chunk.length;
-
-          // Hard 30 MB Ceiling
-          if (bytesWritten > kRemoteAudioMaxBytes) {
-            subscription.cancel();
-            if (!completer.isCompleted) {
-              completer.completeError(
-                AudioDownloadOversizedFailure(bytes: bytesWritten),
-              );
-            }
-            return;
-          }
-
-          // Metadata size ceiling
-          if (bytesWritten > entry.fileSizeBytes) {
-            subscription.cancel();
-            if (!completer.isCompleted) {
-              completer.completeError(
-                AudioDownloadSizeMismatchFailure(
-                  actualBytes: bytesWritten,
-                  expectedBytes: entry.fileSizeBytes,
-                ),
-              );
-            }
-            return;
-          }
-
-          sink?.add(chunk);
-
-          _emit(AudioDownloadTask.downloading(
-            entryId: entry.id,
-            progress: DownloadProgress.determinate(
-              receivedBytes: bytesWritten,
-              totalBytes: entry.fileSizeBytes,
-            ),
-          ));
-        },
-        onError: (e) {
-          if (!completer.isCompleted) completer.completeError(e);
-        },
-        onDone: () {
-          if (!completer.isCompleted) completer.complete();
-        },
-        cancelOnError: true,
-      );
-
-      token.streamSub = subscription;
-
-      await completer.future;
-
-      await sink.flush();
-      await sink.close();
-      sink = null;
-
-      if (token.isCancelled) {
-        throw AudioDownloadCancelledFailure();
-      }
-
-      // 5. Verification
-      if (token.isCancelled) {
-        throw AudioDownloadCancelledFailure();
-      }
-      _emit(AudioDownloadTask.verifying(entry.id, bytesWritten));
-
-      if (token.isCancelled) {
-        throw AudioDownloadCancelledFailure();
-      }
-
-      if (bytesWritten != entry.fileSizeBytes) {
-        if (token.isCancelled) {
-          throw AudioDownloadCancelledFailure();
-        }
-        throw AudioDownloadSizeMismatchFailure(
-          actualBytes: bytesWritten,
+      // Download Main File if needed
+      if (!mainAlreadyDownloaded) {
+        tempMainFile = await _downloadAndVerifyStream(
+          token: token,
+          objectKey: entry.objectKey,
           expectedBytes: entry.fileSizeBytes,
+          expectedSha256: entry.sha256,
+          storageDir: storageDir,
+          entryId: entry.id,
+          baseReceivedBytes: 0,
+          totalCombinedBytes: totalRequiredBytes,
         );
       }
 
-      final digest = await sha256.bind(tempFile.openRead()).first;
-      final calculatedHash = digest.toString().toLowerCase();
-      if (calculatedHash != entry.sha256.toLowerCase()) {
-        if (token.isCancelled) {
-          throw AudioDownloadCancelledFailure();
-        }
-        throw AudioDownloadIntegrityFailure(
-          actualHash: calculatedHash,
-          expectedHash: entry.sha256.toLowerCase(),
+      // Download Companion Iqama File if needed
+      if (needsIqama && !iqamaAlreadyDownloaded) {
+        tempIqamaFile = await _downloadAndVerifyStream(
+          token: token,
+          objectKey: entry.iqama!.objectKey,
+          expectedBytes: entry.iqama!.fileSizeBytes,
+          expectedSha256: entry.iqama!.sha256,
+          storageDir: storageDir,
+          entryId: entry.id,
+          baseReceivedBytes: entry.fileSizeBytes,
+          totalCombinedBytes: totalRequiredBytes,
         );
       }
 
@@ -371,14 +304,15 @@ class AudioDownloadServiceImpl implements BaseAudioDownloadService {
         throw AudioDownloadCancelledFailure();
       }
 
-      // 6. Atomic File Promotion (File.rename on same filesystem)
-      _emit(AudioDownloadTask.promoting(entry.id, bytesWritten));
+      // 5. Atomic Promotion
+      _emit(AudioDownloadTask.promoting(entry.id, totalRequiredBytes));
 
-      if (token.isCancelled) {
-        throw AudioDownloadCancelledFailure();
+      if (tempMainFile != null) {
+        await tempMainFile.rename(targetPath);
       }
-
-      await tempFile.rename(targetPath);
+      if (tempIqamaFile != null && iqamaTargetPath != null) {
+        await tempIqamaFile.rename(iqamaTargetPath);
+      }
 
       if (token.isCancelled) {
         throw AudioDownloadCancelledFailure();
@@ -388,8 +322,9 @@ class AudioDownloadServiceImpl implements BaseAudioDownloadService {
         id: 'custom:${entry.id}',
         displayName: entry.displayName,
         localRelativePath: p.join('adhan_sounds', targetFileName),
+        iqamaLocalRelativePath: iqamaFileName != null ? p.join('adhan_sounds', iqamaFileName) : null,
         originalFileName: p.basename(entry.objectKey),
-        fileSize: bytesWritten,
+        fileSize: totalRequiredBytes,
       );
 
       _emit(AudioDownloadTask.completed(entryId: entry.id, source: customSource));
@@ -419,19 +354,6 @@ class AudioDownloadServiceImpl implements BaseAudioDownloadService {
         _emit(AudioDownloadTask.cancelled(entry.id));
         return Left(failure);
       }
-      if (bytesWritten > kRemoteAudioMaxBytes) {
-        final failure = AudioDownloadOversizedFailure(bytes: bytesWritten);
-        _emit(AudioDownloadTask.failed(entryId: entry.id, failure: failure));
-        return Left(failure);
-      }
-      if (bytesWritten > entry.fileSizeBytes) {
-        final failure = AudioDownloadSizeMismatchFailure(
-          actualBytes: bytesWritten,
-          expectedBytes: entry.fileSizeBytes,
-        );
-        _emit(AudioDownloadTask.failed(entryId: entry.id, failure: failure));
-        return Left(failure);
-      }
       final failure = AudioDownloadNetworkFailure(message: 'خطأ اتصال بالشبكة: ${e.message}');
       _emit(AudioDownloadTask.failed(entryId: entry.id, failure: failure));
       return Left(failure);
@@ -439,19 +361,6 @@ class AudioDownloadServiceImpl implements BaseAudioDownloadService {
       if (token.isCancelled) {
         final failure = AudioDownloadCancelledFailure();
         _emit(AudioDownloadTask.cancelled(entry.id));
-        return Left(failure);
-      }
-      if (bytesWritten > kRemoteAudioMaxBytes) {
-        final failure = AudioDownloadOversizedFailure(bytes: bytesWritten);
-        _emit(AudioDownloadTask.failed(entryId: entry.id, failure: failure));
-        return Left(failure);
-      }
-      if (bytesWritten > entry.fileSizeBytes) {
-        final failure = AudioDownloadSizeMismatchFailure(
-          actualBytes: bytesWritten,
-          expectedBytes: entry.fileSizeBytes,
-        );
-        _emit(AudioDownloadTask.failed(entryId: entry.id, failure: failure));
         return Left(failure);
       }
       final failure = AudioDownloadNetworkFailure(message: 'خطأ اتصال بالخادم: ${e.message}');
@@ -481,13 +390,173 @@ class AudioDownloadServiceImpl implements BaseAudioDownloadService {
         _activeToken = null;
       }
       try {
+        if (tempMainFile != null && await tempMainFile.exists()) {
+          await tempMainFile.delete();
+        }
+      } catch (_) {}
+      try {
+        if (tempIqamaFile != null && await tempIqamaFile.exists()) {
+          await tempIqamaFile.delete();
+        }
+      } catch (_) {}
+    }
+  }
+
+  /// Downloads and verifies a single audio stream into a temporary file.
+  Future<File> _downloadAndVerifyStream({
+    required _DownloadCancellationToken token,
+    required String objectKey,
+    required int expectedBytes,
+    required String expectedSha256,
+    required Directory storageDir,
+    required String entryId,
+    required int baseReceivedBytes,
+    required int totalCombinedBytes,
+  }) async {
+    final resolvedUrl = CatalogConfig.validateAndResolveUrl(
+      objectKey,
+      customBaseUrl: customBaseUrl,
+    );
+    if (resolvedUrl == null) {
+      throw AudioDownloadSecurityFailure();
+    }
+
+    final tempDir = Directory(p.join(storageDir.path, '.tmp'));
+    if (!await tempDir.exists()) {
+      await tempDir.create(recursive: true);
+    }
+
+    final tempFile = File(p.join(
+      tempDir.path,
+      'dl_${token.id}_${DateTime.now().millisecondsSinceEpoch}_${expectedSha256.substring(0, 8)}.tmp',
+    ));
+
+    IOSink? sink;
+    try {
+      final request = http.Request('GET', Uri.parse(resolvedUrl))..followRedirects = false;
+      final streamedResponse = await client.send(request).timeout(kAudioDownloadTimeout);
+
+      if (streamedResponse.isRedirect ||
+          streamedResponse.statusCode == 301 ||
+          streamedResponse.statusCode == 302 ||
+          streamedResponse.statusCode == 307 ||
+          streamedResponse.statusCode == 308) {
+        throw AudioDownloadSecurityFailure(message: 'تم حظر التحويل التلقائي لملف الصوت');
+      }
+
+      if (streamedResponse.statusCode == 404) {
+        throw AudioDownloadNetworkFailure(message: 'ملف الصوت غير موجود على الخادم (404)');
+      }
+
+      if (streamedResponse.statusCode < 200 || streamedResponse.statusCode >= 300) {
+        throw AudioDownloadNetworkFailure(
+          message: 'فشل تحميل الصوت من الخادم (HTTP ${streamedResponse.statusCode})',
+        );
+      }
+
+      sink = tempFile.openWrite();
+      int bytesWritten = 0;
+      final completer = Completer<void>();
+      token.streamCompleter = completer;
+
+      late final StreamSubscription<List<int>> subscription;
+      subscription = streamedResponse.stream.listen(
+        (chunk) {
+          if (token.isCancelled) {
+            subscription.cancel();
+            if (!completer.isCompleted) {
+              completer.completeError(AudioDownloadCancelledFailure());
+            }
+            return;
+          }
+
+          bytesWritten += chunk.length;
+
+          // Hard 30 MB Ceiling
+          if (bytesWritten > kRemoteAudioMaxBytes) {
+            subscription.cancel();
+            if (!completer.isCompleted) {
+              completer.completeError(
+                AudioDownloadOversizedFailure(bytes: bytesWritten),
+              );
+            }
+            return;
+          }
+
+          // Metadata size ceiling
+          if (bytesWritten > expectedBytes) {
+            subscription.cancel();
+            if (!completer.isCompleted) {
+              completer.completeError(
+                AudioDownloadSizeMismatchFailure(
+                  actualBytes: bytesWritten,
+                  expectedBytes: expectedBytes,
+                ),
+              );
+            }
+            return;
+          }
+
+          sink?.add(chunk);
+
+          _emit(AudioDownloadTask.downloading(
+            entryId: entryId,
+            progress: DownloadProgress.determinate(
+              receivedBytes: baseReceivedBytes + bytesWritten,
+              totalBytes: totalCombinedBytes,
+            ),
+          ));
+        },
+        onError: (e) {
+          if (!completer.isCompleted) completer.completeError(e);
+        },
+        onDone: () {
+          if (!completer.isCompleted) completer.complete();
+        },
+        cancelOnError: true,
+      );
+
+      token.streamSub = subscription;
+
+      await completer.future;
+
+      await sink.flush();
+      await sink.close();
+      sink = null;
+
+      if (token.isCancelled) {
+        throw AudioDownloadCancelledFailure();
+      }
+
+      _emit(AudioDownloadTask.verifying(entryId, bytesWritten));
+
+      if (bytesWritten != expectedBytes) {
+        throw AudioDownloadSizeMismatchFailure(
+          actualBytes: bytesWritten,
+          expectedBytes: expectedBytes,
+        );
+      }
+
+      final digest = await sha256.bind(tempFile.openRead()).first;
+      final calculatedHash = digest.toString().toLowerCase();
+      if (calculatedHash != expectedSha256.toLowerCase()) {
+        throw AudioDownloadIntegrityFailure(
+          actualHash: calculatedHash,
+          expectedHash: expectedSha256.toLowerCase(),
+        );
+      }
+
+      return tempFile;
+    } catch (_) {
+      try {
         await sink?.close();
       } catch (_) {}
       try {
-        if (tempFile != null && await tempFile.exists()) {
+        if (await tempFile.exists()) {
           await tempFile.delete();
         }
       } catch (_) {}
+      rethrow;
     }
   }
 
