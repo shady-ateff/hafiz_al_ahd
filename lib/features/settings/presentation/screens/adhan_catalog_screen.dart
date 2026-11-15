@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:hafiz_al_ahd/core/config/catalog_config.dart';
 import 'package:hafiz_al_ahd/core/DI/service_locator.dart';
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
+import 'package:hafiz_al_ahd/core/widgets/app_loader.dart';
 import 'package:hafiz_al_ahd/features/notifications/data/services/audio_download_service_impl.dart';
 import 'package:hafiz_al_ahd/features/notifications/developer/navigation/developer_route_gate.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/entities/adhan_catalog_entry.dart';
@@ -146,7 +147,11 @@ class _AdhanCatalogViewState extends State<_AdhanCatalogView> {
                 ),
               ],
             ),
-            body: ListView(
+            body: RefreshIndicator(
+              color: AppColors.secondaryGold,
+              onRefresh: () => cubit.loadCatalog(forceRefresh: true),
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               children: [
                 // 1. Offline Indicator Banner
@@ -268,12 +273,9 @@ class _AdhanCatalogViewState extends State<_AdhanCatalogView> {
                       ),
                       if (state.status == CatalogStatus.loading)
                         const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: AppColors.secondaryGold,
-                          ),
+                          width: 20,
+                          height: 20,
+                          child: AppLoader(width: 20, height: 20),
                         ),
                     ],
                   ),
@@ -284,7 +286,7 @@ class _AdhanCatalogViewState extends State<_AdhanCatalogView> {
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 36),
                     child: Center(
-                      child: CircularProgressIndicator(color: AppColors.secondaryGold),
+                      child: AppLoader(width: 80, height: 80),
                     ),
                   )
                 else if (state.status == CatalogStatus.error &&
@@ -303,6 +305,7 @@ class _AdhanCatalogViewState extends State<_AdhanCatalogView> {
               ],
             ),
           ),
+        ),
         );
       },
     );
@@ -768,9 +771,9 @@ class _AdhanCatalogViewState extends State<_AdhanCatalogView> {
         child: Row(
           children: [
             const SizedBox(
-              width: 14,
-              height: 14,
-              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.secondaryGold),
+              width: 18,
+              height: 18,
+              child: AppLoader(width: 18, height: 18),
             ),
             const SizedBox(width: 10),
             Text(

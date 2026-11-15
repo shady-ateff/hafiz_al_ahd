@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hafiz_al_ahd/core/DI/service_locator.dart';
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
+import 'package:hafiz_al_ahd/core/widgets/app_loader.dart';
 import 'package:hafiz_al_ahd/features/notifications/developer/presentation/cubit/adhan_catalog_developer_cubit.dart';
 import 'package:hafiz_al_ahd/features/notifications/developer/presentation/cubit/adhan_catalog_developer_state.dart';
 import 'package:hafiz_al_ahd/features/notifications/developer/presentation/widgets/catalog_draft_entry_dialog.dart';
@@ -281,7 +282,7 @@ class _AdhanCatalogDeveloperScaffoldState extends State<_AdhanCatalogDeveloperSc
             ],
           ),
           body: state.isLoading
-              ? const Center(child: CircularProgressIndicator())
+              ? const Center(child: AppLoader())
               : TabBarView(
                   controller: _tabController,
                   children: [
@@ -631,7 +632,7 @@ class _AdhanCatalogDeveloperScaffoldState extends State<_AdhanCatalogDeveloperSc
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
                 icon: state.isSaving
-                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    ? const SizedBox(width: 20, height: 20, child: AppLoader(width: 20, height: 20))
                     : const Icon(Icons.save_rounded, size: 18),
                 label: Text('حفظ المسودة', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
                 onPressed: state.isSaving ? null : () => cubit.saveDraft(),
@@ -642,7 +643,7 @@ class _AdhanCatalogDeveloperScaffoldState extends State<_AdhanCatalogDeveloperSc
             // Reset Button
             IconButton(
               icon: state.isResetting
-                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                  ? const SizedBox(width: 20, height: 20, child: AppLoader(width: 20, height: 20))
                   : const Icon(Icons.restore_rounded),
               tooltip: 'استعادة من المباشر',
               onPressed: state.isResetting ? null : () => _showResetConfirmation(context),

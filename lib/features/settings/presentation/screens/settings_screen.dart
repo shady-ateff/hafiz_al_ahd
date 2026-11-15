@@ -233,8 +233,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ? const Center(
               child:  AppLoader(),
             )
-          : SingleChildScrollView(
-              child: Padding(
+          : RefreshIndicator(
+              color: AppColors.secondaryGold,
+              onRefresh: () async {
+                await _loadSettings();
+              },
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1204,6 +1210,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
             ),
+          ),
     );
   }
 

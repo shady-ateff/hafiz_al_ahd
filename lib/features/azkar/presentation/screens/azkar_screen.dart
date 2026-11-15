@@ -336,11 +336,18 @@ class _AzkarScreenState extends State<AzkarScreen> {
     Map<String, List<AzkarItem>> azkarMap,
     List<_CategoryConfig> categories,
   ) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.only(left: 20.0, right: 20.0, bottom: 100.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+    return RefreshIndicator(
+      color: AppColors.secondaryGold,
+      onRefresh: () async {
+        context.read<AzkarCubit>().loadAzkar();
+        context.read<GamificationCubit>().loadGamificationData();
+      },
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.only(left: 20.0, right: 20.0, bottom: 100.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -416,8 +423,9 @@ class _AzkarScreenState extends State<AzkarScreen> {
           }),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class _CategoryConfig {

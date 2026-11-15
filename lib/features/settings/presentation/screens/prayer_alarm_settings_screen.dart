@@ -66,15 +66,19 @@ class PrayerAlarmSettingsScreen extends StatelessWidget {
           builder: (context, state) {
             if (state.status == SettingsStatus.loading) {
               return const Center(
-                child: CircularProgressIndicator(color: AppColors.secondaryGold),
+                child: AppLoader(),
               );
             }
 
             final cubit = context.read<PrayerAlarmSettingsCubit>();
 
-            return ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              children: [
+            return RefreshIndicator(
+              color: AppColors.secondaryGold,
+              onRefresh: () => cubit.loadSettings(),
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                children: [
                 // ══════════════════════════════════════════════════════════════
                 // SECTION A: الإعدادات العامة التلقائية (Global Defaults)
                 // ══════════════════════════════════════════════════════════════
@@ -467,7 +471,8 @@ class PrayerAlarmSettingsScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
               ],
-            );
+            ),
+          );
           },
         ),
       ),
@@ -591,11 +596,8 @@ class PrayerAlarmSettingsScreen extends StatelessWidget {
                 ),
                 child: isTransitioning
                     ? const Padding(
-                        padding: EdgeInsets.all(12),
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.5,
-                          color: AppColors.secondaryGold,
-                        ),
+                        padding: EdgeInsets.all(8),
+                        child: AppLoader(width: 24, height: 24),
                       )
                     : Icon(modeIcon, color: modeColor, size: 24),
               ),
