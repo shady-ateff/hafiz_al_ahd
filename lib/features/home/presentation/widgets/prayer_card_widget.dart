@@ -7,6 +7,8 @@ import 'package:hafiz_al_ahd/core/widgets/gradient_icon.dart';
 import 'package:hafiz_al_ahd/core/widgets/gradient_text.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/cubit/time_cubit.dart';
 import 'package:intl/intl.dart';
+import 'package:hafiz_al_ahd/features/home/presentation/widgets/prayer_alert_quick_toggle.dart';
+import 'package:hafiz_al_ahd/features/notifications/domain/entities/prayer_alarm_config.dart';
 
 class PrayerCard extends StatefulWidget {
   final String name;
@@ -212,30 +214,72 @@ class _PrayerCardState extends State<PrayerCard>
 
                                 // 👈 2. التعديل الجوهري للتباين
                                 isNextPrayer
-                                    ? Text(
-                                        widget.name,
-                                        style: GoogleFonts.cairo(
-                                          color: textColor,
-                                          fontSize: 21,
-                                          fontWeight: FontWeight.bold,
-                                        ),
+                                    ? Row(
+                                        mainAxisSize: MainAxisSize.max,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            widget.name,
+                                            style: GoogleFonts.cairo(
+                                              color: textColor,
+                                              fontSize: 21,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          // PrayerAlertQuickToggle(
+                                          //   prayerId: _resolvePrayerId(
+                                          //     widget.name,
+                                          //   ),
+                                          //   prayerName: widget.name,
+                                          //   scheduledEpoch: widget.time,
+                                          // ),
+                                        ],
                                       )
                                     : isDark
-                                    ? GradientText(
-                                        widget.name,
-                                        gradient: AppColors.silverGradient,
-                                        style: GoogleFonts.cairo(
-                                          fontSize: 21,
-                                          fontWeight: FontWeight.bold,
-                                        ),
+                                    ? Row(
+                                        mainAxisSize: MainAxisSize.max,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          GradientText(
+                                            widget.name,
+                                            gradient: AppColors.silverGradient,
+                                            style: GoogleFonts.cairo(
+                                              fontSize: 21,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          // PrayerAlertQuickToggle(
+                                          //   prayerId: _resolvePrayerId(
+                                          //     widget.name,
+                                          //   ),
+                                          //   prayerName: widget.name,
+                                          //   scheduledEpoch: widget.time,
+                                          // ),
+                                        ],
                                       )
-                                    : Text(
-                                        widget.name,
-                                        style: GoogleFonts.cairo(
-                                          color: context.secondaryText,
-                                          fontSize: 21,
-                                          fontWeight: FontWeight.bold,
-                                        ),
+                                    : Row(
+                                        mainAxisSize: MainAxisSize.max,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            widget.name,
+                                            style: GoogleFonts.cairo(
+                                              color: context.secondaryText,
+                                              fontSize: 21,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          // PrayerAlertQuickToggle(
+                                          //   prayerId: _resolvePrayerId(
+                                          //     widget.name,
+                                          //   ),
+                                          //   prayerName: widget.name,
+                                          //   scheduledEpoch: widget.time,
+                                          // ),
+                                        ],
                                       ),
                               ],
                             ),
@@ -246,53 +290,62 @@ class _PrayerCardState extends State<PrayerCard>
                           flex: widget.isWideLayout ? 3 : 1,
                           child: FittedBox(
                             fit: BoxFit.scaleDown,
-                            child: Flex(
-                              direction: widget.isWideLayout
-                                  ? Axis.horizontal
-                                  : Axis.vertical,
-                              spacing: widget.isWideLayout ? 12.0 : 6.0,
+                            child: Row(
                               children: [
-                                isNextPrayer
-                                    ? Text(
-                                        widget.displayTime != null
-                                            ? DateFormat(
-                                                'hh:mm a',
-                                                'ar',
-                                              ).format(widget.displayTime!)
-                                            : '--:--',
-                                        style: GoogleFonts.cairo(
-                                          color: textColor,
-                                          fontSize: 21,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      )
-                                    : isDark
-                                    ? GradientText(
-                                        widget.displayTime != null
-                                            ? DateFormat(
-                                                'hh:mm a',
-                                                'ar',
-                                              ).format(widget.displayTime!)
-                                            : '--:--',
-                                        gradient: AppColors.silverGradient,
-                                        style: GoogleFonts.cairo(
-                                          fontSize: 21,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      )
-                                    : Text(
-                                        widget.displayTime != null
-                                            ? DateFormat(
-                                                'hh:mm a',
-                                                'ar',
-                                              ).format(widget.displayTime!)
-                                            : '--:--',
-                                        style: GoogleFonts.cairo(
-                                          color: context.secondaryText,
-                                          fontSize: 21,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
+                                PrayerAlertQuickToggle(
+                                  prayerId: _resolvePrayerId(widget.name),
+                                  prayerName: widget.name,
+                                  scheduledEpoch: widget.time,
+                                ),
+                                Flex(
+                                  direction: widget.isWideLayout
+                                      ? Axis.horizontal
+                                      : Axis.vertical,
+                                  spacing: widget.isWideLayout ? 12.0 : 6.0,
+                                  children: [
+                                    isNextPrayer
+                                        ? Text(
+                                            widget.displayTime != null
+                                                ? DateFormat(
+                                                    'hh:mm a',
+                                                    'ar',
+                                                  ).format(widget.displayTime!)
+                                                : '--:--',
+                                            style: GoogleFonts.cairo(
+                                              color: textColor,
+                                              fontSize: 21,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          )
+                                        : isDark
+                                        ? GradientText(
+                                            widget.displayTime != null
+                                                ? DateFormat(
+                                                    'hh:mm a',
+                                                    'ar',
+                                                  ).format(widget.displayTime!)
+                                                : '--:--',
+                                            gradient: AppColors.silverGradient,
+                                            style: GoogleFonts.cairo(
+                                              fontSize: 21,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          )
+                                        : Text(
+                                            widget.displayTime != null
+                                                ? DateFormat(
+                                                    'hh:mm a',
+                                                    'ar',
+                                                  ).format(widget.displayTime!)
+                                                : '--:--',
+                                            style: GoogleFonts.cairo(
+                                              color: context.secondaryText,
+                                              fontSize: 21,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                  ],
+                                ),
                               ],
                             ),
                           ),
@@ -331,6 +384,23 @@ class _PrayerCardState extends State<PrayerCard>
         );
       },
     );
+  }
+
+  PrayerId? _resolvePrayerId(String name) {
+    switch (name.trim()) {
+      case 'الفجر':
+        return PrayerId.fajr;
+      case 'الظهر':
+        return PrayerId.dhuhr;
+      case 'العصر':
+        return PrayerId.asr;
+      case 'المغرب':
+        return PrayerId.maghrib;
+      case 'العشاء':
+        return PrayerId.isha;
+      default:
+        return null;
+    }
   }
 }
 

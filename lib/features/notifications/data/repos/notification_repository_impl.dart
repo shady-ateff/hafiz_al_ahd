@@ -4,13 +4,14 @@ import 'dart:developer';
 import 'dart:io';
 
 import 'package:alarm/alarm.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/entities/schedule_operation_result.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/repos/base_notification_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:timezone/data/latest.dart' as tz;
+import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
 StreamController<String> selectNotificationStream =
@@ -171,9 +172,9 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
       e is StateError;
 
   bool isWithinImminentWindow(DateTime actualScheduledTime, DateTime now) {
-    final difference = actualScheduledTime.difference(now);
-    return difference >= const Duration(seconds: -15) &&
-        difference <= const Duration(seconds: 60);
+    final start = actualScheduledTime.subtract(const Duration(seconds: 15));
+    final end = actualScheduledTime.add(const Duration(seconds: 60));
+    return !now.isBefore(start) && !now.isAfter(end);
   }
 
   @override
@@ -242,6 +243,11 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
     String? soundName,
     String? payload,
   }) async {
+    if (scheduledTime.isBefore(DateTime.now())) {
+      log('ℹ️ [schedulePrayerNotification] Skipped scheduling notification #$id in the past: $scheduledTime');
+      return;
+    }
+
     final String channelId = soundName != null
         ? 'prayer_channel_v10_$soundName'
         : 'prayer_channel_v10_default';
@@ -403,6 +409,9 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
     required String body,
     required DateTime nextPrayerTime,
   }) async {
+    if (!Platform.isAndroid && !Platform.isIOS) {
+      return;
+    }
     FlutterBackgroundService().invoke('updatePrayerNotification', {
       'title': title,
       'body': body,
@@ -419,12 +428,60 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
     required String assetAudioPath,
     double? volume,
     bool enableVibration = true,
+    bool androidFullScreenIntent = true,
+    String? stopButton = 'إيقاف الأذان',
   }) async {
+    if (id != 888 && scheduledTime.isBefore(DateTime.now())) {
+      log('ℹ️ [scheduleAdhanAlarm] Skipped scheduling alarm #$id in the past: $scheduledTime');
+      return;
+    }
+
     if (id != 888 &&
         scheduledTime.difference(DateTime.now()).inMinutes < 1 &&
         scheduledTime.isBefore(
           DateTime.now().add(const Duration(minutes: 1)),
         )) {
+      return;
+    }
+
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      final delay = scheduledTime.difference(DateTime.now());
+      final effectiveDelay = delay.isNegative ? Duration.zero : delay;
+      Timer(effectiveDelay, () async {
+        try {
+          final player = AudioPlayer();
+          if (assetAudioPath.startsWith('assets/')) {
+            final clean = assetAudioPath.replaceFirst('assets/', '');
+            await player.play(AssetSource(clean), volume: volume ?? 1.0);
+          } else {
+            await player.play(DeviceFileSource(assetAudioPath), volume: volume ?? 1.0);
+          }
+        } catch (e) {
+          log('⚠️ [Desktop Alarm] Failed to play audio: $e');
+        }
+
+        try {
+          const androidDetails = AndroidNotificationDetails(
+            'adhan_alarms_channel',
+            'منبه الأذان',
+            channelDescription: 'منبه مواقيت الصلاة والأذان',
+            importance: Importance.max,
+            priority: Priority.high,
+          );
+          const notificationDetails = NotificationDetails(
+            android: androidDetails,
+          );
+          await flutterLocalNotificationsPlugin.show(
+            id: id,
+            title: title,
+            body: body,
+            notificationDetails: notificationDetails,
+          );
+        } catch (e) {
+          log('⚠️ [Desktop Alarm] Failed to show notification: $e');
+        }
+      });
+      log('🔔 Scheduled Desktop Adhan alarm #$id at $scheduledTime ($assetAudioPath)');
       return;
     }
 
@@ -434,7 +491,7 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
       assetAudioPath: assetAudioPath,
       loopAudio: false,
       vibrate: enableVibration,
-      androidFullScreenIntent: true,
+      androidFullScreenIntent: androidFullScreenIntent,
       androidStopAlarmOnTermination: false,
       volumeSettings: volume == 0.0
           ? VolumeSettings.fade(
@@ -449,7 +506,7 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
       notificationSettings: NotificationSettings(
         title: title,
         body: body,
-        stopButton: 'إيقاف الأذان',
+        stopButton: stopButton,
         icon: 'ic_stat_icon',
       ),
     );
@@ -470,6 +527,9 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
     DateTime? expectedScheduledTime,
     String? expectedAssetAudioPath,
   }) async {
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      return EventCancellationStatus.alreadyAbsent;
+    }
     try {
       // 0. Validate ID Range
       final isLegacyPrayerId = id >= 1 && id <= 100;
@@ -677,6 +737,9 @@ class NotificationRepositoryImpl implements BaseNotificationRepository {
     double? expectedVolume,
     bool? expectedEnableVibration,
   }) async {
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      return EventVerificationStatus.absent;
+    }
     try {
       final alarm = await Alarm.getAlarm(id);
       if (alarm == null) {

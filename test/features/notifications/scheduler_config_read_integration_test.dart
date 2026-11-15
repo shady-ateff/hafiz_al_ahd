@@ -138,6 +138,8 @@ class SpyingNotificationRepository extends Fake implements BaseNotificationRepos
     required String assetAudioPath,
     double? volume,
     bool enableVibration = true,
+    bool androidFullScreenIntent = true,
+    String? stopButton = 'إيقاف الأذان',
   }) async {
     scheduledAlarmIds.add(id);
   }

@@ -9,7 +9,7 @@ class GradientIcon extends StatelessWidget {
   const GradientIcon({
     super.key,
     required this.icon,
-    this.size = 24.0,
+    this.size = 23.0,
     this.gradient,
   });
 

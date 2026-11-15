@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-11-13T00:00:00Z",
+  "entries": [
+    {
+      "id": "remote:mishary_alafasy_general",
+      "sheikh_name": "مشاري راشد العفاسي",
+      "audio_type": "general",
+      "display_name": "أذان - مشاري راشد العفاسي",
+      "description": "أذان لصلاة الظهر والعصر والمغرب والعشاء بصوت الشيخ مشاري راشد العفاسي",
+      "duration_seconds": 72,
+      "object_key": "audio/mishary_alafasy_general.mp3",
+      "file_size_bytes": 1152000,
+      "sha256": "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2",
+      "preview_offset_seconds": 0
+    },
+    {
+      "id": "remote:mishary_alafasy_fajr",
+      "sheikh_name": "مشاري راشد العفاسي",
+      "audio_type": "fajr",
+      "display_name": "أذان الفجر - مشاري راشد العفاسي",
+      "description": "أذان الفجر يتضمن 'الصلاة خير من النوم' بصوت الشيخ مشاري راشد العفاسي",
+      "duration_seconds": 85,
+      "object_key": "audio/mishary_alafasy_fajr.mp3",
+      "file_size_bytes": 1360000,
+      "sha256": "b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3",
+      "preview_offset_seconds": 0
+    },
+    {
+      "id": "remote:abdulbasit_general",
+      "sheikh_name": "عبد الباسط عبد الصمد",
+      "audio_type": "general",
+      "display_name": "أذان - عبد الباسط عبد الصمد",
+      "description": "أذان بصوت الشيخ عبد الباسط عبد الصمد",
+      "duration_seconds": 90,
+      "object_key": "audio/abdulbasit_general.mp3",
+      "file_size_bytes": 1440000,
+      "sha256": "c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4",
+      "preview_offset_seconds": 0
+    },
+    {
+      "id": "remote:makkah_iqama",
+      "sheikh_name": "مؤذن الحرم المكي",
+      "audio_type": "iqama",
+      "display_name": "إقامة - الحرم المكي",
+      "description": "إقامة الصلاة من الحرم المكي الشريف",
+      "duration_seconds": 40,
+      "object_key": "audio/makkah_iqama.mp3",
+      "file_size_bytes": 640000,
+      "sha256": "d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5",
+      "preview_offset_seconds": 0
+    }
+  ]
+}
+

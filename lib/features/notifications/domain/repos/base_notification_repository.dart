@@ -50,6 +50,8 @@ abstract class BaseNotificationRepository {
     required String assetAudioPath,
     double? volume, // 👈 إضافة متغير الصوت
     bool enableVibration = true, // 👈 إضافة متغير الاهتزاز
+    bool androidFullScreenIntent = true,
+    String? stopButton = 'إيقاف الأذان',
   });
 
   /// إلغاء كل المنبهات (الأذان) اللي اتجدولت عن طريق باكيدج alarm

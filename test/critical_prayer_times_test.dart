@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:timezone/data/latest_all.dart' as tz;
+import 'package:timezone/data/latest_all.dart' as tz_data;
+import 'package:timezone/timezone.dart' as tz;
 import 'package:adhan_dart/adhan_dart.dart';
+import 'package:hafiz_al_ahd/core/utils/calculation_method_helper.dart';
 import 'package:hafiz_al_ahd/features/home/data/datasources/prayer_times_local_data_source.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/cubit/time_cubit.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/usecases/check_if_scheduling_needed_usecase.dart';
@@ -25,7 +27,7 @@ int diffInMinutes(DateTime? actual, String expected) {
 
 void main() {
   setUpAll(() {
-    tz.initializeTimeZones();
+    tz_data.initializeTimeZones();
   });
 
   final dataSource = PrayerTimesLocalDataSource();
@@ -213,6 +215,38 @@ void main() {
       print('استشعار الحارس وإعادة الجدولة: $needsScheduling');
 
       expect(needsScheduling, true);
+    });
+  });
+
+  group('6. اختبار صحة المناطق الزمنية لكافة الدول المدعومة في التطبيق', () {
+    test('جميع المناطق الزمنية في CalculationMethodHelper مسجلة وصحيحة في tzdb', () {
+      final invalidTimezones = <String, String>{};
+      for (final code in [
+        'KW', 'SA', 'EG', 'AE', 'QA', 'BH', 'OM', 'YE', 'MA', 'DZ',
+        'TN', 'LY', 'SD', 'JO', 'PS', 'IQ', 'IR', 'LB', 'SY', 'US',
+        'CA', 'GB', 'FR', 'DE', 'IT', 'ES', 'PK', 'IN', 'BD', 'AF',
+        'MY', 'SG', 'ID', 'TR'
+      ]) {
+        final tzId = CalculationMethodHelper.getTimezoneForCountry(code);
+        if (tzId != null) {
+          try {
+            tz.getLocation(tzId);
+          } catch (e) {
+            invalidTimezones[code] = '$tzId ($e)';
+          }
+        }
+      }
+      expect(invalidTimezones, isEmpty, reason: 'Found invalid timezones: $invalidTimezones');
+    });
+
+    test('getPrayerTimes يعمل بنجاح وبدون استثناء لدولة الكويت', () async {
+      final times = await dataSource.getPrayerTimes(
+        coordinates: const Coordinates(29.3759, 47.9774),
+        date: DateTime(2026, 11, 10),
+        countryCode: 'KW',
+      );
+      expect(times.fajr, isNotNull);
+      expect(times.maghrib, isNotNull);
     });
   });
 }

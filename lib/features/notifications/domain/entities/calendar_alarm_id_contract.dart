@@ -54,6 +54,12 @@ class CalendarAlarmIdContract {
     return _computeId(date: date, prayerIdx: prayerIndex(prayer), typeOffset: offsetIqama);
   }
 
+  /// Returns true if [id] belongs to an Iqama scheduled event.
+  static bool isIqamaId(int id) {
+    if (id < minContractId || id > maxContractId) return false;
+    return (id % 10) == offsetIqama;
+  }
+
   /// Generates the deterministic ID for post-prayer Azkar.
   static int postPrayerAzkarId({
     required DateTime date,

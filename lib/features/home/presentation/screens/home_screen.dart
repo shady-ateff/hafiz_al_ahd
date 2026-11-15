@@ -144,31 +144,39 @@ class _HomeScreenState extends State<HomeScreen>
         centerTitle: true,
       ),
       body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            bool isLandscape = constraints.maxWidth > 600;
+        child: RefreshIndicator(
+          color: AppColors.secondaryGold,
+          onRefresh: () async {
+            await context.read<PrayerTimesCubit>().fetchPrayerTimesByLocation(
+              forceRescheduleAlarms: true,
+            );
+          },
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              Widget content;
+              bool isLandscape = constraints.maxWidth > 600;
 
-            if (constraints.maxWidth <= 300) {
-              return _buildWatchLayout();
-            } else if (constraints.maxWidth >= 301 &&
-                constraints.maxWidth <= 800) {
-              return _buildMobileLayout();
-            } else if (constraints.maxWidth >= 801) {
-              return _buildTabletDesktopLayout(
-                maxHeight: constraints.maxHeight,
-                maxWidth: constraints.maxWidth,
-              );
-            } else {
-              if (isLandscape) {
-                return _buildTabletDesktopLayout(
+              if (constraints.maxWidth <= 300) {
+                content = _buildWatchLayout();
+              } else if (constraints.maxWidth >= 301 &&
+                  constraints.maxWidth <= 800) {
+                content = _buildMobileLayout();
+              } else {
+                content = _buildTabletDesktopLayout(
                   maxHeight: constraints.maxHeight,
                   maxWidth: constraints.maxWidth,
                 );
-              } else {
-                return const SizedBox.shrink();
               }
-            }
-          },
+
+              return SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: SizedBox(
+                  height: constraints.maxHeight,
+                  child: content,
+                ),
+              );
+            },
+          ),
         ),
       ),
       floatingActionButton: kDebugMode

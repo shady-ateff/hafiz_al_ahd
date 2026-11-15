@@ -12,6 +12,7 @@ import 'package:hafiz_al_ahd/features/settings/domain/usecases/get_iqama_delays_
 import 'package:hafiz_al_ahd/features/settings/domain/usecases/save_iqama_delays_usecase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hafiz_al_ahd/features/settings/presentation/screens/about_app_screen.dart';
+import 'package:hafiz_al_ahd/features/settings/presentation/screens/prayer_alarm_settings_screen.dart';
 import 'package:hafiz_al_ahd/core/services/rating_reminder_service.dart';
 import 'package:hafiz_al_ahd/features/quran/presentation/widgets/quran_theme_bottom_sheet.dart'
     as hafiz_quran_theme;
@@ -62,8 +63,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isLoading = true;
   bool _isIqamaEnabled = true;
   bool _isDstEnabled = false;
-  double _adhanVolume = 1.0;
-  bool _isAdhanVibrationEnabled = true;
   bool _isAzkarReminderEnabled = true;
   String _calculationMethod = 'auto';
   String _madhab = 'shafi';
@@ -110,9 +109,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _delays.addAll(savedDelays);
         _isIqamaEnabled = prefs.getBool('isIqamaEnabled') ?? true;
         _isDstEnabled = (prefs.getInt('dst_offset_minutes') ?? 0) > 0;
-        _adhanVolume = prefs.getDouble('adhan_volume') ?? 1.0;
-        _isAdhanVibrationEnabled =
-            prefs.getBool('isAdhanVibrationEnabled') ?? true;
         _isAzkarReminderEnabled =
             prefs.getBool('isAzkarReminderEnabled') ?? true;
         _calculationMethod = prefs.getString('calculation_method') ?? 'auto';
@@ -144,8 +140,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     await saveUseCase.execute(_delays);
     await prefs.setBool('isIqamaEnabled', _isIqamaEnabled);
-    await prefs.setDouble('adhan_volume', _adhanVolume);
-    await prefs.setBool('isAdhanVibrationEnabled', _isAdhanVibrationEnabled);
     await prefs.setBool('isAzkarReminderEnabled', _isAzkarReminderEnabled);
     await prefs.setString('calculation_method', _calculationMethod);
     await prefs.setString('madhab', _madhab);
@@ -239,8 +233,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ? const Center(
               child:  AppLoader(),
             )
-          : SingleChildScrollView(
-              child: Padding(
+          : RefreshIndicator(
+              color: AppColors.secondaryGold,
+              onRefresh: () async {
+                await _loadSettings();
+              },
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -378,125 +378,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         children: [
                           // -- Subcategory: Adhan --
                           _buildSubcategoryHeader(
-                            'إعدادات الأذان',
+                            'إعدادات الأذان والتنبيهات',
                             textColor,
                             dividerColor,
                           ),
-                          // Adhan Volume
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  _adhanVolume == 0
-                                      ? Icons.volume_off_rounded
-                                      : _adhanVolume < 0.5
-                                      ? Icons.volume_down_rounded
-                                      : Icons.volume_up_rounded,
-                                  color: AppColors.secondaryGold,
-                                  size: 22,
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: SliderTheme(
-                                    data: SliderTheme.of(context).copyWith(
-                                      activeTrackColor: AppColors.secondaryGold,
-                                      inactiveTrackColor: AppColors
-                                          .secondaryGold
-                                          .withOpacity(0.3),
-                                      thumbColor: AppColors.secondaryGold,
-                                      overlayColor: AppColors.secondaryGold
-                                          .withOpacity(0.1),
-                                      trackHeight: 4.0,
-                                    ),
-                                    child: Slider(
-                                      value: _adhanVolume,
-                                      min: 0.0,
-                                      max: 1.0,
-                                      divisions: 10,
-                                      label: '${(_adhanVolume * 100).round()}%',
-                                      onChanged: (val) =>
-                                          setState(() => _adhanVolume = val),
-                                      onChangeEnd: (val) => _saveSettings(),
-                                    ),
-                                  ),
-                                ),
-                                SizedBox(
-                                  width: 40,
-                                  child: Text(
-                                    '${(_adhanVolume * 100).round()}%',
-                                    textAlign: TextAlign.end,
-                                    style: GoogleFonts.cairo(
-                                      color: textColor,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Divider(
-                            color: dividerColor,
-                            height: 1,
-                            indent: 16,
-                            endIndent: 16,
-                          ),
-                          // Adhan Vibration
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 4,
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(
-                                  Icons.vibration_rounded,
-                                  color: AppColors.secondaryGold,
-                                  size: 22,
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    'الاهتزاز مع الأذان',
-                                    style: GoogleFonts.cairo(
-                                      color: textColor,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                                Transform.scale(
-                                  scale: 0.85,
-                                  child: Switch(
-                                    value: _isAdhanVibrationEnabled,
-                                    activeColor: AppColors.secondaryGold,
-                                    activeTrackColor: AppColors.secondaryGold
-                                        .withOpacity(0.3),
-                                    inactiveThumbColor: const Color(0xFF7A6840),
-                                    inactiveTrackColor: const Color(0xFFE8D9B5),
-                                    onChanged: (val) {
-                                      setState(
-                                        () => _isAdhanVibrationEnabled = val,
-                                      );
-                                      _saveSettings();
-                                    },
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Divider(
-                            color: dividerColor,
-                            height: 1,
-                            indent: 16,
-                            endIndent: 16,
-                          ),
                           InkWell(
-                            onTap: _showAdhanStyleDialog,
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const PrayerAlarmSettingsScreen(),
+                                ),
+                              );
+                            },
                             child: Padding(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 16,
@@ -505,30 +398,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               child: Row(
                                 children: [
                                   const Icon(
-                                    Icons.notifications_active,
+                                    Icons.notifications_active_rounded,
                                     color: AppColors.secondaryGold,
-                                    size: 22,
+                                    size: 24,
                                   ),
-                                  const SizedBox(width: 12),
+                                  const SizedBox(width: 14),
                                   Expanded(
                                     child: Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          'طريقة تنبيه الأذان',
+                                          'تنبيهات الصلوات الخمس والأذان',
                                           style: GoogleFonts.cairo(
                                             color: textColor,
-                                            fontSize: 15,
+                                            fontSize: 16,
                                             fontWeight: FontWeight.w600,
                                           ),
                                         ),
                                         Text(
-                                          _adhanStyle == 'notification'
-                                              ? 'إشعار بسيط (مثل الإقامة)'
-                                              : _adhanStyle == 'none'
-                                              ? 'إيقاف التنبيه'
-                                              : 'منبه بكامل الشاشة',
+                                          'التحكم المستقل بكل صلاة، مستوى الصوت، والاهتزاز',
                                           style: GoogleFonts.cairo(
                                             color: textColor.withOpacity(0.6),
                                             fontSize: 13,
@@ -1321,6 +1210,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
             ),
+          ),
     );
   }
 
@@ -2088,108 +1978,5 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _showAdhanStyleDialog() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            final isDark = context.watch<ThemeCubit>().state.isDark;
-            final textColor = isDark
-                ? AppColors.silverMarble
-                : const Color(0xFF1A1208);
-            final cardColor = isDark
-                ? AppColors.deepBackground
-                : const Color(0xFFFFF8EC);
 
-            return AlertDialog(
-              backgroundColor: cardColor,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
-              ),
-              title: Center(
-                child: Text(
-                  'طريقة تنبيه الأذان',
-                  style: GoogleFonts.cairo(
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.secondaryGold,
-                    fontSize: 18,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              content: SizedBox(
-                width: double.maxFinite,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    RadioListTile<String>(
-                      activeColor: AppColors.secondaryGold,
-                      title: Text(
-                        'منبه بكامل الشاشة (الافتراضي)',
-                        style: GoogleFonts.cairo(
-                          fontSize: 15,
-                          color: textColor,
-                        ),
-                      ),
-                      value: 'alarm',
-                      groupValue: _adhanStyle,
-                      onChanged: (val) {
-                        if (val != null) {
-                          setDialogState(() => _adhanStyle = val);
-                          setState(() => _adhanStyle = val);
-                          _saveSettings();
-                          Navigator.pop(context);
-                        }
-                      },
-                    ),
-                    RadioListTile<String>(
-                      activeColor: AppColors.secondaryGold,
-                      title: Text(
-                        'إشعار بسيط (مثل الإقامة)',
-                        style: GoogleFonts.cairo(
-                          fontSize: 15,
-                          color: textColor,
-                        ),
-                      ),
-                      value: 'notification',
-                      groupValue: _adhanStyle,
-                      onChanged: (val) {
-                        if (val != null) {
-                          setDialogState(() => _adhanStyle = val);
-                          setState(() => _adhanStyle = val);
-                          _saveSettings();
-                          Navigator.pop(context);
-                        }
-                      },
-                    ),
-                    RadioListTile<String>(
-                      activeColor: AppColors.secondaryGold,
-                      title: Text(
-                        'إيقاف التنبيه',
-                        style: GoogleFonts.cairo(
-                          fontSize: 15,
-                          color: textColor,
-                        ),
-                      ),
-                      value: 'none',
-                      groupValue: _adhanStyle,
-                      onChanged: (val) {
-                        if (val != null) {
-                          setDialogState(() => _adhanStyle = val);
-                          setState(() => _adhanStyle = val);
-                          _saveSettings();
-                          Navigator.pop(context);
-                        }
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
 }

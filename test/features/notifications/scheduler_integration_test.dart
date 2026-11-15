@@ -178,6 +178,8 @@ class ControllableNotificationRepository implements BaseNotificationRepository {
     required String assetAudioPath,
     double? volume,
     bool enableVibration = true,
+    bool androidFullScreenIntent = true,
+    String? stopButton = 'إيقاف الأذان',
   }) async {
     operationLog.add('scheduleAdhanAlarm_$id');
     scheduledAlarms.removeWhere((a) => a.id == id);

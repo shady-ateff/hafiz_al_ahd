@@ -1,15 +1,20 @@
 import 'dart:developer';
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:hafiz_al_ahd/core/DI/service_locator.dart';
 import 'package:hafiz_al_ahd/features/home/domain/usecases/get_prayer_times_use_case.dart';
 import 'package:hafiz_al_ahd/features/notifications/data/repos/notification_repository_impl.dart';
+import 'package:hafiz_al_ahd/features/notifications/domain/entities/audio_source_config.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/entities/calendar_alarm_id_contract.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/entities/prayer_alarm_config.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/entities/prayer_scheduling_decision.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/entities/schedule_operation_result.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/repos/base_notification_repository.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/repos/prayer_alarm_config_repository.dart';
+import 'package:hafiz_al_ahd/features/notifications/domain/services/playable_audio_resolver.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/usecases/cancel_all_notfication_usecase.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/usecases/schedule_prayer_usecase.dart';
 import 'package:hafiz_al_ahd/features/settings/domain/usecases/get_iqama_delays_usecase.dart';
@@ -23,6 +28,13 @@ class ScheduleWeeklyPrayersUseCase {
   final BaseNotificationRepository notificationRepository;
   final SharedPreferences pref;
   final BasePrayerAlarmConfigRepository prayerAlarmConfigRepository;
+  final BasePlayableAudioResolver? playableAudioResolver;
+
+  BasePlayableAudioResolver? get _resolver =>
+      playableAudioResolver ??
+      (sl.isRegistered<BasePlayableAudioResolver>()
+          ? sl<BasePlayableAudioResolver>()
+          : null);
 
   static int _scheduleSessionId = 0;
 
@@ -40,6 +52,7 @@ class ScheduleWeeklyPrayersUseCase {
     required this.notificationRepository,
     required this.pref,
     required this.prayerAlarmConfigRepository,
+    this.playableAudioResolver,
   });
 
   Future<void> execute(double lat, double lng, String city, [String? country]) async {
@@ -58,6 +71,15 @@ class ScheduleWeeklyPrayersUseCase {
     final isAdhanVibrationEnabled = pref.getBool('isAdhanVibrationEnabled') ?? true;
     final isIqamaEnabled = pref.getBool('isIqamaEnabled') ?? true;
     final isAzkarReminderEnabled = pref.getBool('isAzkarReminderEnabled') ?? true;
+
+    AudioSourceConfig globalAudioSource = AudioSourceConfig.defaultMishary;
+    final audioJson = pref.getString('global_adhan_audio_source');
+    if (audioJson != null) {
+      try {
+        final decoded = jsonDecode(audioJson) as Map<String, dynamic>;
+        globalAudioSource = AudioSourceConfig.fromJson(decoded);
+      } catch (_) {}
+    }
 
     // 4. البدء في جدولة الأيام الخمسة بمصالحة مستهدفة (Targeted Reconciliation) دون مسح شامل
     log("📅 Scheduling notifications for the next 5 days with targeted reconciliation...");
@@ -102,6 +124,7 @@ class ScheduleWeeklyPrayersUseCase {
             isIqamaEnabled: isIqamaEnabled,
             isAzkarReminderEnabled: isAzkarReminderEnabled,
             isToday: i == 0,
+            globalAudioSource: globalAudioSource,
           );
         },
       );
@@ -174,6 +197,7 @@ class ScheduleWeeklyPrayersUseCase {
     required bool isIqamaEnabled,
     required bool isAzkarReminderEnabled,
     required bool isToday,
+    required AudioSourceConfig globalAudioSource,
   }) async {
     final now = DateTime.now();
     final List<ScheduleOperationResult> operations = [];
@@ -279,9 +303,9 @@ class ScheduleWeeklyPrayersUseCase {
             ));
           }
         } else {
-          // Imminent Window Check: [now - 15s, now + 60s]
-          final isImminent = prayer.time!.isAfter(now.subtract(const Duration(seconds: 15))) &&
-              prayer.time!.isBefore(now.add(const Duration(seconds: 60)));
+          // Imminent Window Check: [prayer.time - 15s, prayer.time + 60s]
+          final isImminent = !now.isBefore(prayer.time!.subtract(const Duration(seconds: 15))) &&
+              !now.isAfter(prayer.time!.add(const Duration(seconds: 60)));
           if (isImminent) {
             operations.add(ScheduleOperationResult.skippedImminent(
               eventId: alertId,
@@ -290,16 +314,50 @@ class ScheduleWeeklyPrayersUseCase {
             ));
           } else if (decision == PrayerAlertDecision.alarm) {
             log("⏲️ Reconciling ALARM for prayer: ${prayer.name} at ${prayer.time} with deterministic ID #$alertId");
-            final expectedAsset = prayer.name == 'الفجر'
-                ? 'assets/sounds/fajr_azan.mp3'
-                : 'assets/sounds/adhan.mp3';
+
+            final effectiveVolume = config.volume ?? adhanVolume;
+            final effectiveVibration = config.isVibrationEnabled ?? isAdhanVibrationEnabled;
+
+            final effectiveAudioSource = config.hasAudioOverride
+                ? config.audioSource
+                : (prayer.prayerId == PrayerId.fajr &&
+                        globalAudioSource.id == AudioSourceConfig.defaultMishary.id
+                    ? AudioSourceConfig.defaultBuiltInFallback(isFajr: true)
+                    : globalAudioSource);
+
+            // Non-Destructive Audio Source Resolution
+            String expectedAsset;
+            if (_resolver != null) {
+              final resolved = await _resolver!.resolveAudio(
+                effectiveAudioSource,
+                isFajr: prayer.prayerId == PrayerId.fajr,
+              );
+              expectedAsset = resolved.path;
+            } else if (effectiveAudioSource is BuiltInAudioSource) {
+              expectedAsset = (effectiveAudioSource as BuiltInAudioSource)
+                  .resolveAssetPath(isFajr: prayer.prayerId == PrayerId.fajr);
+            } else if (effectiveAudioSource is CustomAudioSource) {
+              final custom = effectiveAudioSource as CustomAudioSource;
+              final file = File(custom.localRelativePath);
+              if (file.existsSync()) {
+                expectedAsset = custom.localRelativePath;
+              } else {
+                log("⚠️ [Scheduler] Custom audio missing at '${custom.localRelativePath}'. Non-destructive fallback to built-in default.");
+                expectedAsset = AudioSourceConfig.defaultBuiltInFallback(isFajr: prayer.prayerId == PrayerId.fajr)
+                    .resolveAssetPath(isFajr: prayer.prayerId == PrayerId.fajr);
+              }
+            } else {
+              expectedAsset = prayer.name == 'الفجر'
+                  ? 'assets/sounds/fajr_azan.mp3'
+                  : 'assets/sounds/adhan.mp3';
+            }
 
             final existingStatus = await notificationRepository.verifyAlarm(
               id: alarmId,
               expectedScheduledTime: prayer.time!,
               expectedAssetAudioPath: expectedAsset,
-              expectedVolume: adhanVolume,
-              expectedEnableVibration: isAdhanVibrationEnabled,
+              expectedVolume: effectiveVolume,
+              expectedEnableVibration: effectiveVibration,
             );
 
             if (existingStatus == EventVerificationStatus.unverifiable) {
@@ -348,8 +406,8 @@ class ScheduleWeeklyPrayersUseCase {
                       : 'حي على الصلاة، حي على الفلاح',
                   scheduledTime: prayer.time!,
                   assetAudioPath: expectedAsset,
-                  volume: adhanVolume,
-                  enableVibration: isAdhanVibrationEnabled,
+                  volume: effectiveVolume,
+                  enableVibration: effectiveVibration,
                 );
                 dispatchSuccess = true;
               } on PlatformException catch (e) {
@@ -374,8 +432,8 @@ class ScheduleWeeklyPrayersUseCase {
                   id: alarmId,
                   expectedScheduledTime: prayer.time!,
                   expectedAssetAudioPath: expectedAsset,
-                  expectedVolume: adhanVolume,
-                  expectedEnableVibration: isAdhanVibrationEnabled,
+                  expectedVolume: effectiveVolume,
+                  expectedEnableVibration: effectiveVibration,
                 );
 
                 if (postStatus == EventVerificationStatus.matching) {
@@ -584,14 +642,50 @@ class ScheduleWeeklyPrayersUseCase {
           }
         } else {
           try {
-            await notificationRepository.schedulePrayerNotification(
-              id: iqamaAlertId,
-              title: 'إقامة صلاة ${prayer.name}',
-              body: 'تجهز للصلاة، ستقام الصلاة الآن',
-              scheduledTime: iqamaTime,
-              soundName: 'iqama_sound',
-              payload: 'iqama_${iqamaAlertId}_${prayer.name}',
-            );
+            String? customIqamaPath;
+            final config = prayerConfigs[prayer.prayerId];
+            if (config != null) {
+              final effectiveSource = config.hasAudioOverride
+                  ? config.audioSource
+                  : globalAudioSource;
+              if (_resolver != null) {
+                final resolvedIqama = await _resolver!.resolveIqamaAudio(effectiveSource);
+                if (!resolvedIqama.isAsset) {
+                  customIqamaPath = resolvedIqama.path;
+                }
+              } else if (effectiveSource is CustomAudioSource) {
+                final custom = effectiveSource as CustomAudioSource;
+                if (custom.iqamaLocalRelativePath != null) {
+                  final file = File(custom.iqamaLocalRelativePath!);
+                  if (file.existsSync()) {
+                    customIqamaPath = custom.iqamaLocalRelativePath;
+                  }
+                }
+              }
+            }
+
+            if (customIqamaPath != null) {
+              // Custom Iqama audio exists on disk: schedule via alarm without full screen (notification only)
+              await notificationRepository.scheduleAdhanAlarm(
+                id: iqamaAlertId,
+                title: 'إقامة صلاة ${prayer.name}',
+                body: 'تجهز للصلاة، ستقام الصلاة الآن',
+                scheduledTime: iqamaTime,
+                assetAudioPath: customIqamaPath,
+                androidFullScreenIntent: false,
+                stopButton: null,
+              );
+            } else {
+              // Default built-in iqama: standard notification
+              await notificationRepository.schedulePrayerNotification(
+                id: iqamaAlertId,
+                title: 'إقامة صلاة ${prayer.name}',
+                body: 'تجهز للصلاة، ستقام الصلاة الآن',
+                scheduledTime: iqamaTime,
+                soundName: 'iqama_sound',
+                payload: 'iqama_${iqamaAlertId}_${prayer.name}',
+              );
+            }
             operations.add(ScheduleOperationResult.scheduled(
               eventId: iqamaAlertId,
               eventType: ScheduleEventType.iqama,
