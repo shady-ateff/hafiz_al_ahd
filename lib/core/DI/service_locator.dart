@@ -121,6 +121,7 @@ Future<void> init() async {
       notificationRepository: sl(),
       pref: sl(), // جاب الـ SharedPreferences لوحده
       prayerAlarmConfigRepository: sl(),
+      playableAudioResolver: sl(),
     ),
   );
   sl.registerLazySingleton<BaseNotificationRepository>(

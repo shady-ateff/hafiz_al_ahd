@@ -5,6 +5,8 @@ import 'dart:io';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:hafiz_al_ahd/core/DI/service_locator.dart';
+import 'package:hafiz_al_ahd/features/home/domain/usecases/get_cached_location_usecase.dart';
 import 'package:hafiz_al_ahd/features/notifications/data/datasources/prayer_alert_transition_local_data_source.dart';
 import 'package:hafiz_al_ahd/features/notifications/data/services/custom_audio_storage_service.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/entities/audio_source_config.dart';
@@ -12,6 +14,7 @@ import 'package:hafiz_al_ahd/features/notifications/domain/entities/prayer_alarm
 import 'package:hafiz_al_ahd/features/notifications/domain/repos/prayer_alarm_config_repository.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/services/audio_storage_lock.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/services/transition_coordinator.dart';
+import 'package:hafiz_al_ahd/features/notifications/domain/usecases/schedule_weekly_prayers_usecase.dart';
 import 'package:hafiz_al_ahd/features/notifications/presentation/cubit/prayer_alarm_settings_state.dart';
 
 class PrayerAlarmSettingsCubit extends Cubit<PrayerAlarmSettingsState> {
@@ -117,6 +120,30 @@ class PrayerAlarmSettingsCubit extends Cubit<PrayerAlarmSettingsState> {
     );
   }
 
+  /// Reschedules all future alarms with the updated settings immediately without app restart.
+  Future<void> _reschedulePrayers() async {
+    try {
+      if (sl.isRegistered<GetCachedLocationUseCase>() &&
+          sl.isRegistered<ScheduleWeeklyPrayersUseCase>()) {
+        final locationResult = await sl<GetCachedLocationUseCase>()();
+        await locationResult.fold(
+          (failure) async => null,
+          (location) async {
+            final scheduler = sl<ScheduleWeeklyPrayersUseCase>();
+            await scheduler.execute(
+              location.latitude,
+              location.longitude,
+              location.city,
+              location.country,
+            );
+          },
+        );
+      }
+    } catch (e) {
+      log('⚠️ [PrayerAlarmSettingsCubit] Auto-rescheduling failed: $e');
+    }
+  }
+
   /// Sets alert mode (alarm, notification, off) across all 5 prayers simultaneously.
   Future<void> setAllPrayersMode(PrayerAlarmType targetMode) async {
     emit(state.copyWith(isUpdatingAllPrayers: true));
@@ -129,6 +156,7 @@ class PrayerAlarmSettingsCubit extends Cubit<PrayerAlarmSettingsState> {
           );
         }
       }
+      unawaited(_reschedulePrayers());
     } finally {
       emit(state.copyWith(isUpdatingAllPrayers: false));
     }
@@ -188,12 +216,14 @@ class PrayerAlarmSettingsCubit extends Cubit<PrayerAlarmSettingsState> {
     final clamped = volume.clamp(0.1, 1.0).toDouble();
     await prefs.setDouble('adhan_volume', clamped);
     emit(state.copyWith(globalAdhanVolume: clamped));
+    unawaited(_reschedulePrayers());
   }
 
   /// Updates global default vibration (propagates to all prayers without vibration override).
   Future<void> updateGlobalVibration(bool isEnabled) async {
     await prefs.setBool('isAdhanVibrationEnabled', isEnabled);
     emit(state.copyWith(isGlobalAdhanVibrationEnabled: isEnabled));
+    unawaited(_reschedulePrayers());
   }
 
   /// Updates global default audio source (propagates to all non-Fajr prayers without audio override).
@@ -206,6 +236,7 @@ class PrayerAlarmSettingsCubit extends Cubit<PrayerAlarmSettingsState> {
         await prefs.setString('global_adhan_audio_source', jsonEncode(source.toJson()));
       });
       emit(state.copyWith(globalAudioSource: source, clearError: true));
+      unawaited(_reschedulePrayers());
       return true;
     } on FileSystemException catch (e) {
       emit(state.copyWith(errorMessage: e.message));
@@ -234,6 +265,7 @@ class PrayerAlarmSettingsCubit extends Cubit<PrayerAlarmSettingsState> {
       final updatedConfigs = Map<PrayerId, PrayerAlarmConfig>.from(state.configs);
       updatedConfigs[prayerId] = updated;
       emit(state.copyWith(configs: updatedConfigs, clearError: true));
+      unawaited(_reschedulePrayers());
       return true;
     } on FileSystemException catch (e) {
       emit(state.copyWith(errorMessage: e.message));
@@ -262,6 +294,7 @@ class PrayerAlarmSettingsCubit extends Cubit<PrayerAlarmSettingsState> {
     final updatedConfigs = Map<PrayerId, PrayerAlarmConfig>.from(state.configs);
     updatedConfigs[prayerId] = updated;
     emit(state.copyWith(configs: updatedConfigs));
+    unawaited(_reschedulePrayers());
   }
 
   /// Updates vibration override for a specific prayer.
@@ -279,6 +312,7 @@ class PrayerAlarmSettingsCubit extends Cubit<PrayerAlarmSettingsState> {
     final updatedConfigs = Map<PrayerId, PrayerAlarmConfig>.from(state.configs);
     updatedConfigs[prayerId] = updated;
     emit(state.copyWith(configs: updatedConfigs));
+    unawaited(_reschedulePrayers());
   }
 
   /// Starts or toggles an audio preview without interfering with AlarmService.

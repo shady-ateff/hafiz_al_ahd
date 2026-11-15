@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:hafiz_al_ahd/core/DI/service_locator.dart';
 import 'package:hafiz_al_ahd/features/home/domain/usecases/get_prayer_times_use_case.dart';
 import 'package:hafiz_al_ahd/features/notifications/data/repos/notification_repository_impl.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/entities/audio_source_config.dart';
@@ -12,6 +13,7 @@ import 'package:hafiz_al_ahd/features/notifications/domain/entities/prayer_sched
 import 'package:hafiz_al_ahd/features/notifications/domain/entities/schedule_operation_result.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/repos/base_notification_repository.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/repos/prayer_alarm_config_repository.dart';
+import 'package:hafiz_al_ahd/features/notifications/domain/services/playable_audio_resolver.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/usecases/cancel_all_notfication_usecase.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/usecases/schedule_prayer_usecase.dart';
 import 'package:hafiz_al_ahd/features/settings/domain/usecases/get_iqama_delays_usecase.dart';
@@ -25,6 +27,13 @@ class ScheduleWeeklyPrayersUseCase {
   final BaseNotificationRepository notificationRepository;
   final SharedPreferences pref;
   final BasePrayerAlarmConfigRepository prayerAlarmConfigRepository;
+  final BasePlayableAudioResolver? playableAudioResolver;
+
+  BasePlayableAudioResolver? get _resolver =>
+      playableAudioResolver ??
+      (sl.isRegistered<BasePlayableAudioResolver>()
+          ? sl<BasePlayableAudioResolver>()
+          : null);
 
   static int _scheduleSessionId = 0;
 
@@ -42,6 +51,7 @@ class ScheduleWeeklyPrayersUseCase {
     required this.notificationRepository,
     required this.pref,
     required this.prayerAlarmConfigRepository,
+    this.playableAudioResolver,
   });
 
   Future<void> execute(double lat, double lng, String city, [String? country]) async {
@@ -298,7 +308,13 @@ class ScheduleWeeklyPrayersUseCase {
 
             // Non-Destructive Audio Source Resolution
             String expectedAsset;
-            if (config.audioSource is BuiltInAudioSource) {
+            if (_resolver != null) {
+              final resolved = await _resolver!.resolveAudio(
+                config.audioSource,
+                isFajr: prayer.prayerId == PrayerId.fajr,
+              );
+              expectedAsset = resolved.path;
+            } else if (config.audioSource is BuiltInAudioSource) {
               expectedAsset = (config.audioSource as BuiltInAudioSource)
                   .resolveAssetPath(isFajr: prayer.prayerId == PrayerId.fajr);
             } else if (config.audioSource is CustomAudioSource) {
@@ -609,12 +625,19 @@ class ScheduleWeeklyPrayersUseCase {
           try {
             String? customIqamaPath;
             final config = prayerConfigs[prayer.prayerId];
-            if (config != null && config.audioSource is CustomAudioSource) {
-              final custom = config.audioSource as CustomAudioSource;
-              if (custom.iqamaLocalRelativePath != null) {
-                final file = File(custom.iqamaLocalRelativePath!);
-                if (file.existsSync()) {
-                  customIqamaPath = custom.iqamaLocalRelativePath;
+            if (config != null) {
+              if (_resolver != null) {
+                final resolvedIqama = await _resolver!.resolveIqamaAudio(config.audioSource);
+                if (!resolvedIqama.isAsset) {
+                  customIqamaPath = resolvedIqama.path;
+                }
+              } else if (config.audioSource is CustomAudioSource) {
+                final custom = config.audioSource as CustomAudioSource;
+                if (custom.iqamaLocalRelativePath != null) {
+                  final file = File(custom.iqamaLocalRelativePath!);
+                  if (file.existsSync()) {
+                    customIqamaPath = custom.iqamaLocalRelativePath;
+                  }
                 }
               }
             }

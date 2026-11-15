@@ -401,15 +401,18 @@ class PrayerAlarmSettingsScreen extends StatelessWidget {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   child: InkWell(
                     borderRadius: BorderRadius.circular(16),
-                    onTap: () {
+                    onTap: () async {
                       cubit.stopAudioPreview();
-                      Navigator.of(context).push(
+                      final selected = await Navigator.of(context).push<AudioSourceConfig>(
                         MaterialPageRoute(
                           builder: (_) => AdhanCatalogScreen(
                             currentSelectedSource: state.globalAudioSource,
                           ),
                         ),
                       );
+                      if (selected != null && context.mounted) {
+                        await cubit.updateGlobalAudioSource(selected);
+                      }
                     },
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),

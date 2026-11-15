@@ -10,9 +10,13 @@ import 'package:hafiz_al_ahd/features/home/domain/usecases/get_cached_location_u
 import 'package:hafiz_al_ahd/features/home/domain/usecases/get_prayer_times_use_case.dart';
 import 'package:hafiz_al_ahd/features/home/domain/usecases/save_location_usecase.dart';
 import 'package:hafiz_al_ahd/features/home/presentation/cubit/prayer_times_cubit/prayer_times_states.dart';
+import 'package:hafiz_al_ahd/features/notifications/domain/entities/audio_source_config.dart';
+import 'package:hafiz_al_ahd/features/notifications/domain/entities/prayer_alarm_config.dart';
+import 'package:hafiz_al_ahd/features/notifications/domain/services/playable_audio_resolver.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/usecases/cancel_all_notfication_usecase.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/usecases/check_if_scheduling_needed_usecase.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/usecases/check_location_change_usecase.dart';
+import 'package:hafiz_al_ahd/features/notifications/domain/usecases/get_prayer_alarm_configs_use_case.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/usecases/schedule_prayer_usecase.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/usecases/schedule_weekly_prayers_usecase.dart';
 import 'package:hafiz_al_ahd/features/notifications/domain/usecases/show_sticky_notification_usecase.dart';
@@ -289,7 +293,7 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
     );
   }
 
-  /// 👈 اختبار الأذان: بيستخدم باكيدج alarm للأذان والإشعارات العادية للإقامة
+  /// 👈 اختبار الأذان: بيستخدم نفس الصوت المختار للأذان من الإعدادات
   Future<void> testNotification(int sound) async {
     print("⏳ جاري جدولة إشعار تجريبي بعد 5 ثواني...");
 
@@ -298,26 +302,80 @@ class PrayerTimesCubit extends Cubit<PrayerTimesStates> {
     final double adhanVolume = pref.getDouble('adhan_volume') ?? 1.0;
 
     if (sound == 1 || sound == 2) {
-      // 👈 أذان أو أذان الفجر — بنستخدم باكيدج alarm
+      final isFajr = sound == 2;
+      String audioPath = isFajr ? 'assets/sounds/fajr_azan.mp3' : 'assets/sounds/adhan.mp3';
+      double volume = adhanVolume;
+      bool enableVibration = pref.getBool('isAdhanVibrationEnabled') ?? true;
+
+      try {
+        if (sl.isRegistered<GetPrayerAlarmConfigsUseCase>()) {
+          final configs = await sl<GetPrayerAlarmConfigsUseCase>().execute();
+          final targetPrayer = isFajr ? PrayerId.fajr : PrayerId.dhuhr;
+          final config = configs[targetPrayer];
+
+          if (config != null) {
+            volume = config.volume ?? adhanVolume;
+            enableVibration = config.isVibrationEnabled ?? enableVibration;
+            if (sl.isRegistered<BasePlayableAudioResolver>()) {
+              final resolved = await sl<BasePlayableAudioResolver>().resolveAudio(
+                config.audioSource,
+                isFajr: isFajr,
+              );
+              audioPath = resolved.path;
+            }
+          }
+        }
+      } catch (e) {
+        log('⚠️ [testNotification] Could not resolve configured adhan audio: $e');
+      }
+
+      // 👈 أذان أو أذان الفجر — بنستخدم باكيدج alarm مع الصوت المختار
       await notificationRepository.scheduleAdhanAlarm(
         id: 888,
         title: 'إشعار تجريبي 🚀',
-        body: 'عاش يا هندسة! الأذان شغال بباكيدج alarm المحمي.',
+        body: 'عاش يا هندسة! الأذان شغال بالصوت المختار بباكيدج alarm المحمي.',
         scheduledTime: DateTime.now().add(const Duration(seconds: 5)),
-        assetAudioPath: sound == 2
-            ? 'assets/sounds/fajr_azan.mp3'
-            : 'assets/sounds/adhan.mp3',
-        volume: adhanVolume,
+        assetAudioPath: audioPath,
+        volume: volume,
+        enableVibration: enableVibration,
       );
     } else {
-      // 👈 إقامة — لسه بتستخدم الإشعارات العادية
-      await schedulePrayerUseCase.execute(
-        id: 888,
-        title: 'إشعار تجريبي 🚀',
-        body: 'عاش يا هندسة! الإشعارات شغالة في الخلفية زي الفل.',
-        scheduledTime: DateTime.now().add(const Duration(seconds: 5)),
-        soundName: 'iqama_sound',
-      );
+      // 👈 إقامة — بتستخدم صوت الإقامة المخصص إذا كان متوفراً
+      String? customIqamaPath;
+      try {
+        if (sl.isRegistered<GetPrayerAlarmConfigsUseCase>() &&
+            sl.isRegistered<BasePlayableAudioResolver>()) {
+          final configs = await sl<GetPrayerAlarmConfigsUseCase>().execute();
+          final config = configs[PrayerId.dhuhr];
+          if (config != null) {
+            final resolved = await sl<BasePlayableAudioResolver>().resolveIqamaAudio(config.audioSource);
+            if (!resolved.isAsset) {
+              customIqamaPath = resolved.path;
+            }
+          }
+        }
+      } catch (e) {
+        log('⚠️ [testNotification] Could not resolve configured iqama audio: $e');
+      }
+
+      if (customIqamaPath != null) {
+        await notificationRepository.scheduleAdhanAlarm(
+          id: 888,
+          title: 'إشعار تجريبي 🚀',
+          body: 'عاش يا هندسة! الإقامة شغالة بالصوت المخصص.',
+          scheduledTime: DateTime.now().add(const Duration(seconds: 5)),
+          assetAudioPath: customIqamaPath,
+          androidFullScreenIntent: false,
+        );
+      } else {
+        await schedulePrayerUseCase.execute(
+          id: 888,
+          title: 'إشعار تجريبي 🚀',
+          body: 'عاش يا هندسة! الإشعارات شغالة في الخلفية زي الفل.',
+          scheduledTime: DateTime.now().add(const Duration(seconds: 5)),
+          soundName: 'iqama_sound',
+        );
+      }
     }
   }
 }
