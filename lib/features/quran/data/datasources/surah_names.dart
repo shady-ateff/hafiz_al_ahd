@@ -20,6 +20,17 @@ String getSurahName(int surahNumber) {
   return surahNames[surahNumber - 1];
 }
 
+/// Returns the 1-based Surah number containing the start of or active on [pageNumber].
+int getSurahNumberForPage(int pageNumber) {
+  if (pageNumber < 1) return 1;
+  for (int i = surahStartPages.length - 1; i >= 0; i--) {
+    if (pageNumber >= surahStartPages[i]) {
+      return i + 1;
+    }
+  }
+  return 1;
+}
+
 const List<int> surahStartPages = [
   1, 2, 50, 77, 106, 128, 151, 177, 187, 208, 221, 235, 249, 255, 262, 267,
   282, 293, 305, 312, 322, 332, 342, 350, 359, 367, 377, 385, 396, 404, 411,

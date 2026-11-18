@@ -1,9 +1,7 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
-import '../../domain/entities/quran_page.dart';
 import '../cubit/quran_cubit.dart';
-import '../cubit/quran_state.dart';
 
 /// Contract for offscreen Glyph Atlas Prewarming.
 ///

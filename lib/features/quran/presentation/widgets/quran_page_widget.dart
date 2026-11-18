@@ -16,6 +16,7 @@ class QuranPageWidget extends StatelessWidget {
   final bool isFontLoaded;
   final List<QuranLineMapping>? lineMappings;
   final AyahId? selectedAyahId;
+  final AyahId? audioHighlightedAyahId;
   final ValueChanged<QuranWord>? onWordTapped;
   final ValueChanged<QuranWord>? onWordLongPressed;
 
@@ -25,6 +26,7 @@ class QuranPageWidget extends StatelessWidget {
     required this.isFontLoaded,
     this.lineMappings,
     this.selectedAyahId,
+    this.audioHighlightedAyahId,
     this.onWordTapped,
     this.onWordLongPressed,
   });
@@ -217,6 +219,7 @@ class QuranPageWidget extends StatelessWidget {
             textColor: textColor,
             selectedAyahId: selectedAyahId,
             highlightColor: highlightColor,
+            audioHighlightedAyahId: audioHighlightedAyahId,
             onWordTapped: onWordTapped,
             onWordLongPressed: onWordLongPressed,
           ),

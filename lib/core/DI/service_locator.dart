@@ -77,6 +77,29 @@ import 'package:hafiz_al_ahd/features/quran/data/repositories/quran_tafseer_repo
 import 'package:hafiz_al_ahd/features/quran/domain/usecases/get_quran_tafseer_use_case.dart';
 import 'package:hafiz_al_ahd/features/quran/presentation/cubit/quran_tafseer_cubit.dart';
 
+// --- Quran Audio Feature Imports (QA.1, QA.2, QA.3) ---
+import 'package:hafiz_al_ahd/features/quran_audio/core/audio/quran_audio_handler.dart';
+import 'package:hafiz_al_ahd/features/quran_audio/core/audio/quran_audio_player.dart';
+import 'package:hafiz_al_ahd/features/quran_audio/core/audio/quran_audio_player_impl.dart';
+import 'package:hafiz_al_ahd/features/quran_audio/core/audio/quran_audio_service_initializer.dart';
+import 'package:hafiz_al_ahd/features/quran_audio/core/tracking/ayah_timing_validator.dart';
+import 'package:hafiz_al_ahd/features/quran_audio/core/tracking/ayah_tracking_engine.dart';
+import 'package:hafiz_al_ahd/features/quran_audio/data/datasources/quran_audio_database.dart';
+import 'package:hafiz_al_ahd/features/quran_audio/data/datasources/quran_audio_local_data_source.dart';
+import 'package:hafiz_al_ahd/features/quran_audio/data/datasources/quran_audio_remote_data_source.dart';
+import 'package:hafiz_al_ahd/features/quran_audio/data/repositories/audio_download_repository_impl.dart';
+import 'package:hafiz_al_ahd/features/quran_audio/data/repositories/quran_audio_repository_impl.dart';
+import 'package:hafiz_al_ahd/features/quran_audio/data/services/quran_audio_storage_service.dart';
+import 'package:hafiz_al_ahd/features/quran_audio/domain/repositories/base_audio_download_repository.dart';
+import 'package:hafiz_al_ahd/features/quran_audio/domain/repositories/base_quran_audio_repository.dart';
+import 'package:hafiz_al_ahd/features/quran_audio/domain/usecases/delete_download_use_case.dart';
+import 'package:hafiz_al_ahd/features/quran_audio/domain/usecases/get_downloaded_audio_use_case.dart';
+import 'package:hafiz_al_ahd/features/quran_audio/domain/usecases/get_playback_position_use_case.dart';
+import 'package:hafiz_al_ahd/features/quran_audio/domain/usecases/get_reciters_use_case.dart';
+import 'package:hafiz_al_ahd/features/quran_audio/domain/usecases/get_surah_audio_use_case.dart';
+import 'package:hafiz_al_ahd/features/quran_audio/domain/usecases/save_playback_position_use_case.dart';
+import 'package:hafiz_al_ahd/features/quran_audio/presentation/cubit/quran_audio_cubit.dart';
+
 // سميناه sl اختصاراً لـ Service Locator
 final sl = GetIt.instance;
 
@@ -360,6 +383,72 @@ Future<void> init() async {
   );
   sl.registerLazySingleton(() => GetQuranTafseerUseCase(sl()));
   sl.registerFactory(() => QuranTafseerCubit(getQuranTafseerUseCase: sl()));
+
+  // ---------------------------------------------------
+  // 4.1. Quran Audio Feature (Phase QA.1)
+  // ---------------------------------------------------
+  sl.registerLazySingleton<BaseQuranAudioDatabase>(
+    () => QuranAudioDatabase(),
+  );
+  sl.registerLazySingleton<QuranAudioStorageService>(
+    () => const QuranAudioStorageService(),
+  );
+  sl.registerLazySingleton<BaseQuranAudioLocalDataSource>(
+    () => QuranAudioLocalDataSourceImpl(
+      database: sl(),
+      prefs: sl(),
+    ),
+  );
+  sl.registerLazySingleton<BaseQuranAudioRemoteDataSource>(
+    () => QuranAudioRemoteDataSourceImpl(client: sl()),
+  );
+  sl.registerLazySingleton<BaseQuranAudioRepository>(
+    () => QuranAudioRepositoryImpl(
+      remoteDataSource: sl(),
+      localDataSource: sl(),
+    ),
+  );
+  sl.registerLazySingleton<BaseAudioDownloadRepository>(
+    () => AudioDownloadRepositoryImpl(
+      localDataSource: sl(),
+      storageService: sl(),
+    ),
+  );
+  sl.registerLazySingleton<AyahTimingValidator>(
+    () => const AyahTimingValidator(),
+  );
+  sl.registerFactory<AyahTrackingEngine>(
+    () => AyahTrackingEngine(),
+  );
+  sl.registerLazySingleton(() => GetRecitersUseCase(sl()));
+  sl.registerLazySingleton(() => GetSurahAudioUseCase(sl()));
+  sl.registerLazySingleton(() => SavePlaybackPositionUseCase(sl()));
+  sl.registerLazySingleton(() => GetPlaybackPositionUseCase(sl()));
+  sl.registerLazySingleton(() => GetDownloadedAudioUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteDownloadUseCase(sl()));
+
+  // 4.2. Audio Engine, Background Handler & Presentation (Phase QA.2 & QA.3)
+  final audioPlayer = QuranAudioPlayerImpl();
+  sl.registerSingleton<QuranAudioPlayer>(audioPlayer);
+
+  // AudioService is initialized during di.init() before runApp
+  final audioHandler = await QuranAudioServiceInitializer.initialize(
+    player: audioPlayer,
+    getSurahAudioUseCase: sl(),
+    savePlaybackPositionUseCase: sl(),
+  );
+  sl.registerSingleton<QuranAudioHandler>(audioHandler);
+
+  sl.registerFactory<QuranAudioCubit>(
+    () => QuranAudioCubit(
+      getRecitersUseCase: sl(),
+      getSurahAudioUseCase: sl(),
+      audioHandler: sl(),
+      trackingEngine: sl(),
+      savePlaybackPositionUseCase: sl(),
+      getPlaybackPositionUseCase: sl(),
+    ),
+  );
 
   // ---------------------------------------------------
   // 5. Developer Tools (Phase 4 - Debug Mode Only)
