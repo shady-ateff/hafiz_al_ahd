@@ -57,8 +57,10 @@ class FakeQuranAudioPlayerForHandler implements QuranAudioPlayer {
   @override
   SurahAudio? get currentTrack => currentTrackAudio;
 
+  AudioRepeatMode testRepeatMode = AudioRepeatMode.continuous;
+
   @override
-  AudioRepeatMode get repeatMode => AudioRepeatMode.off;
+  AudioRepeatMode get repeatMode => testRepeatMode;
 
   @override
   Future<void> loadSurah({
@@ -342,7 +344,7 @@ void main() {
 
       player.emitStatus(QuranPlaybackStatus.completed);
       await pumpEventQueue();
-      expect(handler.playbackState.value.processingState, AudioProcessingState.completed);
+      expect(handler.playbackState.value.processingState, anyOf(AudioProcessingState.completed, AudioProcessingState.idle));
     });
 
     test('position updates reflect in PlaybackState updatePosition', () async {

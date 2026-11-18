@@ -89,7 +89,7 @@ class FakeTestQuranAudioPlayer implements QuranAudioPlayer {
   Duration? currentDur;
   SurahAudio? loadedTrack;
   String? loadedLocalPath;
-  AudioRepeatMode currentRepeatMode = AudioRepeatMode.off;
+  AudioRepeatMode currentRepeatMode = AudioRepeatMode.continuous;
   bool playCalled = false;
   bool pauseCalled = false;
   bool stopCalled = false;
@@ -458,7 +458,8 @@ void main() {
         await pumpEventQueue();
 
         expect(audioRepo.savedPosition, isNotNull);
-        expect(cubit.state.playbackStatus, QuranPlaybackStatus.completed);
+        expect(cubit.state.playbackStatus, QuranPlaybackStatus.idle);
+        expect(cubit.state.currentPosition, Duration.zero);
         expect(cubit.state.highlightState.activeAyah, isNull);
       });
 
@@ -472,6 +473,20 @@ void main() {
 
         expect(audioRepo.savedPosition, isNotNull);
         expect(cubit.state.playbackStatus, anyOf(QuranPlaybackStatus.loading, QuranPlaybackStatus.playing));
+      });
+
+      test('stops cleanly when Surah 114 completes in AudioRepeatMode.continuous', () async {
+        await cubit.init();
+        expect(cubit.state.highlightState.repeatMode, AudioRepeatMode.continuous);
+        await cubit.playSurah(surahNumber: 114);
+
+        player.statusController.add(QuranPlaybackStatus.completed);
+        await pumpEventQueue();
+
+        expect(audioRepo.savedPosition, isNotNull);
+        expect(cubit.state.playbackStatus, QuranPlaybackStatus.idle);
+        expect(cubit.state.currentPosition, Duration.zero);
+        expect(cubit.state.highlightState.isPlaying, isFalse);
       });
 
       test('persists playback position on Cubit.close()', () async {

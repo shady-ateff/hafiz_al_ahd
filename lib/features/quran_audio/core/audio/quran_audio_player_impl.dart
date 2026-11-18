@@ -71,12 +71,13 @@ class QuranAudioPlayerImpl implements QuranAudioPlayer {
       _positionController.add(pos);
       _checkRepeatBoundaries(pos);
 
-      // Self-healing synchronization: if position is advancing,
+      // Self-healing synchronization: if player is actively playing and status is temporarily out of sync,
       // guarantee that _status is set to playing.
-      if ((_player.playing || pos > Duration.zero) &&
+      if (_player.playing &&
           _status != QuranPlaybackStatus.playing &&
           _status != QuranPlaybackStatus.paused &&
-          _status != QuranPlaybackStatus.completed) {
+          _status != QuranPlaybackStatus.completed &&
+          _status != QuranPlaybackStatus.idle) {
         _status = QuranPlaybackStatus.playing;
         _statusController.add(_status);
       }

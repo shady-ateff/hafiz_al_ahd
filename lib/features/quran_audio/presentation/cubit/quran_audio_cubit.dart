@@ -170,8 +170,7 @@ class QuranAudioCubit extends Cubit<QuranAudioState> {
     }
 
     final isPlaying = audioHandler.status == QuranPlaybackStatus.playing ||
-        audioHandler.isActuallyPlaying ||
-        position > Duration.zero;
+        audioHandler.isActuallyPlaying;
 
     // Resolve active Ayah using binary search
     final resolvedTiming = trackingEngine.resolveAyahAtPosition(position.inMilliseconds);
@@ -193,7 +192,7 @@ class QuranAudioCubit extends Cubit<QuranAudioState> {
 
     emit(state.copyWith(
       currentPosition: position,
-      playbackStatus: (isPlaying && !state.isPlaying && state.playbackStatus != QuranPlaybackStatus.paused)
+      playbackStatus: (isPlaying && !state.isPlaying && !state.isPaused && !state.isCompleted)
           ? QuranPlaybackStatus.playing
           : state.playbackStatus,
       highlightState: updatedHighlight,
@@ -214,15 +213,7 @@ class QuranAudioCubit extends Cubit<QuranAudioState> {
       return;
     }
 
-    final clearedHighlight = state.highlightState.copyWith(
-      clearActiveAyah: true,
-      isPlaying: false,
-    );
-
-    emit(state.copyWith(
-      playbackStatus: QuranPlaybackStatus.completed,
-      highlightState: clearedHighlight,
-    ));
+    stop();
   }
 
   Future<void>? _initFuture;

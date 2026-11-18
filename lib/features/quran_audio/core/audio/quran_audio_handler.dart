@@ -86,6 +86,8 @@ class QuranAudioHandler extends BaseAudioHandler with SeekHandler {
         if (player.repeatMode == AudioRepeatMode.continuous &&
             (_currentSurahAudio?.surahNumber ?? 0) < 114) {
           skipToNext();
+        } else {
+          stop();
         }
       }
     });
