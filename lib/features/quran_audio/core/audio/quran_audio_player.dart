@@ -27,6 +27,9 @@ abstract class QuranAudioPlayer {
   /// Current playback status.
   QuranPlaybackStatus get status;
 
+  /// Whether playback is actively running or scheduled to play.
+  bool get isPlaying;
+
   /// Current position.
   Duration get currentPosition;
 

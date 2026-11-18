@@ -1632,11 +1632,14 @@ class _QuranScreenState extends State<QuranScreen>
                         valueListenable: _currentPageNotifier,
                         builder: (context, currentPage, _) {
                           final pageSurah = getSurahNumberForPage(currentPage);
+                          final firstAyah = sl<BaseQuranMappingRepository>()
+                              .getFirstAyahOnPage(currentPage);
                           return BlocProvider.value(
                             value: audioCubit,
                             child: QuranAudioDynamicIsland(
                               key: const ValueKey('quran_audio_dynamic_island'),
-                              defaultSurahNumber: pageSurah,
+                              defaultSurahNumber: firstAyah?.surahNumber ?? pageSurah,
+                              defaultStartAyahNumber: firstAyah?.ayahNumber,
                               isFullScreen: _isFullScreen,
                             ),
                           );

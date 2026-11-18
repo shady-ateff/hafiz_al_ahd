@@ -102,6 +102,8 @@ class _FakePlayer implements QuranAudioPlayer {
   @override
   QuranPlaybackStatus get status => _status;
   @override
+  bool get isPlaying => _status == QuranPlaybackStatus.playing;
+  @override
   Duration get currentPosition => _pos;
   @override
   Duration? get duration => _dur;

@@ -56,6 +56,9 @@ class MockQuranMappingRepo implements BaseQuranMappingRepository {
   @override
   Future<Either<Failure, QuranWord>> getWord(WordLocation location) async =>
       Left(CacheFailure(message: 'Not implemented'));
+
+  @override
+  AyahId? getFirstAyahOnPage(int pageNumber) => null;
 }
 
 class MockQuranRepository implements BaseQuranRepository {

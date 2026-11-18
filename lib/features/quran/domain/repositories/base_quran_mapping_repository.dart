@@ -24,5 +24,9 @@ abstract class BaseQuranMappingRepository {
 
   /// Resolves an individual word by its precise location.
   Future<Either<Failure, QuranWord>> getWord(WordLocation location);
+
+  /// Synchronously returns the first [AyahId] on a given [pageNumber] from memory,
+  /// or null if uninitialized or page has no text lines.
+  AyahId? getFirstAyahOnPage(int pageNumber);
 }
 

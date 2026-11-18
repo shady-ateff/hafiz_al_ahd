@@ -110,6 +110,9 @@ class FakeTestQuranAudioPlayer implements QuranAudioPlayer {
   QuranPlaybackStatus get status => currentStatus;
 
   @override
+  bool get isPlaying => currentStatus == QuranPlaybackStatus.playing;
+
+  @override
   Duration get currentPosition => currentPos;
 
   @override
@@ -131,6 +134,8 @@ class FakeTestQuranAudioPlayer implements QuranAudioPlayer {
     loadedLocalPath = localFilePath;
     currentDur = Duration(milliseconds: surahAudio.durationMs);
     durController.add(currentDur);
+    currentPos = startPosition ?? Duration.zero;
+    posController.add(currentPos);
     currentStatus = QuranPlaybackStatus.paused;
     statusController.add(currentStatus);
   }
@@ -243,6 +248,7 @@ void main() {
       durationMs: 120000,
       ayahTimings: [
         AyahTiming(surahNumber: 2, ayahNumber: 1, timestampFrom: 0, timestampTo: 6000),
+        AyahTiming(surahNumber: 2, ayahNumber: 6, timestampFrom: 40000, timestampTo: 50000),
       ],
     );
 
@@ -764,6 +770,42 @@ void main() {
         // 4. Verify Surah 2 is loaded and played (NOT the old Surah 1)
         expect(cubit.state.currentSurahNumber, 2);
         expect(player.playCalled, isTrue);
+      });
+
+      test('Page-Aware Start: togglePlayPause starts playback directly at fallbackStartAyahNumber when idle', () async {
+        // Given player is idle
+        expect(cubit.state.playbackStatus, QuranPlaybackStatus.idle);
+
+        // When user is on a page where Surah 2 starts at Ayah 6 (e.g. Page 3)
+        await cubit.togglePlayPause(
+          fallbackSurahNumber: 2,
+          fallbackStartAyahNumber: 6,
+        );
+        await pumpEventQueue();
+
+        // Then Surah 2 is loaded and started at Ayah 6's timestamp (40000ms)
+        expect(cubit.state.currentSurahNumber, 2);
+        expect(player.currentPos, const Duration(milliseconds: 40000));
+        expect(player.playCalled, isTrue);
+      });
+
+      test('Self-Healing: _handlePositionUpdate locks playing state if audio is actively advancing', () async {
+        await cubit.playSurah(surahNumber: 1);
+        player.currentStatus = QuranPlaybackStatus.playing;
+        player.emitStatus(QuranPlaybackStatus.playing);
+        await pumpEventQueue();
+
+        // Simulate a momentary status de-sync (e.g. from buffering or network race)
+        cubit.emit(cubit.state.copyWith(playbackStatus: QuranPlaybackStatus.buffering));
+        expect(cubit.state.isPlaying, isFalse);
+
+        // Active position tick arrives from audioHandler
+        player.emitPosition(const Duration(milliseconds: 1500));
+        await pumpEventQueue();
+
+        // Self-healing synchronization must restore playing state immediately
+        expect(cubit.state.isPlaying, isTrue);
+        expect(cubit.state.playbackStatus, QuranPlaybackStatus.playing);
       });
     });
   });

@@ -46,6 +46,9 @@ class FakeQuranAudioPlayerForHandler implements QuranAudioPlayer {
   QuranPlaybackStatus get status => currentStatus;
 
   @override
+  bool get isPlaying => currentStatus == QuranPlaybackStatus.playing;
+
+  @override
   Duration get currentPosition => currentPos;
 
   @override

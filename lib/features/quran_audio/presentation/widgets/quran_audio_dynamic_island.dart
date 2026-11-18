@@ -24,12 +24,14 @@ import 'quran_audio_settings_sheet.dart';
 class QuranAudioDynamicIsland extends StatefulWidget {
   final VoidCallback? onSettingsTap;
   final int? defaultSurahNumber;
+  final int? defaultStartAyahNumber;
   final bool isFullScreen;
 
   const QuranAudioDynamicIsland({
     super.key,
     this.onSettingsTap,
     this.defaultSurahNumber,
+    this.defaultStartAyahNumber,
     this.isFullScreen = false,
   });
 
@@ -87,12 +89,18 @@ class _QuranAudioDynamicIslandState extends State<QuranAudioDynamicIsland>
     return BlocBuilder<QuranAudioCubit, QuranAudioState>(
       builder: (context, state) {
         final cubit = context.read<QuranAudioCubit>();
-        final isAudioActive = state.isPlaying || state.isPaused || state.isLoading || state.isBuffering;
+        final isAudioActive =
+            state.isPlaying ||
+            state.isPaused ||
+            state.isLoading ||
+            state.isBuffering;
         final surahNum = (isAudioActive && state.currentSurahNumber != null)
             ? state.currentSurahNumber!
             : (widget.defaultSurahNumber ?? state.currentSurahNumber ?? 1);
         final surahTitle = 'سورة ${getSurahName(surahNum)}';
-        final activeAyahNum = state.highlightState.activeAyah?.ayahNumber;
+        final activeAyahNum = (isAudioActive && state.highlightState.activeAyah?.ayahNumber != null)
+            ? state.highlightState.activeAyah!.ayahNumber
+            : (widget.defaultStartAyahNumber ?? (widget.defaultSurahNumber != null ? 1 : null));
         final ayahText = activeAyahNum != null ? 'الآية $activeAyahNum' : '';
         final reciterName = state.selectedReciter?.arabicName.isNotEmpty == true
             ? state.selectedReciter!.arabicName
@@ -137,26 +145,57 @@ class _QuranAudioDynamicIslandState extends State<QuranAudioDynamicIsland>
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(targetRadius),
                 child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                  filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
                   child: Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: _isExpanded ? 18 : 14,
-                      vertical: _isExpanded ? 16 : 8,
-                    ),
+                    // padding: EdgeInsets.symmetric(
+                    //   horizontal: _isExpanded ? 18 : 12,
+                    //   vertical: _isExpanded ? 16 : 6,
+                    // ),
                     decoration: BoxDecoration(
-                      color: const Color(0xDD121212),
+                      gradient: const LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Color(0x99242424), // Frosted smoked glass sheen
+                          Color(0xB8121212), // Deep translucent dark glass
+                        ],
+                      ),
                       borderRadius: BorderRadius.circular(targetRadius),
                       border: Border.all(
                         color: AppColors.secondaryGold.withValues(
-                          alpha: _isExpanded ? 0.7 : 0.4,
+                          alpha: _isExpanded ? 0.65 : 0.45,
                         ),
-                        width: _isExpanded ? 1.5 : 1.2,
+                        width: _isExpanded ? 1.4 : 1.1,
                       ),
                     ),
                     child: AnimatedCrossFade(
                       duration: const Duration(milliseconds: 280),
                       firstCurve: Curves.easeOutCubic,
                       secondCurve: Curves.easeInCubic,
+                      layoutBuilder:
+                          (topChild, topChildKey, bottomChild, bottomChildKey) {
+                            return Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: _isExpanded ? 18 : 12,
+                                vertical: _isExpanded ? 16 : 6,
+                              ),
+
+                              child: Stack(
+                                clipBehavior: Clip.none,
+                                alignment: Alignment.center,
+                                children: <Widget>[
+                                  Positioned(
+                                    key: bottomChildKey,
+                                    top: 0.0,
+                                    left: 0.0,
+                                    right: 0.0,
+                                    child: bottomChild,
+                                  ),
+                                  Positioned(key: topChildKey, child: topChild),
+                                ],
+                              ),
+                            );
+                          },
                       crossFadeState: _isExpanded
                           ? CrossFadeState.showSecond
                           : CrossFadeState.showFirst,
@@ -167,6 +206,7 @@ class _QuranAudioDynamicIslandState extends State<QuranAudioDynamicIsland>
                               cubit: cubit,
                               surahTitle: surahTitle,
                               ayahText: ayahText,
+                              surahNum: surahNum,
                             ),
                       secondChild: _isExpanded
                           ? _buildExpandedIsland(
@@ -176,6 +216,7 @@ class _QuranAudioDynamicIslandState extends State<QuranAudioDynamicIsland>
                               ayahText: ayahText,
                               reciterName: reciterName,
                               remainingStr: remainingStr,
+                              surahNum: surahNum,
                             )
                           : const SizedBox.shrink(),
                     ),
@@ -185,9 +226,9 @@ class _QuranAudioDynamicIslandState extends State<QuranAudioDynamicIsland>
             ),
           ),
         );
-        },
-      );
-    }
+      },
+    );
+  }
 
   // --- Compact Dynamic Island Pill ---
   Widget _buildCompactPill({
@@ -195,9 +236,10 @@ class _QuranAudioDynamicIslandState extends State<QuranAudioDynamicIsland>
     required QuranAudioCubit cubit,
     required String surahTitle,
     required String ayahText,
+    required int surahNum,
   }) {
     return SizedBox(
-      height: 38,
+      height: 40,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
@@ -208,7 +250,8 @@ class _QuranAudioDynamicIslandState extends State<QuranAudioDynamicIsland>
             onTap: () {
               HapticFeedback.mediumImpact();
               cubit.togglePlayPause(
-                fallbackSurahNumber: widget.defaultSurahNumber,
+                fallbackSurahNumber: surahNum,
+                fallbackStartAyahNumber: widget.defaultStartAyahNumber,
               );
             },
             child: Container(
@@ -229,7 +272,7 @@ class _QuranAudioDynamicIslandState extends State<QuranAudioDynamicIsland>
                     ),
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
 
           // Title, Active Ayah Indicator & Soundwave (Recognizes Tap, DoubleTap, LongPress)
           Flexible(
@@ -242,7 +285,8 @@ class _QuranAudioDynamicIslandState extends State<QuranAudioDynamicIsland>
               onDoubleTap: () {
                 HapticFeedback.mediumImpact();
                 cubit.togglePlayPause(
-                  fallbackSurahNumber: widget.defaultSurahNumber,
+                  fallbackSurahNumber: surahNum,
+                  fallbackStartAyahNumber: widget.defaultStartAyahNumber,
                 );
               },
               onLongPress: () {
@@ -254,9 +298,11 @@ class _QuranAudioDynamicIslandState extends State<QuranAudioDynamicIsland>
                 }
               },
               child: Row(
-                mainAxisSize: MainAxisSize.min,
+                mainAxisSize: MainAxisSize.max,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Flexible(
+                    flex: 2,
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -280,14 +326,16 @@ class _QuranAudioDynamicIslandState extends State<QuranAudioDynamicIsland>
                               fontFamily: 'Tajawal',
                               fontSize: 10,
                               fontWeight: FontWeight.w500,
-                              color: AppColors.secondaryGold.withValues(alpha: 0.9),
+                              color: AppColors.secondaryGold.withValues(
+                                alpha: 0.9,
+                              ),
                             ),
                           ),
                       ],
                     ),
                   ),
                   if (state.isPlaying) ...[
-                    const SizedBox(width: 8),
+                    Spacer(),
                     _buildSoundwave(state.isPlaying),
                   ],
                 ],
@@ -307,6 +355,7 @@ class _QuranAudioDynamicIslandState extends State<QuranAudioDynamicIsland>
     required String ayahText,
     required String reciterName,
     required String remainingStr,
+    required int surahNum,
   }) {
     final posMs = state.currentPosition.inMilliseconds.toDouble();
     final totalMs = state.totalDuration.inMilliseconds.toDouble();
@@ -344,12 +393,19 @@ class _QuranAudioDynamicIslandState extends State<QuranAudioDynamicIsland>
                       if (ayahText.isNotEmpty) ...[
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
-                            color: AppColors.secondaryGold.withValues(alpha: 0.2),
+                            color: AppColors.secondaryGold.withValues(
+                              alpha: 0.2,
+                            ),
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
-                              color: AppColors.secondaryGold.withValues(alpha: 0.4),
+                              color: AppColors.secondaryGold.withValues(
+                                alpha: 0.4,
+                              ),
                             ),
                           ),
                           child: Text(
@@ -383,9 +439,16 @@ class _QuranAudioDynamicIslandState extends State<QuranAudioDynamicIsland>
               children: [
                 IconButton(
                   tooltip: 'إعدادات التلاوة والحفظ',
-                  icon: const Icon(Icons.tune_rounded, color: AppColors.secondaryGold, size: 20),
+                  icon: const Icon(
+                    Icons.tune_rounded,
+                    color: AppColors.secondaryGold,
+                    size: 20,
+                  ),
                   padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                  constraints: const BoxConstraints(
+                    minWidth: 32,
+                    minHeight: 32,
+                  ),
                   onPressed: () {
                     if (widget.onSettingsTap != null) {
                       widget.onSettingsTap!();
@@ -396,9 +459,16 @@ class _QuranAudioDynamicIslandState extends State<QuranAudioDynamicIsland>
                 ),
                 IconButton(
                   tooltip: 'تصغير',
-                  icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white70, size: 24),
+                  icon: const Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: Colors.white70,
+                    size: 24,
+                  ),
                   padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                  constraints: const BoxConstraints(
+                    minWidth: 32,
+                    minHeight: 32,
+                  ),
                   onPressed: () {
                     setState(() {
                       _isExpanded = false;
@@ -492,7 +562,8 @@ class _QuranAudioDynamicIslandState extends State<QuranAudioDynamicIsland>
                       : Colors.white54,
                   size: 22,
                 ),
-                onPressed: () => _cycleRepeatMode(cubit, state.highlightState.repeatMode),
+                onPressed: () =>
+                    _cycleRepeatMode(cubit, state.highlightState.repeatMode),
               ),
 
               // Previous Surah
@@ -501,7 +572,11 @@ class _QuranAudioDynamicIslandState extends State<QuranAudioDynamicIsland>
                 padding: const EdgeInsets.all(4),
                 constraints: const BoxConstraints(minWidth: 38, minHeight: 38),
                 tooltip: 'السورة السابقة',
-                icon: const Icon(Icons.skip_next_rounded, color: Colors.white, size: 28),
+                icon: const Icon(
+                  Icons.skip_next_rounded,
+                  color: Colors.white,
+                  size: 28,
+                ),
                 onPressed: () => cubit.playPreviousSurah(),
               ),
 
@@ -511,7 +586,11 @@ class _QuranAudioDynamicIslandState extends State<QuranAudioDynamicIsland>
                 padding: const EdgeInsets.all(4),
                 constraints: const BoxConstraints(minWidth: 38, minHeight: 38),
                 tooltip: 'ترجيع ١٠ ثوانٍ',
-                icon: const Icon(Icons.replay_10_rounded, color: Colors.white70, size: 24),
+                icon: const Icon(
+                  Icons.replay_10_rounded,
+                  color: Colors.white70,
+                  size: 24,
+                ),
                 onPressed: () {
                   final current = cubit.state.currentPosition;
                   final target = current - const Duration(seconds: 10);
@@ -524,14 +603,15 @@ class _QuranAudioDynamicIslandState extends State<QuranAudioDynamicIsland>
                 width: 52,
                 height: 52,
                 margin: const EdgeInsets.symmetric(horizontal: 4),
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   gradient: AppColors.goldenGradient,
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: Color(0x66BC8C15),
-                      blurRadius: 12,
-                      offset: Offset(0, 4),
+                      color: const Color(0x80BC8C15),
+                      blurRadius: 14,
+                      spreadRadius: 1,
+                      offset: const Offset(0, 2),
                     ),
                   ],
                 ),
@@ -539,12 +619,15 @@ class _QuranAudioDynamicIslandState extends State<QuranAudioDynamicIsland>
                   icon: state.isLoadingAudio
                       ? const AppLoader(width: 28, height: 28)
                       : Icon(
-                          state.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                          state.isPlaying
+                              ? Icons.pause_rounded
+                              : Icons.play_arrow_rounded,
                           color: Colors.white,
                           size: 30,
                         ),
                   onPressed: () => cubit.togglePlayPause(
-                    fallbackSurahNumber: widget.defaultSurahNumber,
+                    fallbackSurahNumber: surahNum,
+                    fallbackStartAyahNumber: widget.defaultStartAyahNumber,
                   ),
                 ),
               ),
@@ -555,7 +638,11 @@ class _QuranAudioDynamicIslandState extends State<QuranAudioDynamicIsland>
                 padding: const EdgeInsets.all(4),
                 constraints: const BoxConstraints(minWidth: 38, minHeight: 38),
                 tooltip: 'تقديم ١٠ ثوانٍ',
-                icon: const Icon(Icons.forward_10_rounded, color: Colors.white70, size: 24),
+                icon: const Icon(
+                  Icons.forward_10_rounded,
+                  color: Colors.white70,
+                  size: 24,
+                ),
                 onPressed: () {
                   final current = cubit.state.currentPosition;
                   final target = current + const Duration(seconds: 10);
@@ -573,7 +660,11 @@ class _QuranAudioDynamicIslandState extends State<QuranAudioDynamicIsland>
                 padding: const EdgeInsets.all(4),
                 constraints: const BoxConstraints(minWidth: 38, minHeight: 38),
                 tooltip: 'السورة التالية',
-                icon: const Icon(Icons.skip_previous_rounded, color: Colors.white, size: 28),
+                icon: const Icon(
+                  Icons.skip_previous_rounded,
+                  color: Colors.white,
+                  size: 28,
+                ),
                 onPressed: () => cubit.playNextSurah(),
               ),
 
@@ -583,7 +674,11 @@ class _QuranAudioDynamicIslandState extends State<QuranAudioDynamicIsland>
                 padding: const EdgeInsets.all(4),
                 constraints: const BoxConstraints(minWidth: 38, minHeight: 38),
                 tooltip: 'إيقاف تام',
-                icon: const Icon(Icons.stop_rounded, color: Colors.white54, size: 22),
+                icon: const Icon(
+                  Icons.stop_rounded,
+                  color: Colors.white54,
+                  size: 22,
+                ),
                 onPressed: () {
                   cubit.stop();
                   setState(() => _isExpanded = false);
@@ -592,6 +687,7 @@ class _QuranAudioDynamicIslandState extends State<QuranAudioDynamicIsland>
             ],
           ),
         ),
+        const SizedBox(height: 6),
       ],
     );
   }

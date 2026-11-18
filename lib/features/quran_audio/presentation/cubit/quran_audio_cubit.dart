@@ -169,6 +169,9 @@ class QuranAudioCubit extends Cubit<QuranAudioState> {
       return;
     }
 
+    final isPlaying = audioHandler.status == QuranPlaybackStatus.playing ||
+        audioHandler.isActuallyPlaying;
+
     // Resolve active Ayah using binary search
     final resolvedTiming = trackingEngine.resolveAyahAtPosition(position.inMilliseconds);
 
@@ -184,10 +187,14 @@ class QuranAudioCubit extends Cubit<QuranAudioState> {
     final updatedHighlight = state.highlightState.copyWith(
       activeAyah: activeAyah,
       clearActiveAyah: activeAyah == null,
+      isPlaying: isPlaying ? true : null,
     );
 
     emit(state.copyWith(
       currentPosition: position,
+      playbackStatus: (isPlaying && !state.isPlaying)
+          ? QuranPlaybackStatus.playing
+          : state.playbackStatus,
       highlightState: updatedHighlight,
     ));
   }
@@ -439,21 +446,38 @@ class QuranAudioCubit extends Cubit<QuranAudioState> {
 
   /// Toggles between Play and Pause based on active playback status.
   /// If playback has not started yet or no track is loaded, starts playing
-  /// [fallbackSurahNumber] (or current surah, or Surah 1).
-  Future<void> togglePlayPause({int? fallbackSurahNumber}) async {
+  /// [fallbackSurahNumber] (or current surah, or Surah 1) optionally starting at [fallbackStartAyahNumber].
+  Future<void> togglePlayPause({
+    int? fallbackSurahNumber,
+    int? fallbackStartAyahNumber,
+  }) async {
     final isActuallyPlaying =
-        state.isPlaying || audioHandler.status == QuranPlaybackStatus.playing;
+        state.isPlaying ||
+        audioHandler.status == QuranPlaybackStatus.playing ||
+        audioHandler.isActuallyPlaying;
 
     if (isActuallyPlaying) {
       await pause();
     } else if ((state.isPaused || audioHandler.status == QuranPlaybackStatus.paused) &&
         (state.currentSurahAudio != null || audioHandler.currentTrack != null)) {
-      await resume();
+      if (fallbackSurahNumber != null &&
+          state.currentSurahNumber != null &&
+          fallbackSurahNumber != state.currentSurahNumber) {
+        await playSurah(
+          surahNumber: fallbackSurahNumber,
+          startAyahNumber: fallbackStartAyahNumber,
+        );
+      } else {
+        await resume();
+      }
     } else {
       // Stopped, idle, completed, or fresh start:
       // Prioritize visible page Surah first, then saved state, then Surah 1
       final surahToPlay = fallbackSurahNumber ?? state.currentSurahNumber ?? 1;
-      await playSurah(surahNumber: surahToPlay);
+      await playSurah(
+        surahNumber: surahToPlay,
+        startAyahNumber: fallbackStartAyahNumber,
+      );
     }
   }
 

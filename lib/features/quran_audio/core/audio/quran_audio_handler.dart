@@ -63,6 +63,8 @@ class QuranAudioHandler extends BaseAudioHandler with SeekHandler {
   // --- Exposed Audio State Getters ---
 
   QuranPlaybackStatus get status => player.status;
+  bool get isActuallyPlaying =>
+      player.status == QuranPlaybackStatus.playing || player.isPlaying;
   Duration get currentPosition => player.currentPosition;
   Duration? get duration => player.duration;
   SurahAudio? get currentTrack => _currentSurahAudio ?? player.currentTrack;
@@ -320,7 +322,7 @@ class QuranAudioHandler extends BaseAudioHandler with SeekHandler {
   }
 
   void _broadcastPlaybackState() {
-    final isPlaying = player.status == QuranPlaybackStatus.playing;
+    final isPlaying = isActuallyPlaying;
 
     playbackState.add(
       PlaybackState(

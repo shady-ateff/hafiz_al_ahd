@@ -70,6 +70,13 @@ class QuranAudioPlayerImpl implements QuranAudioPlayer {
       _currentPosition = pos;
       _positionController.add(pos);
       _checkRepeatBoundaries(pos);
+
+      // Self-healing synchronization: if position is advancing and player is playing,
+      // guarantee that _status is set to playing.
+      if (_player.playing && _status != QuranPlaybackStatus.playing) {
+        _status = QuranPlaybackStatus.playing;
+        _statusController.add(_status);
+      }
     });
 
     _durationSub = _player.durationStream.listen((dur) {
@@ -85,7 +92,9 @@ class QuranAudioPlayerImpl implements QuranAudioPlayer {
       case ja.ProcessingState.loading:
         return QuranPlaybackStatus.loading;
       case ja.ProcessingState.buffering:
-        return QuranPlaybackStatus.buffering;
+        return state.playing
+            ? QuranPlaybackStatus.playing
+            : QuranPlaybackStatus.buffering;
       case ja.ProcessingState.ready:
         return state.playing
             ? QuranPlaybackStatus.playing
@@ -106,6 +115,9 @@ class QuranAudioPlayerImpl implements QuranAudioPlayer {
 
   @override
   QuranPlaybackStatus get status => _status;
+
+  @override
+  bool get isPlaying => _player.playing;
 
   @override
   Duration get currentPosition => _currentPosition;
