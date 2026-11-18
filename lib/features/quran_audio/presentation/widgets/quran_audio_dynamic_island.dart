@@ -108,6 +108,7 @@ class _QuranAudioDynamicIslandState extends State<QuranAudioDynamicIsland>
         final targetWidth = _isExpanded
             ? (screenWidth - 28.0).clamp(280.0, 520.0).clamp(160.0, maxAllowed)
             : (state.isPlaying ? 230.0 : 190.0).clamp(160.0, maxAllowed);
+        final targetRadius = _isExpanded ? 28.0 : 30.0;
 
         return Directionality(
           textDirection: TextDirection.rtl,
@@ -116,36 +117,42 @@ class _QuranAudioDynamicIslandState extends State<QuranAudioDynamicIsland>
               duration: const Duration(milliseconds: 320),
               curve: Curves.easeOutCubic,
               width: targetWidth,
-                padding: EdgeInsets.symmetric(
-                  horizontal: _isExpanded ? 18 : 14,
-                  vertical: _isExpanded ? 16 : 8,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xDD121212),
-                  borderRadius: BorderRadius.circular(_isExpanded ? 28 : 34),
-                  border: Border.all(
-                    color: AppColors.secondaryGold.withValues(alpha: _isExpanded ? 0.7 : 0.4),
-                    width: _isExpanded ? 1.5 : 1.2,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(targetRadius),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.45),
+                    blurRadius: _isExpanded ? 24 : 14,
+                    spreadRadius: _isExpanded ? 3 : 1,
+                    offset: const Offset(0, 6),
                   ),
-                  boxShadow: [
+                  if (state.isPlaying)
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.45),
-                      blurRadius: _isExpanded ? 24 : 14,
-                      spreadRadius: _isExpanded ? 3 : 1,
-                      offset: const Offset(0, 6),
+                      color: AppColors.secondaryGold.withValues(alpha: 0.2),
+                      blurRadius: 18,
+                      spreadRadius: 1,
                     ),
-                    if (state.isPlaying)
-                      BoxShadow(
-                        color: AppColors.secondaryGold.withValues(alpha: 0.2),
-                        blurRadius: 18,
-                        spreadRadius: 1,
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(targetRadius),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: _isExpanded ? 18 : 14,
+                      vertical: _isExpanded ? 16 : 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xDD121212),
+                      borderRadius: BorderRadius.circular(targetRadius),
+                      border: Border.all(
+                        color: AppColors.secondaryGold.withValues(
+                          alpha: _isExpanded ? 0.7 : 0.4,
+                        ),
+                        width: _isExpanded ? 1.5 : 1.2,
                       ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(_isExpanded ? 24 : 30),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                    ),
                     child: AnimatedCrossFade(
                       duration: const Duration(milliseconds: 280),
                       firstCurve: Curves.easeOutCubic,
@@ -176,7 +183,8 @@ class _QuranAudioDynamicIslandState extends State<QuranAudioDynamicIsland>
                 ),
               ),
             ),
-          );
+          ),
+        );
         },
       );
     }
