@@ -525,6 +525,33 @@ void main() {
         expect(handler.mediaItem.value?.title, 'سورة الفاتحة');
       });
 
+      test('DEFECT-FIX: playNextSurah updates currentSurah, retains playing state, and togglePlayPause pauses immediately', () async {
+        await cubit.init();
+        await cubit.playSurah(surahNumber: 1);
+        player.currentStatus = QuranPlaybackStatus.playing;
+        player.emitStatus(QuranPlaybackStatus.playing);
+        await pumpEventQueue();
+
+        expect(cubit.state.isPlaying, isTrue);
+        expect(cubit.state.currentSurahNumber, 1);
+
+        // User advances to next Surah (Surah 2)
+        await cubit.playNextSurah();
+        player.currentStatus = QuranPlaybackStatus.playing;
+        player.emitStatus(QuranPlaybackStatus.playing);
+        await pumpEventQueue();
+
+        // 1. Surah number and track updated
+        expect(cubit.state.currentSurahNumber, 2);
+        expect(cubit.state.isPlaying, isTrue);
+
+        // 2. Tapping togglePlayPause must immediately PAUSE without requiring stop
+        await cubit.togglePlayPause();
+        await pumpEventQueue();
+
+        expect(player.pauseCalled, isTrue);
+      });
+
       test('Cubit Reconnection (E): Newly instantiated Cubit B immediately restores track, position and Ayah highlight from background handler', () async {
         // 1. Cubit A initiates playback of Surah 1
         await cubit.init();

@@ -163,7 +163,7 @@ class QuranAudioPlayerImpl implements QuranAudioPlayer {
         _positionController.add(Duration.zero);
       }
 
-      _status = QuranPlaybackStatus.paused;
+      _status = _mapJustAudioState(_player.playerState);
       _statusController.add(_status);
     } catch (e) {
       debugPrint('[QuranAudioPlayerImpl] Error loading surah: $e');
@@ -177,6 +177,9 @@ class QuranAudioPlayerImpl implements QuranAudioPlayer {
   Future<void> play() async {
     if (_currentSource == null && _currentTrack == null) return;
     try {
+      _status = QuranPlaybackStatus.playing;
+      _statusController.add(_status);
+
       // just_audio's play() Future only completes when playback finishes,
       // pauses, or stops. We initiate playback asynchronously without blocking
       // the caller (AudioHandler, Cubit, background notification receiver).
@@ -196,6 +199,8 @@ class QuranAudioPlayerImpl implements QuranAudioPlayer {
   @override
   Future<void> pause() async {
     try {
+      _status = QuranPlaybackStatus.paused;
+      _statusController.add(_status);
       await _player.pause();
     } catch (e) {
       debugPrint('[QuranAudioPlayerImpl] Pause error: $e');

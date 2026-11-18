@@ -130,21 +130,30 @@ class QuranAudioCubit extends Cubit<QuranAudioState> {
         final surahNum = item.extras?['surahNumber'] as int?;
         if (surahNum != null && surahNum != state.currentSurahNumber) {
           final track = audioHandler.currentTrack;
+          final isPlaying = audioHandler.status == QuranPlaybackStatus.playing;
+          final isBuffering = audioHandler.status == QuranPlaybackStatus.buffering;
+
           if (track != null && track.surahNumber == surahNum) {
             trackingEngine.setTimings(track.ayahTimings);
             emit(state.copyWith(
               currentSurahNumber: surahNum,
               currentSurahAudio: track,
               totalDuration: Duration(milliseconds: track.durationMs),
+              playbackStatus: audioHandler.status,
               highlightState: state.highlightState.copyWith(
                 clearActiveAyah: true,
+                isPlaying: isPlaying,
+                isBuffering: isBuffering,
               ),
             ));
           } else {
             emit(state.copyWith(
               currentSurahNumber: surahNum,
+              playbackStatus: audioHandler.status,
               highlightState: state.highlightState.copyWith(
                 clearActiveAyah: true,
+                isPlaying: isPlaying,
+                isBuffering: isBuffering,
               ),
             ));
           }
@@ -432,9 +441,12 @@ class QuranAudioCubit extends Cubit<QuranAudioState> {
   /// If playback has not started yet or no track is loaded, starts playing
   /// [fallbackSurahNumber] (or current surah, or Surah 1).
   Future<void> togglePlayPause({int? fallbackSurahNumber}) async {
-    if (state.isPlaying) {
+    final isActuallyPlaying =
+        state.isPlaying || audioHandler.status == QuranPlaybackStatus.playing;
+
+    if (isActuallyPlaying) {
       await pause();
-    } else if (state.isPaused &&
+    } else if ((state.isPaused || audioHandler.status == QuranPlaybackStatus.paused) &&
         (state.currentSurahAudio != null || audioHandler.currentTrack != null)) {
       await resume();
     } else {
@@ -500,14 +512,24 @@ class QuranAudioCubit extends Cubit<QuranAudioState> {
     }
   }
 
-  /// Advances to next Surah via AudioHandler.
+  /// Advances to next Surah.
   Future<void> playNextSurah() async {
-    await audioHandler.skipToNext();
+    final currentSurah = state.currentSurahNumber ?? audioHandler.currentTrack?.surahNumber;
+    if (currentSurah != null && currentSurah < 114) {
+      await playSurah(surahNumber: currentSurah + 1);
+    } else {
+      await audioHandler.skipToNext();
+    }
   }
 
-  /// Rewinds to previous Surah via AudioHandler.
+  /// Rewinds to previous Surah.
   Future<void> playPreviousSurah() async {
-    await audioHandler.skipToPrevious();
+    final currentSurah = state.currentSurahNumber ?? audioHandler.currentTrack?.surahNumber;
+    if (currentSurah != null && currentSurah > 1) {
+      await playSurah(surahNumber: currentSurah - 1);
+    } else {
+      await audioHandler.skipToPrevious();
+    }
   }
 
   /// Configures Ayah repetition mode via AudioHandler.
