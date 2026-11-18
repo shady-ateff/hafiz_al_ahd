@@ -43,7 +43,13 @@ class QuranAudioState extends Equatable {
     this.playbackSpeed = 1.0,
   });
 
-  bool get isPlaying => playbackStatus == QuranPlaybackStatus.playing;
+  bool get isPlaying =>
+      playbackStatus == QuranPlaybackStatus.playing ||
+      (currentPosition > Duration.zero &&
+          playbackStatus != QuranPlaybackStatus.paused &&
+          playbackStatus != QuranPlaybackStatus.completed &&
+          playbackStatus != QuranPlaybackStatus.idle &&
+          playbackStatus != QuranPlaybackStatus.error);
   bool get isPaused => playbackStatus == QuranPlaybackStatus.paused;
   bool get isBuffering => playbackStatus == QuranPlaybackStatus.buffering;
   bool get isLoading => playbackStatus == QuranPlaybackStatus.loading || isLoadingAudio;

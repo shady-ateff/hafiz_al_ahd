@@ -240,9 +240,14 @@ void main() {
       expect(find.text('عبد الباسط عبد الصمد'), findsOneWidget);
 
       // Repeat mode scope options
+      expect(find.text('مستمر'), findsOneWidget);
       expect(find.text('سورة كاملة'), findsOneWidget);
       expect(find.text('تكرار آية'), findsOneWidget);
-      expect(find.text('نطاق آيات (حفظ)'), findsOneWidget);
+      expect(find.text('نطاق (حفظ)'), findsOneWidget);
+
+      // Tap on 'تكرار آية' to reveal memorization repeat chips
+      await tester.tap(find.text('تكرار آية'));
+      await tester.pump(const Duration(milliseconds: 50));
 
       // Memorization chips
       expect(find.text('مرة واحدة'), findsOneWidget);
@@ -291,8 +296,8 @@ void main() {
       expect(find.text('من الآية'), findsNothing);
       expect(find.text('إلى الآية'), findsNothing);
 
-      // Tap on 'نطاق آيات (حفظ)'
-      final rangeModeBtn = find.text('نطاق آيات (حفظ)');
+      // Tap on 'نطاق (حفظ)'
+      final rangeModeBtn = find.text('نطاق (حفظ)');
       await tester.tap(rangeModeBtn);
       await tester.pump(const Duration(milliseconds: 50));
 

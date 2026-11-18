@@ -450,6 +450,7 @@ void main() {
 
       test('persists playback position on completed', () async {
         await cubit.init();
+        await cubit.setRepeatMode(AudioRepeatMode.off);
         await cubit.playSurah(surahNumber: 1);
 
         // Simulate playback completion event
@@ -459,6 +460,18 @@ void main() {
         expect(audioRepo.savedPosition, isNotNull);
         expect(cubit.state.playbackStatus, QuranPlaybackStatus.completed);
         expect(cubit.state.highlightState.activeAyah, isNull);
+      });
+
+      test('auto-advances to next Surah when track completes in AudioRepeatMode.continuous', () async {
+        await cubit.init();
+        expect(cubit.state.highlightState.repeatMode, AudioRepeatMode.continuous);
+        await cubit.playSurah(surahNumber: 1);
+
+        player.statusController.add(QuranPlaybackStatus.completed);
+        await pumpEventQueue();
+
+        expect(audioRepo.savedPosition, isNotNull);
+        expect(cubit.state.playbackStatus, anyOf(QuranPlaybackStatus.loading, QuranPlaybackStatus.playing));
       });
 
       test('persists playback position on Cubit.close()', () async {

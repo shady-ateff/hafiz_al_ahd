@@ -554,7 +554,7 @@ class _QuranAudioDynamicIslandState extends State<QuranAudioDynamicIsland>
                 visualDensity: VisualDensity.compact,
                 padding: const EdgeInsets.all(4),
                 constraints: const BoxConstraints(minWidth: 38, minHeight: 38),
-                tooltip: 'تبديل التكرار',
+                tooltip: _getRepeatTooltip(state.highlightState.repeatMode),
                 icon: Icon(
                   _getRepeatIcon(state.highlightState.repeatMode),
                   color: state.highlightState.repeatMode != AudioRepeatMode.off
@@ -725,8 +725,10 @@ class _QuranAudioDynamicIslandState extends State<QuranAudioDynamicIsland>
 
   IconData _getRepeatIcon(AudioRepeatMode mode) {
     switch (mode) {
+      case AudioRepeatMode.continuous:
+        return Icons.all_inclusive_rounded;
       case AudioRepeatMode.off:
-        return Icons.repeat_rounded;
+        return Icons.format_list_numbered_rtl_rounded;
       case AudioRepeatMode.singleAyah:
         return Icons.repeat_one_rounded;
       case AudioRepeatMode.range:
@@ -734,11 +736,25 @@ class _QuranAudioDynamicIslandState extends State<QuranAudioDynamicIsland>
     }
   }
 
+  String _getRepeatTooltip(AudioRepeatMode mode) {
+    switch (mode) {
+      case AudioRepeatMode.continuous:
+        return 'تلاوة مستمرة (تلقائي للسورة التالية)';
+      case AudioRepeatMode.off:
+        return 'سورة كاملة فقط';
+      case AudioRepeatMode.singleAyah:
+        return 'تكرار آية';
+      case AudioRepeatMode.range:
+        return 'تكرار نطاق آيات (حفظ)';
+    }
+  }
+
   void _cycleRepeatMode(QuranAudioCubit cubit, AudioRepeatMode current) {
     final nextMode = switch (current) {
+      AudioRepeatMode.continuous => AudioRepeatMode.off,
       AudioRepeatMode.off => AudioRepeatMode.singleAyah,
       AudioRepeatMode.singleAyah => AudioRepeatMode.range,
-      AudioRepeatMode.range => AudioRepeatMode.off,
+      AudioRepeatMode.range => AudioRepeatMode.continuous,
     };
     cubit.setRepeatMode(nextMode);
   }

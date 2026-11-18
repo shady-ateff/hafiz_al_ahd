@@ -46,7 +46,10 @@ class _QuranAudioSettingsSheetState extends State<QuranAudioSettingsSheet> {
     _selectedMode = cubit.state.highlightState.repeatMode;
     _rangeStart = cubit.state.highlightState.repeatRangeStart?.ayahNumber ?? 1;
     _rangeEnd = cubit.state.highlightState.repeatRangeEnd?.ayahNumber ?? 5;
-    _repeatCount = _selectedMode == AudioRepeatMode.off ? 1 : 3;
+    _repeatCount = (_selectedMode == AudioRepeatMode.off ||
+            _selectedMode == AudioRepeatMode.continuous)
+        ? 1
+        : 3;
 
     // Trigger reciters load if empty
     if (cubit.state.reciters.isEmpty && !cubit.state.isLoadingReciters) {
@@ -165,16 +168,19 @@ class _QuranAudioSettingsSheetState extends State<QuranAudioSettingsSheet> {
                         _buildRangeConfig(state, isDark),
                       ],
 
-                      const SizedBox(height: 24),
+                      if (_selectedMode == AudioRepeatMode.singleAyah ||
+                          _selectedMode == AudioRepeatMode.range) ...[
+                        const SizedBox(height: 24),
 
-                      // Section 3: Memorization Repeat Counts
-                      _buildSectionHeader(
-                        'تكرار الحفظ (مرات إعادة الآية)',
-                        Icons.school_outlined,
-                        textColor,
-                      ),
-                      const SizedBox(height: 10),
-                      _buildRepeatCountChips(isDark),
+                        // Section 3: Memorization Repeat Counts
+                        _buildSectionHeader(
+                          'تكرار الحفظ (مرات إعادة الآية)',
+                          Icons.school_outlined,
+                          textColor,
+                        ),
+                        const SizedBox(height: 10),
+                        _buildRepeatCountChips(isDark),
+                      ],
 
                       const SizedBox(height: 30),
                     ],
@@ -368,6 +374,11 @@ class _QuranAudioSettingsSheetState extends State<QuranAudioSettingsSheet> {
   Widget _buildRepeatModeSelector(bool isDark) {
     final modes = [
       {
+        'mode': AudioRepeatMode.continuous,
+        'label': 'مستمر',
+        'icon': Icons.all_inclusive_rounded,
+      },
+      {
         'mode': AudioRepeatMode.off,
         'label': 'سورة كاملة',
         'icon': Icons.format_list_numbered_rtl_rounded,
@@ -379,7 +390,7 @@ class _QuranAudioSettingsSheetState extends State<QuranAudioSettingsSheet> {
       },
       {
         'mode': AudioRepeatMode.range,
-        'label': 'نطاق آيات (حفظ)',
+        'label': 'نطاق (حفظ)',
         'icon': Icons.tune_rounded,
       },
     ];

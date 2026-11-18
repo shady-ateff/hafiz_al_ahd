@@ -377,10 +377,17 @@ void main() {
       await tester.pump(const Duration(milliseconds: 350));
       await tester.pump(const Duration(milliseconds: 350));
 
+      expect(cubit.state.highlightState.repeatMode, equals(AudioRepeatMode.continuous));
+
+      // Tap Repeat button -> cycles to off
+      final repeatBtn = find.byWidgetPredicate(
+        (w) => w is IconButton && (w.tooltip?.contains('تلاوة مستمرة') == true || w.tooltip?.contains('سورة كاملة') == true || w.tooltip?.contains('تكرار') == true),
+      );
+      await tester.tap(repeatBtn);
+      await tester.pump(const Duration(milliseconds: 50));
       expect(cubit.state.highlightState.repeatMode, equals(AudioRepeatMode.off));
 
       // Tap Repeat button -> cycles to singleAyah
-      final repeatBtn = find.byTooltip('تبديل التكرار');
       await tester.tap(repeatBtn);
       await tester.pump(const Duration(milliseconds: 50));
       expect(cubit.state.highlightState.repeatMode, equals(AudioRepeatMode.singleAyah));
@@ -390,10 +397,10 @@ void main() {
       await tester.pump(const Duration(milliseconds: 50));
       expect(cubit.state.highlightState.repeatMode, equals(AudioRepeatMode.range));
 
-      // Tap Repeat button again -> cycles back to off
+      // Tap Repeat button again -> cycles back to continuous
       await tester.tap(repeatBtn);
       await tester.pump(const Duration(milliseconds: 50));
-      expect(cubit.state.highlightState.repeatMode, equals(AudioRepeatMode.off));
+      expect(cubit.state.highlightState.repeatMode, equals(AudioRepeatMode.continuous));
     });
 
     testWidgets('6. Long-press triggers onSettingsTap callback', (tester) async {

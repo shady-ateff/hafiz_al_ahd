@@ -36,7 +36,7 @@ class QuranAudioPlayerImpl implements QuranAudioPlayer {
   bool _isLocalSource = false;
 
   // Repeat Configuration
-  AudioRepeatMode _repeatMode = AudioRepeatMode.off;
+  AudioRepeatMode _repeatMode = AudioRepeatMode.continuous;
   int? _rangeStartAyah;
   int? _rangeEndAyah;
   int? _repeatCount;
@@ -71,9 +71,12 @@ class QuranAudioPlayerImpl implements QuranAudioPlayer {
       _positionController.add(pos);
       _checkRepeatBoundaries(pos);
 
-      // Self-healing synchronization: if position is advancing and player is playing,
+      // Self-healing synchronization: if position is advancing,
       // guarantee that _status is set to playing.
-      if (_player.playing && _status != QuranPlaybackStatus.playing) {
+      if ((_player.playing || pos > Duration.zero) &&
+          _status != QuranPlaybackStatus.playing &&
+          _status != QuranPlaybackStatus.paused &&
+          _status != QuranPlaybackStatus.completed) {
         _status = QuranPlaybackStatus.playing;
         _statusController.add(_status);
       }

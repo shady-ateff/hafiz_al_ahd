@@ -154,7 +154,7 @@ void main() {
       const state = AudioHighlightState.idle;
       expect(state.activeAyah, isNull);
       expect(state.isPlaying, isFalse);
-      expect(state.repeatMode, AudioRepeatMode.off);
+      expect(state.repeatMode, AudioRepeatMode.continuous);
 
       final updated = state.copyWith(
         activeAyah: AyahId(surahNumber: 1, ayahNumber: 2),

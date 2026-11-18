@@ -3,13 +3,16 @@ import 'package:hafiz_al_ahd/features/quran/domain/entities/ayah_id.dart';
 
 /// Repeat playback modes supported by the Quran Audio engine.
 enum AudioRepeatMode {
-  /// Continuous playback without repetition.
+  /// Continuous recitation advancing automatically to the next Surah upon completion (مستمر).
+  continuous,
+
+  /// Plays only the current Surah and stops when complete (سورة كاملة).
   off,
 
-  /// Repeat the currently reciting Ayah continuously.
+  /// Repeat the currently reciting Ayah continuously (تكرار آية).
   singleAyah,
 
-  /// Repeat a defined range of Ayahs continuously.
+  /// Repeat a defined range of Ayahs continuously (نطاق آيات - حفظ).
   range,
 }
 
@@ -41,7 +44,7 @@ class AudioHighlightState extends Equatable {
     this.activeAyah,
     this.isPlaying = false,
     this.isBuffering = false,
-    this.repeatMode = AudioRepeatMode.off,
+    this.repeatMode = AudioRepeatMode.continuous,
     this.repeatRangeStart,
     this.repeatRangeEnd,
   });
