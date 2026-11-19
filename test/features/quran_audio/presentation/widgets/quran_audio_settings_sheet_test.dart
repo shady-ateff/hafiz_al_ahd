@@ -6,12 +6,17 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/core/audio/quran_audio_handler.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/core/audio/quran_audio_player.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/core/tracking/ayah_tracking_engine.dart';
+import 'package:hafiz_al_ahd/features/quran_audio/data/services/quran_audio_download_service.dart';
+import 'package:hafiz_al_ahd/features/quran_audio/domain/entities/audio_download.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/domain/entities/audio_highlight_state.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/domain/entities/audio_reciter.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/domain/entities/ayah_timing.dart';
+import 'package:hafiz_al_ahd/features/quran_audio/domain/entities/download_progress.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/domain/entities/playback_position.dart';
+import 'package:hafiz_al_ahd/features/quran_audio/domain/entities/storage_reconciliation_summary.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/domain/entities/surah_audio.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/domain/errors/quran_audio_failures.dart';
+import 'package:hafiz_al_ahd/features/quran_audio/domain/repositories/base_audio_download_repository.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/domain/repositories/base_quran_audio_repository.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/domain/usecases/get_playback_position_use_case.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/domain/usecases/get_reciters_use_case.dart';
@@ -19,6 +24,151 @@ import 'package:hafiz_al_ahd/features/quran_audio/domain/usecases/get_surah_audi
 import 'package:hafiz_al_ahd/features/quran_audio/domain/usecases/save_playback_position_use_case.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/presentation/cubit/quran_audio_cubit.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/presentation/widgets/quran_audio_settings_sheet.dart';
+
+class _FakeDownloadService implements BaseQuranAudioDownloadService {
+  final Map<String, StreamController<DownloadProgress>> controllers = {};
+  final Map<String, DownloadProgress> latest = {};
+  int downloadCalls = 0;
+  int pauseCalls = 0;
+  int cancelCalls = 0;
+
+  StreamController<DownloadProgress> _getController(
+      int surahNumber, String reciterId) {
+    final key = '$reciterId:$surahNumber';
+    return controllers.putIfAbsent(
+        key, () => StreamController<DownloadProgress>.broadcast());
+  }
+
+  void emitProgress(DownloadProgress progress) {
+    final key = '${progress.reciterId}:${progress.surahNumber}';
+    latest[key] = progress;
+    _getController(progress.surahNumber, progress.reciterId).add(progress);
+  }
+
+  @override
+  Stream<DownloadProgress> downloadSurah({
+    required int surahNumber,
+    required String reciterId,
+    required String audioUrl,
+    int? expectedTotalBytes,
+  }) {
+    downloadCalls++;
+    final c = _getController(surahNumber, reciterId);
+    return c.stream;
+  }
+
+  @override
+  Future<void> pauseDownload(int surahNumber, String reciterId) async {
+    pauseCalls++;
+  }
+
+  @override
+  Future<void> cancelDownload(int surahNumber, String reciterId) async {
+    cancelCalls++;
+  }
+
+  @override
+  Future<void> retryDownload({
+    required int surahNumber,
+    required String reciterId,
+    required String audioUrl,
+    int? expectedTotalBytes,
+  }) async {
+    downloadCalls++;
+  }
+
+  @override
+  DownloadProgress? getProgress(int surahNumber, String reciterId) {
+    return latest['$reciterId:$surahNumber'];
+  }
+
+  @override
+  Stream<DownloadProgress> watchProgress(int surahNumber, String reciterId) {
+    return _getController(surahNumber, reciterId).stream;
+  }
+
+  @override
+  void dispose() {
+    for (final c in controllers.values) {
+      c.close();
+    }
+  }
+}
+
+class _FakeDownloadRepository implements BaseAudioDownloadRepository {
+  final Set<String> downloadedSurahs = {};
+  int deleteCalls = 0;
+
+  @override
+  Future<bool> isSurahDownloaded(
+      {required int surahNumber, required String reciterId}) async {
+    return downloadedSurahs.contains('$reciterId:$surahNumber');
+  }
+
+  @override
+  Future<Either<QuranAudioFailure, void>> deleteDownloadRecord({
+    required int surahNumber,
+    required String reciterId,
+  }) async {
+    deleteCalls++;
+    downloadedSurahs.remove('$reciterId:$surahNumber');
+    return const Right(null);
+  }
+
+  @override
+  Future<List<AudioDownload>> getAllDownloadedRecords() async => [];
+
+  @override
+  Future<List<AudioDownload>> getDownloadedSurahs(
+          {required String reciterId}) async =>
+      [];
+
+  @override
+  Future<AudioDownload?> getDownloadRecord(
+      {required int surahNumber, required String reciterId}) async {
+    if (downloadedSurahs.contains('$reciterId:$surahNumber')) {
+      return AudioDownload(
+        surahNumber: surahNumber,
+        reciterId: reciterId,
+        localRelativePath: 'reciter_$reciterId/surah_$surahNumber.mp3',
+        status: AudioDownloadStatus.completed,
+        actualSizeBytes: 1000,
+        sha256: 'fake_sha256_hash_1234567890abcdef',
+        transferIntegrityVerified: true,
+      );
+    }
+    return null;
+  }
+
+  @override
+  Future<String?> getLocalAudioPath(
+          {required int surahNumber, required String reciterId}) async =>
+      null;
+
+  @override
+  Future<Either<QuranAudioFailure, StorageReconciliationSummary>>
+      reconcileStorage() async {
+    return const Right(StorageReconciliationSummary(
+      discoveredFiles: 0,
+      missingFiles: 0,
+      cleanedTempFiles: 0,
+    ));
+  }
+
+  @override
+  Future<Either<QuranAudioFailure, void>> saveDownloadRecord(
+          AudioDownload download) async =>
+      const Right(null);
+
+  @override
+  Future<Either<QuranAudioFailure, void>> deleteAllDownloads() async =>
+      const Right(null);
+
+  @override
+  Future<Either<QuranAudioFailure, void>> deleteReciterDownloads(
+          {required String reciterId}) async =>
+      const Right(null);
+}
 
 class _FakeRepo implements BaseQuranAudioRepository {
   List<AudioReciter> reciters = [
@@ -183,6 +333,8 @@ void main() {
   late _FakePlayer fakePlayer;
   late QuranAudioHandler handler;
   late AyahTrackingEngine trackingEngine;
+  late _FakeDownloadService fakeDownloadService;
+  late _FakeDownloadRepository fakeDownloadRepo;
   late QuranAudioCubit cubit;
 
   setUp(() async {
@@ -193,6 +345,8 @@ void main() {
       getSurahAudioUseCase: GetSurahAudioUseCase(fakeRepo),
     );
     trackingEngine = AyahTrackingEngine();
+    fakeDownloadService = _FakeDownloadService();
+    fakeDownloadRepo = _FakeDownloadRepository();
 
     cubit = QuranAudioCubit(
       getRecitersUseCase: GetRecitersUseCase(fakeRepo),
@@ -201,6 +355,8 @@ void main() {
       savePlaybackPositionUseCase: SavePlaybackPositionUseCase(fakeRepo),
       trackingEngine: trackingEngine,
       audioHandler: handler,
+      downloadService: fakeDownloadService,
+      downloadRepository: fakeDownloadRepo,
     );
 
     await cubit.init();
@@ -208,16 +364,17 @@ void main() {
   });
 
   tearDown(() async {
+    fakeDownloadService.dispose();
     await cubit.close();
   });
 
-  Widget buildTestWidget() {
+  Widget buildTestWidget({int? surahNumber}) {
     return MaterialApp(
       home: Scaffold(
         body: Center(
           child: BlocProvider<QuranAudioCubit>.value(
             value: cubit,
-            child: const QuranAudioSettingsSheet(),
+            child: QuranAudioSettingsSheet(surahNumber: surahNumber),
           ),
         ),
       ),
@@ -334,6 +491,455 @@ void main() {
 
       // Verify Cubit repeat mode is updated
       expect(cubit.state.highlightState.repeatMode, equals(AudioRepeatMode.singleAyah));
+    });
+  });
+
+  group('QuranAudioSettingsSheet Single-Surah Offline Download (QA.5 Phase 5.5)', () {
+    testWidgets('5. Renders single-Surah download section and initiates download on tap', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(buildTestWidget(surahNumber: 1));
+      await tester.pump(const Duration(milliseconds: 50));
+
+      // Verify download section header
+      expect(find.text('تحميل السورة للاستماع دون إنترنت'), findsOneWidget);
+      expect(find.text('تحميل السورة الآن'), findsOneWidget);
+      expect(find.byKey(const Key('download_surah_button')), findsOneWidget);
+
+      // Tap download button
+      await tester.tap(find.byKey(const Key('download_surah_button')));
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(fakeDownloadService.downloadCalls, equals(1));
+    });
+
+    testWidgets('6. Renders downloading progress bar, pause and cancel buttons when downloading', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(buildTestWidget(surahNumber: 1));
+      await tester.pump(const Duration(milliseconds: 50));
+
+      // Tap download button to initiate pipeline
+      final downloadBtn = find.byKey(const Key('download_surah_button'));
+      await tester.ensureVisible(downloadBtn);
+      await tester.pumpAndSettle();
+      await tester.tap(downloadBtn);
+      await tester.pump(const Duration(milliseconds: 50));
+
+      // Emit downloading progress
+      fakeDownloadService.emitProgress(DownloadProgress(
+        surahNumber: 1,
+        reciterId: '7',
+        status: AudioDownloadStatus.downloading,
+        downloadedBytes: 450000,
+        expectedTotalBytes: 1000000,
+      ));
+      await tester.pump(const Duration(milliseconds: 50));
+
+      // Verify progress UI
+      final pauseBtn = find.byKey(const Key('download_pause_button'));
+      final cancelBtn = find.byKey(const Key('download_cancel_button'));
+      await tester.ensureVisible(pauseBtn);
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('download_progress_bar')), findsOneWidget);
+      expect(pauseBtn, findsOneWidget);
+      expect(cancelBtn, findsOneWidget);
+
+      // Tap pause button
+      await tester.tap(pauseBtn);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(fakeDownloadService.pauseCalls, equals(1));
+
+      // Tap cancel button
+      await tester.ensureVisible(cancelBtn);
+      await tester.pump();
+      await tester.tap(cancelBtn);
+      for (int i = 0; i < 5; i++) {
+        await tester.pump(const Duration(milliseconds: 20));
+      }
+      expect(fakeDownloadService.cancelCalls, equals(1));
+    });
+
+    testWidgets('7. Renders paused state with resume and cancel buttons', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(buildTestWidget(surahNumber: 1));
+      await tester.pump(const Duration(milliseconds: 50));
+
+      final downloadBtn = find.byKey(const Key('download_surah_button'));
+      await tester.ensureVisible(downloadBtn);
+      await tester.pumpAndSettle();
+      await tester.tap(downloadBtn);
+      for (int i = 0; i < 5; i++) {
+        await tester.pump(const Duration(milliseconds: 20));
+      }
+
+      // Emit paused progress
+      fakeDownloadService.emitProgress(DownloadProgress(
+        surahNumber: 1,
+        reciterId: '7',
+        status: AudioDownloadStatus.paused,
+        downloadedBytes: 450000,
+        expectedTotalBytes: 1000000,
+      ));
+      await tester.pump(const Duration(milliseconds: 50));
+
+      final resumeBtn = find.byKey(const Key('download_resume_button'));
+      await tester.ensureVisible(resumeBtn);
+      await tester.pump();
+
+      expect(find.byKey(const Key('download_paused_progress_bar')), findsOneWidget);
+      expect(resumeBtn, findsOneWidget);
+      expect(find.byKey(const Key('download_cancel_paused_button')), findsOneWidget);
+
+      // Tap resume
+      await tester.tap(resumeBtn);
+      for (int i = 0; i < 5; i++) {
+        await tester.pump(const Duration(milliseconds: 20));
+      }
+      expect(fakeDownloadService.downloadCalls, equals(2));
+    });
+
+    testWidgets('8. Renders verifying state during SHA-256 integrity check', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(buildTestWidget(surahNumber: 1));
+      await tester.pump(const Duration(milliseconds: 50));
+
+      final downloadBtn = find.byKey(const Key('download_surah_button'));
+      await tester.ensureVisible(downloadBtn);
+      await tester.pumpAndSettle();
+      await tester.tap(downloadBtn);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      fakeDownloadService.emitProgress(DownloadProgress(
+        surahNumber: 1,
+        reciterId: '7',
+        status: AudioDownloadStatus.verifying,
+        downloadedBytes: 1000000,
+        expectedTotalBytes: 1000000,
+      ));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      final verifyingRow = find.byKey(const Key('download_verifying_row'));
+      await tester.ensureVisible(verifyingRow);
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(verifyingRow, findsOneWidget);
+      expect(find.text('التحقق من صحة الملف والترقية الذرية...'), findsOneWidget);
+    });
+
+    testWidgets('9. Renders completed state with offline indicator and delete button', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(buildTestWidget(surahNumber: 1));
+      await tester.pump(const Duration(milliseconds: 50));
+
+      final downloadBtn = find.byKey(const Key('download_surah_button'));
+      await tester.ensureVisible(downloadBtn);
+      await tester.pumpAndSettle();
+      await tester.tap(downloadBtn);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      fakeDownloadService.emitProgress(DownloadProgress(
+        surahNumber: 1,
+        reciterId: '7',
+        status: AudioDownloadStatus.completed,
+        downloadedBytes: 1000000,
+        expectedTotalBytes: 1000000,
+      ));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      final completedRow = find.byKey(const Key('download_completed_row'));
+      await tester.ensureVisible(completedRow);
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(completedRow, findsOneWidget);
+      expect(find.text('جاهزة للاستماع دون اتصال'), findsOneWidget);
+      expect(find.byKey(const Key('delete_download_button')), findsOneWidget);
+
+      // Tap delete button
+      await tester.tap(find.byKey(const Key('delete_download_button')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(fakeDownloadRepo.deleteCalls, equals(1));
+    });
+
+    testWidgets('10. Renders failed state with error message and retry button', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(buildTestWidget(surahNumber: 1));
+      await tester.pump(const Duration(milliseconds: 50));
+
+      final downloadBtn = find.byKey(const Key('download_surah_button'));
+      await tester.ensureVisible(downloadBtn);
+      await tester.pumpAndSettle();
+      await tester.tap(downloadBtn);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      fakeDownloadService.emitProgress(DownloadProgress(
+        surahNumber: 1,
+        reciterId: '7',
+        status: AudioDownloadStatus.failed,
+        downloadedBytes: 0,
+        lastError: 'انقطع الاتصال بالإنترنت',
+      ));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      final retryBtn = find.byKey(const Key('download_retry_button'));
+      await tester.ensureVisible(retryBtn);
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(find.text('انقطع الاتصال بالإنترنت'), findsOneWidget);
+      expect(retryBtn, findsOneWidget);
+
+      // Tap retry
+      await tester.tap(retryBtn);
+      for (int i = 0; i < 5; i++) {
+        await tester.pump(const Duration(milliseconds: 20));
+      }
+      expect(fakeDownloadService.downloadCalls, equals(2));
+    });
+
+    testWidgets('10B. Sanitizes raw technical SocketException into user-friendly Arabic error message', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(buildTestWidget(surahNumber: 112));
+      await tester.pump(const Duration(milliseconds: 50));
+
+      final downloadBtn = find.byKey(const Key('download_surah_button'));
+      await tester.ensureVisible(downloadBtn);
+      await tester.pumpAndSettle();
+      await tester.tap(downloadBtn);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      fakeDownloadService.emitProgress(DownloadProgress(
+        surahNumber: 112,
+        reciterId: '7',
+        status: AudioDownloadStatus.failed,
+        downloadedBytes: 0,
+        lastError: "ClientException with SocketException: Failed host lookup: 'download.quranicaudio.com' (OS Error: No address associated with hostname, errno = 7), uri=https://download.quranicaudio.com/quran/yasser_ad-dussary//112.mp3",
+      ));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      // Invariant: Raw exception text must NEVER be shown to user
+      expect(find.textContaining('SocketException'), findsNothing);
+      expect(find.textContaining('Failed host lookup'), findsNothing);
+
+      // Invariant: Clean friendly Arabic error message is displayed
+      expect(
+        find.text('تعذر الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت وإعادة المحاولة.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('11. Reader switching race guard: Switching reciter isolates status and ignores delayed events from previous reciter', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      // Reciter 7 (Mishari) has completed download
+      fakeDownloadRepo.downloadedSurahs.add('7:1');
+
+      await tester.pumpWidget(buildTestWidget(surahNumber: 1));
+      await tester.pump(const Duration(milliseconds: 50));
+
+      // Trigger post frame callback
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      // Initially Reciter 7 is selected and completed
+      expect(find.text('سورة الفاتحة — مشاري العفاسي'), findsOneWidget);
+      final completedRow = find.byKey(const Key('download_completed_row'));
+      await tester.ensureVisible(completedRow);
+      await tester.pump();
+      expect(completedRow, findsOneWidget);
+
+      // Now switch to Reciter 1 (AbdulBasit)
+      final reciter1Chip = find.text('عبد الباسط عبد الصمد');
+      await tester.tap(reciter1Chip);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      // Reciter 1 is not downloaded
+      expect(find.text('سورة الفاتحة — عبد الباسط عبد الصمد'), findsOneWidget);
+      final downloadBtn = find.byKey(const Key('download_surah_button'));
+      await tester.ensureVisible(downloadBtn);
+      await tester.pump();
+      expect(downloadBtn, findsOneWidget);
+
+      // Simulate delayed progress event arriving for Reciter 7 while Reciter 1 is active
+      fakeDownloadService.emitProgress(DownloadProgress(
+        surahNumber: 1,
+        reciterId: '7',
+        status: AudioDownloadStatus.downloading,
+        downloadedBytes: 500000,
+        expectedTotalBytes: 1000000,
+      ));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      // UI MUST still display Reciter 1 as notDownloaded, NOT Reciter 7's downloading progress
+      expect(find.text('سورة الفاتحة — عبد الباسط عبد الصمد'), findsOneWidget);
+      expect(find.byKey(const Key('download_surah_button')), findsOneWidget);
+      expect(find.byKey(const Key('download_progress_bar')), findsNothing);
+
+      // Switch back to Reciter 7
+      cubit.selectReciter('7');
+      await cubit.checkDownloadStatus(surahNumber: 1, reciterId: '7');
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(cubit.state.getDownloadDisplayStatus(1, '7'), equals(AudioDownloadDisplayStatus.downloading));
+      expect(find.textContaining('الفاتحة'), findsWidgets);
+      expect(find.textContaining('العفاسي'), findsWidgets);
+    });
+
+    testWidgets('12. Surah resolution hierarchy: Explicit surahNumber takes precedence over playing track', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      // Playing track is Surah 18 (Al-Kahf)
+      await cubit.playSurah(surahNumber: 18);
+
+      // But sheet is opened with explicit surahNumber: 2 (Al-Baqarah, the reading page)
+      await tester.pumpWidget(buildTestWidget(surahNumber: 2));
+      await tester.pump(const Duration(milliseconds: 50));
+
+      // Must target Al-Baqarah (2), NOT Al-Kahf (18)
+      expect(find.textContaining('البقرة'), findsWidgets);
+      expect(find.textContaining('الكهف'), findsNothing);
+    });
+
+    testWidgets('13. Download lifecycle independence: Download continues when Settings Sheet is closed and re-opened', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      // Build Sheet 1
+      await tester.pumpWidget(buildTestWidget(surahNumber: 1));
+      await tester.pump(const Duration(milliseconds: 50));
+
+      final downloadBtn = find.byKey(const Key('download_surah_button'));
+      await tester.ensureVisible(downloadBtn);
+      await tester.pump();
+      await tester.tap(downloadBtn);
+      for (int i = 0; i < 5; i++) {
+        await tester.pump(const Duration(milliseconds: 20));
+      }
+      expect(fakeDownloadService.downloadCalls, equals(1));
+
+      // Emit active progress
+      fakeDownloadService.emitProgress(DownloadProgress(
+        surahNumber: 1,
+        reciterId: '7',
+        status: AudioDownloadStatus.downloading,
+        downloadedBytes: 300000,
+        expectedTotalBytes: 1000000,
+      ));
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(find.byKey(const Key('download_progress_bar')), findsOneWidget);
+
+      // Destroy Sheet 1 and build a new Sheet 2 (simulating dismiss and reopen)
+      await tester.pumpWidget(Container());
+      await tester.pump(const Duration(milliseconds: 50));
+
+      // Reopen Sheet
+      await tester.pumpWidget(buildTestWidget(surahNumber: 1));
+      await tester.pump(const Duration(milliseconds: 50));
+
+      // New Sheet immediately reflects in-flight progress
+      final progressBar = find.byKey(const Key('download_progress_bar'));
+      await tester.ensureVisible(progressBar);
+      await tester.pump();
+      expect(progressBar, findsOneWidget);
+    });
+
+    test('14. DI Safety: Cubit throws StateError if downloadService is null when download action called', () async {
+      final unconfiguredCubit = QuranAudioCubit(
+        getRecitersUseCase: GetRecitersUseCase(fakeRepo),
+        getSurahAudioUseCase: GetSurahAudioUseCase(fakeRepo),
+        getPlaybackPositionUseCase: GetPlaybackPositionUseCase(fakeRepo),
+        savePlaybackPositionUseCase: SavePlaybackPositionUseCase(fakeRepo),
+        trackingEngine: trackingEngine,
+        audioHandler: handler,
+        downloadService: null,
+        downloadRepository: null,
+      );
+
+      expect(
+        () => unconfiguredCubit.startSurahDownload(surahNumber: 1, reciterId: '7'),
+        throwsStateError,
+      );
+      expect(
+        () => unconfiguredCubit.pauseSurahDownload(surahNumber: 1, reciterId: '7'),
+        throwsStateError,
+      );
+      expect(
+        () => unconfiguredCubit.cancelSurahDownload(surahNumber: 1, reciterId: '7'),
+        throwsStateError,
+      );
+      expect(
+        () => unconfiguredCubit.deleteDownloadedSurah(surahNumber: 1, reciterId: '7'),
+        throwsStateError,
+      );
+
+      await unconfiguredCubit.close();
     });
   });
 }

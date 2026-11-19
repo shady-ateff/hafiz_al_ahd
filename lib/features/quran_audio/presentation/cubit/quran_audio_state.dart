@@ -1,7 +1,9 @@
 import 'package:equatable/equatable.dart';
 import '../../core/audio/quran_audio_player.dart';
+import '../../domain/entities/audio_download.dart';
 import '../../domain/entities/audio_highlight_state.dart';
 import '../../domain/entities/audio_reciter.dart';
+import '../../domain/entities/download_progress.dart';
 import '../../domain/entities/surah_audio.dart';
 
 /// State representation for the Quran Audio presentation subsystem.
@@ -25,6 +27,7 @@ class QuranAudioState extends Equatable {
   final String? errorMessage;
   final bool isOfflineError;
   final double playbackSpeed;
+  final Map<String, DownloadProgress> downloadProgressMap;
 
   const QuranAudioState({
     this.reciters = const [],
@@ -41,6 +44,7 @@ class QuranAudioState extends Equatable {
     this.errorMessage,
     this.isOfflineError = false,
     this.playbackSpeed = 1.0,
+    this.downloadProgressMap = const {},
   });
 
   bool get isPlaying => playbackStatus == QuranPlaybackStatus.playing;
@@ -53,6 +57,16 @@ class QuranAudioState extends Equatable {
     if (totalDuration.inMilliseconds <= 0) return 0.0;
     final progress = currentPosition.inMilliseconds / totalDuration.inMilliseconds;
     return progress.clamp(0.0, 1.0);
+  }
+
+  DownloadProgress? getDownloadProgress(int surahNumber, String reciterId) {
+    return downloadProgressMap['$reciterId:$surahNumber'];
+  }
+
+  AudioDownloadDisplayStatus getDownloadDisplayStatus(int surahNumber, String reciterId) {
+    final progress = getDownloadProgress(surahNumber, reciterId);
+    if (progress == null) return AudioDownloadDisplayStatus.notDownloaded;
+    return AudioDownloadDisplayStatus.fromPersisted(progress.status);
   }
 
   QuranAudioState copyWith({
@@ -72,6 +86,7 @@ class QuranAudioState extends Equatable {
     bool clearTrack = false,
     bool? isOfflineError,
     double? playbackSpeed,
+    Map<String, DownloadProgress>? downloadProgressMap,
   }) {
     return QuranAudioState(
       reciters: reciters ?? this.reciters,
@@ -88,6 +103,7 @@ class QuranAudioState extends Equatable {
       errorMessage: clearErrorMessage ? null : (errorMessage ?? this.errorMessage),
       isOfflineError: isOfflineError ?? this.isOfflineError,
       playbackSpeed: playbackSpeed ?? this.playbackSpeed,
+      downloadProgressMap: downloadProgressMap ?? this.downloadProgressMap,
     );
   }
 
@@ -107,5 +123,6 @@ class QuranAudioState extends Equatable {
         errorMessage,
         isOfflineError,
         playbackSpeed,
+        downloadProgressMap,
       ];
 }

@@ -8,6 +8,7 @@ import 'package:hafiz_al_ahd/features/quran_audio/data/models/surah_audio_model.
 import 'package:hafiz_al_ahd/features/quran_audio/data/repositories/audio_download_repository_impl.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/data/services/quran_audio_storage_service.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/domain/entities/audio_download.dart';
+import 'package:hafiz_al_ahd/features/quran_audio/domain/entities/promotion_journal_entry.dart';
 
 class FakeLocalDataSource implements BaseQuranAudioLocalDataSource {
   final Map<String, AudioDownloadModel> registry = {};
@@ -60,6 +61,38 @@ class FakeLocalDataSource implements BaseQuranAudioLocalDataSource {
   Future<PlaybackPositionModel?> getLastPlaybackPosition() async => null;
   @override
   Future<void> savePlaybackPosition(PlaybackPositionModel position) async {}
+
+  final Map<String, PromotionJournalEntry> journals = {};
+  @override
+  Future<void> savePromotionJournal(PromotionJournalEntry entry) async {
+    journals['${entry.reciterId}:${entry.surahNumber}'] = entry;
+  }
+  @override
+  Future<PromotionJournalEntry?> getPromotionJournal(int surahNumber, String reciterId) async =>
+      journals['$reciterId:$surahNumber'];
+  @override
+  Future<List<PromotionJournalEntry>> getAllPromotionJournals() async => journals.values.toList();
+  @override
+  Future<void> updatePromotionJournalState({
+    required int surahNumber,
+    required String reciterId,
+    required PromotionJournalState state,
+    String? quarantinePath,
+    String? quarantineSha256,
+  }) async {}
+  @override
+  Future<void> removePromotionJournal(int surahNumber, String reciterId) async {
+    journals.remove('$reciterId:$surahNumber');
+  }
+  @override
+  Future<void> finalizePromotion({
+    required AudioDownloadModel download,
+    required int surahNumber,
+    required String reciterId,
+  }) async {
+    registry['$reciterId:$surahNumber'] = download;
+    journals.remove('$reciterId:$surahNumber');
+  }
 }
 
 void main() {

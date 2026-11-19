@@ -4,11 +4,15 @@ import 'package:bloc/bloc.dart';
 import '../../core/audio/quran_audio_handler.dart';
 import '../../core/audio/quran_audio_player.dart';
 import '../../core/tracking/ayah_tracking_engine.dart';
+import '../../data/services/quran_audio_download_service.dart';
+import '../../domain/entities/audio_download.dart';
 import '../../domain/entities/audio_highlight_state.dart';
 import '../../domain/entities/audio_reciter.dart';
 import '../../domain/entities/ayah_timing.dart';
+import '../../domain/entities/download_progress.dart';
 import '../../domain/entities/playback_position.dart';
 import '../../domain/errors/quran_audio_failures.dart';
+import '../../domain/repositories/base_audio_download_repository.dart';
 import '../../domain/usecases/get_playback_position_use_case.dart';
 import '../../domain/usecases/get_reciters_use_case.dart';
 import '../../domain/usecases/get_surah_audio_use_case.dart';
@@ -32,6 +36,10 @@ class QuranAudioCubit extends Cubit<QuranAudioState> {
   final AyahTrackingEngine trackingEngine;
   final SavePlaybackPositionUseCase savePlaybackPositionUseCase;
   final GetPlaybackPositionUseCase getPlaybackPositionUseCase;
+  final BaseQuranAudioDownloadService? downloadService;
+  final BaseAudioDownloadRepository? downloadRepository;
+
+  final Map<String, StreamSubscription<DownloadProgress>> _downloadSubs = {};
 
   StreamSubscription<QuranPlaybackStatus>? _statusSub;
   StreamSubscription<Duration>? _positionSub;
@@ -45,6 +53,8 @@ class QuranAudioCubit extends Cubit<QuranAudioState> {
     required this.trackingEngine,
     required this.savePlaybackPositionUseCase,
     required this.getPlaybackPositionUseCase,
+    this.downloadService,
+    this.downloadRepository,
   }) : super(QuranAudioState(
           reciters: AudioReciter.kDefaultReciters,
           selectedReciter: AudioReciter.kDefaultReciter,
@@ -418,10 +428,20 @@ class QuranAudioCubit extends Cubit<QuranAudioState> {
           }
         }
 
+        String? localPath;
+        if (downloadRepository != null) {
+          try {
+            localPath = await downloadRepository!.getLocalAudioPath(
+              surahNumber: surahNumber,
+              reciterId: activeReciterId,
+            );
+          } catch (_) {}
+        }
+
         emit(state.copyWith(
           isLoadingAudio: false,
           currentSurahAudio: surahAudio,
-          isLocal: false,
+          isLocal: localPath != null,
           totalDuration: Duration(milliseconds: surahAudio.durationMs),
         ));
 
@@ -431,7 +451,7 @@ class QuranAudioCubit extends Cubit<QuranAudioState> {
           reciterName: state.selectedReciter?.arabicName ??
               state.selectedReciter?.name ??
               'القرآن الكريم',
-          localFilePath: null,
+          localFilePath: localPath,
           startPosition: initialPos,
         );
 
@@ -634,6 +654,246 @@ class QuranAudioCubit extends Cubit<QuranAudioState> {
     ));
   }
 
+  // -------------------------------------------------------------
+  // Single-Surah Audio Download Management (QA.5 Phase 5.5)
+  // -------------------------------------------------------------
+
+  /// Checks and refreshes the download status for a given [surahNumber] and [reciterId].
+  Future<void> checkDownloadStatus({
+    required int surahNumber,
+    required String reciterId,
+  }) async {
+    final key = '$reciterId:$surahNumber';
+
+    // 1. If download service has an active in-flight task, prioritize it
+    final active = downloadService?.getProgress(surahNumber, reciterId);
+    if (active != null) {
+      final map = Map<String, DownloadProgress>.from(state.downloadProgressMap)..[key] = active;
+      emit(state.copyWith(downloadProgressMap: map));
+
+      if (!_downloadSubs.containsKey(key)) {
+        _downloadSubs[key] = downloadService!.watchProgress(surahNumber, reciterId).listen((p) {
+          final m = Map<String, DownloadProgress>.from(state.downloadProgressMap)..[key] = p;
+          emit(state.copyWith(downloadProgressMap: m));
+        });
+      }
+      return;
+    }
+
+    // 2. Query repository for existing record in database
+    if (downloadRepository != null) {
+      final record = await downloadRepository!.getDownloadRecord(
+        surahNumber: surahNumber,
+        reciterId: reciterId,
+      );
+
+      final map = Map<String, DownloadProgress>.from(state.downloadProgressMap);
+      if (record != null) {
+        if (record.status == AudioDownloadStatus.completed) {
+          final isDownloaded = await downloadRepository!.isSurahDownloaded(
+            surahNumber: surahNumber,
+            reciterId: reciterId,
+          );
+          if (isDownloaded) {
+            map[key] = DownloadProgress(
+              surahNumber: surahNumber,
+              reciterId: reciterId,
+              status: AudioDownloadStatus.completed,
+              downloadedBytes: record.actualSizeBytes,
+              expectedTotalBytes: record.expectedSizeBytes,
+            );
+          } else {
+            map.remove(key);
+          }
+        } else if (record.status == AudioDownloadStatus.paused) {
+          map[key] = DownloadProgress(
+            surahNumber: surahNumber,
+            reciterId: reciterId,
+            status: AudioDownloadStatus.paused,
+            downloadedBytes: record.actualSizeBytes,
+            expectedTotalBytes: record.expectedSizeBytes,
+          );
+        } else if (record.status == AudioDownloadStatus.failed) {
+          map[key] = DownloadProgress(
+            surahNumber: surahNumber,
+            reciterId: reciterId,
+            status: AudioDownloadStatus.failed,
+            downloadedBytes: record.actualSizeBytes,
+            expectedTotalBytes: record.expectedSizeBytes,
+            lastError: record.lastError,
+          );
+        } else if (record.status == AudioDownloadStatus.downloading) {
+          map[key] = DownloadProgress(
+            surahNumber: surahNumber,
+            reciterId: reciterId,
+            status: AudioDownloadStatus.paused,
+            downloadedBytes: record.actualSizeBytes,
+            expectedTotalBytes: record.expectedSizeBytes,
+          );
+        } else {
+          map.remove(key);
+        }
+      } else {
+        final isDownloaded = await downloadRepository!.isSurahDownloaded(
+          surahNumber: surahNumber,
+          reciterId: reciterId,
+        );
+        if (isDownloaded) {
+          map[key] = DownloadProgress(
+            surahNumber: surahNumber,
+            reciterId: reciterId,
+            status: AudioDownloadStatus.completed,
+            downloadedBytes: 0,
+          );
+        } else {
+          map.remove(key);
+        }
+      }
+      emit(state.copyWith(downloadProgressMap: map));
+    }
+  }
+
+  /// Initiates download of an individual Surah track for offline storage.
+  Future<void> startSurahDownload({
+    required int surahNumber,
+    required String reciterId,
+  }) async {
+    if (downloadService == null) {
+      throw StateError(
+        'BaseQuranAudioDownloadService is required for download operations.',
+      );
+    }
+    final key = '$reciterId:$surahNumber';
+
+    final existing = state.downloadProgressMap[key];
+    if (existing != null && existing.status == AudioDownloadStatus.downloading) {
+      return;
+    }
+
+    _downloadSubs[key]?.cancel();
+    _downloadSubs.remove(key);
+
+    // Instant UI feedback: Emit downloading state immediately
+    final initialProgress = DownloadProgress(
+      surahNumber: surahNumber,
+      reciterId: reciterId,
+      status: AudioDownloadStatus.downloading,
+      downloadedBytes: existing?.downloadedBytes ?? 0,
+      expectedTotalBytes: existing?.expectedTotalBytes,
+    );
+    final initialMap = Map<String, DownloadProgress>.from(state.downloadProgressMap)..[key] = initialProgress;
+    emit(state.copyWith(downloadProgressMap: initialMap));
+
+    final result = await getSurahAudioUseCase(
+      surahNumber: surahNumber,
+      reciterId: reciterId,
+    );
+
+    await result.fold(
+      (failure) async {
+        final progress = DownloadProgress(
+          surahNumber: surahNumber,
+          reciterId: reciterId,
+          status: AudioDownloadStatus.failed,
+          downloadedBytes: 0,
+          lastError: failure.message,
+        );
+        final map = Map<String, DownloadProgress>.from(state.downloadProgressMap)..[key] = progress;
+        emit(state.copyWith(downloadProgressMap: map));
+      },
+      (surahAudio) async {
+        _downloadSubs[key]?.cancel();
+
+        final stream = downloadService!.downloadSurah(
+          surahNumber: surahNumber,
+          reciterId: reciterId,
+          audioUrl: surahAudio.audioUrl,
+        );
+
+        _downloadSubs[key] = stream.listen((progress) {
+          final map = Map<String, DownloadProgress>.from(state.downloadProgressMap)..[key] = progress;
+          emit(state.copyWith(downloadProgressMap: map));
+        });
+      },
+    );
+  }
+
+  /// Pauses an active Surah download.
+  Future<void> pauseSurahDownload({
+    required int surahNumber,
+    required String reciterId,
+  }) async {
+    if (downloadService == null) {
+      throw StateError(
+        'BaseQuranAudioDownloadService is required for download operations.',
+      );
+    }
+    final key = '$reciterId:$surahNumber';
+    _downloadSubs[key]?.cancel();
+    _downloadSubs.remove(key);
+
+    await downloadService!.pauseDownload(surahNumber, reciterId);
+
+    final current = state.downloadProgressMap[key];
+    final serviceProgress = downloadService!.getProgress(surahNumber, reciterId);
+    final pausedProgress = serviceProgress ?? DownloadProgress(
+      surahNumber: surahNumber,
+      reciterId: reciterId,
+      status: AudioDownloadStatus.paused,
+      downloadedBytes: current?.downloadedBytes ?? 0,
+      expectedTotalBytes: current?.expectedTotalBytes,
+    );
+    final map = Map<String, DownloadProgress>.from(state.downloadProgressMap)..[key] = pausedProgress;
+    emit(state.copyWith(downloadProgressMap: map));
+  }
+
+  /// Cancels an in-flight Surah download and stops tracking.
+  Future<void> cancelSurahDownload({
+    required int surahNumber,
+    required String reciterId,
+  }) async {
+    if (downloadService == null) {
+      throw StateError(
+        'BaseQuranAudioDownloadService is required for download operations.',
+      );
+    }
+    final key = '$reciterId:$surahNumber';
+    _downloadSubs[key]?.cancel();
+    _downloadSubs.remove(key);
+    await downloadService!.cancelDownload(surahNumber, reciterId);
+
+    // Immediately remove from state map so UI transitions to notDownloaded
+    final map = Map<String, DownloadProgress>.from(state.downloadProgressMap)..remove(key);
+    emit(state.copyWith(downloadProgressMap: map));
+  }
+
+  /// Retries a failed or paused Surah download.
+  Future<void> retrySurahDownload({
+    required int surahNumber,
+    required String reciterId,
+  }) async {
+    await startSurahDownload(surahNumber: surahNumber, reciterId: reciterId);
+  }
+
+  /// Deletes a verified downloaded Surah and removes its record.
+  Future<void> deleteDownloadedSurah({
+    required int surahNumber,
+    required String reciterId,
+  }) async {
+    if (downloadRepository == null) {
+      throw StateError(
+        'BaseAudioDownloadRepository is required for delete operations.',
+      );
+    }
+    await downloadRepository!.deleteDownloadRecord(
+      surahNumber: surahNumber,
+      reciterId: reciterId,
+    );
+    final key = '$reciterId:$surahNumber';
+    final map = Map<String, DownloadProgress>.from(state.downloadProgressMap)..remove(key);
+    emit(state.copyWith(downloadProgressMap: map));
+  }
+
   @override
   Future<void> close() async {
     // 1. Persist current listening position
@@ -644,6 +904,11 @@ class QuranAudioCubit extends Cubit<QuranAudioState> {
     await _positionSub?.cancel();
     await _durationSub?.cancel();
     await _mediaItemSub?.cancel();
+
+    for (final sub in _downloadSubs.values) {
+      sub.cancel();
+    }
+    _downloadSubs.clear();
 
     // 3. IMPORTANT: DO NOT dispose the singleton AudioHandler or AudioPlayer.
     // The background audio service lifecycle is independent of this UI Cubit.

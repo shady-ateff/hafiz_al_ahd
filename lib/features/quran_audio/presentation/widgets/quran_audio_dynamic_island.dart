@@ -294,7 +294,7 @@ class _QuranAudioDynamicIslandState extends State<QuranAudioDynamicIsland>
                 if (widget.onSettingsTap != null) {
                   widget.onSettingsTap!();
                 } else {
-                  QuranAudioSettingsSheet.show(context);
+                  QuranAudioSettingsSheet.show(context, surahNumber: surahNum);
                 }
               },
               child: Row(
@@ -453,7 +453,7 @@ class _QuranAudioDynamicIslandState extends State<QuranAudioDynamicIsland>
                     if (widget.onSettingsTap != null) {
                       widget.onSettingsTap!();
                     } else {
-                      QuranAudioSettingsSheet.show(context);
+                      QuranAudioSettingsSheet.show(context, surahNumber: surahNum);
                     }
                   },
                 ),

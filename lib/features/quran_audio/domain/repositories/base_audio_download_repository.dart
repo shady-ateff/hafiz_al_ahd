@@ -46,6 +46,13 @@ abstract class BaseAudioDownloadRepository {
     required String reciterId,
   });
 
+  /// Retrieves the recorded download entry for a specific Surah and reciter,
+  /// regardless of whether its status is completed, paused, or failed.
+  Future<AudioDownload?> getDownloadRecord({
+    required int surahNumber,
+    required String reciterId,
+  });
+
   /// Scans physical storage and reconciles disk state with the database registry.
   Future<Either<QuranAudioFailure, StorageReconciliationSummary>> reconcileStorage();
 }

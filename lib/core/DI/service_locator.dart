@@ -89,6 +89,7 @@ import 'package:hafiz_al_ahd/features/quran_audio/data/datasources/quran_audio_l
 import 'package:hafiz_al_ahd/features/quran_audio/data/datasources/quran_audio_remote_data_source.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/data/repositories/audio_download_repository_impl.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/data/repositories/quran_audio_repository_impl.dart';
+import 'package:hafiz_al_ahd/features/quran_audio/data/services/quran_audio_download_service.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/data/services/quran_audio_storage_service.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/domain/repositories/base_audio_download_repository.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/domain/repositories/base_quran_audio_repository.dart';
@@ -414,6 +415,12 @@ Future<void> init() async {
       storageService: sl(),
     ),
   );
+  sl.registerLazySingleton<BaseQuranAudioDownloadService>(
+    () => QuranAudioDownloadService(
+      localDataSource: sl(),
+      storageService: sl(),
+    ),
+  );
   sl.registerLazySingleton<AyahTimingValidator>(
     () => const AyahTimingValidator(),
   );
@@ -447,6 +454,8 @@ Future<void> init() async {
       trackingEngine: sl(),
       savePlaybackPositionUseCase: sl(),
       getPlaybackPositionUseCase: sl(),
+      downloadService: sl(),
+      downloadRepository: sl(),
     ),
   );
 

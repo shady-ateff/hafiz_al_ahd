@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hafiz_al_ahd/features/quran_audio/domain/entities/audio_download.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/domain/entities/audio_highlight_state.dart';
+import 'package:hafiz_al_ahd/features/quran_audio/domain/entities/download_progress.dart';
 import '../../../../core/utils/app_colors.dart';
 import '../../../../core/widgets/app_loader.dart';
 import '../../../quran/data/datasources/surah_names.dart';
@@ -13,17 +15,20 @@ import '../cubit/quran_audio_state.dart';
 /// 1. Select the active reciter (اختيار الشيخ).
 /// 2. Configure recitation scope (Full Surah, Single Ayah, or Custom Range).
 /// 3. Set Ayah repetition parameters to assist in Quran memorization (إعدادات التكرار للحفظ).
+/// 4. Manage single-Surah offline audio download (تحميل السورة للاستماع أوفلاين).
 class QuranAudioSettingsSheet extends StatefulWidget {
-  const QuranAudioSettingsSheet({super.key});
+  final int? surahNumber;
 
-  static Future<void> show(BuildContext context) {
+  const QuranAudioSettingsSheet({super.key, this.surahNumber});
+
+  static Future<void> show(BuildContext context, {int? surahNumber}) {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => BlocProvider.value(
         value: context.read<QuranAudioCubit>(),
-        child: const QuranAudioSettingsSheet(),
+        child: QuranAudioSettingsSheet(surahNumber: surahNumber),
       ),
     );
   }
@@ -38,6 +43,19 @@ class _QuranAudioSettingsSheetState extends State<QuranAudioSettingsSheet> {
   late AudioRepeatMode _selectedMode;
   int? _rangeStart;
   int? _rangeEnd;
+
+  int get _effectiveSurahNumber {
+    if (widget.surahNumber != null &&
+        widget.surahNumber! >= 1 &&
+        widget.surahNumber! <= 114) {
+      return widget.surahNumber!;
+    }
+    final cubitSurah = context.read<QuranAudioCubit>().state.currentSurahNumber;
+    if (cubitSurah != null && cubitSurah >= 1 && cubitSurah <= 114) {
+      return cubitSurah;
+    }
+    return 1;
+  }
 
   @override
   void initState() {
@@ -57,6 +75,16 @@ class _QuranAudioSettingsSheetState extends State<QuranAudioSettingsSheet> {
     if (cubit.state.reciters.isEmpty && !cubit.state.isLoadingReciters) {
       cubit.init();
     }
+
+    // Check single-Surah download status for active Surah & Reciter
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final reciterId = cubit.state.selectedReciter?.id ?? '7';
+      cubit.checkDownloadStatus(
+        surahNumber: _effectiveSurahNumber,
+        reciterId: reciterId,
+      );
+    });
   }
 
   @override
@@ -185,6 +213,16 @@ class _QuranAudioSettingsSheetState extends State<QuranAudioSettingsSheet> {
                         _buildRepeatCountChips(isDark),
                       ],
 
+                      // Section 4: Single-Surah Offline Download (QA.5 Phase 5.5)
+                      const SizedBox(height: 24),
+                      _buildSectionHeader(
+                        'تحميل السورة للاستماع دون إنترنت',
+                        Icons.cloud_download_outlined,
+                        textColor,
+                      ),
+                      const SizedBox(height: 10),
+                      _buildDownloadSection(state, isDark, textColor, secondaryText),
+
                       const SizedBox(height: 30),
                     ],
                   );
@@ -298,6 +336,10 @@ class _QuranAudioSettingsSheetState extends State<QuranAudioSettingsSheet> {
           return InkWell(
             onTap: () {
               context.read<QuranAudioCubit>().selectReciter(reciter.id);
+              context.read<QuranAudioCubit>().checkDownloadStatus(
+                    surahNumber: _effectiveSurahNumber,
+                    reciterId: reciter.id,
+                  );
             },
             borderRadius: BorderRadius.circular(16),
             child: AnimatedContainer(
@@ -685,5 +727,545 @@ class _QuranAudioSettingsSheetState extends State<QuranAudioSettingsSheet> {
         duration: Duration(seconds: 2),
       ),
     );
+  }
+
+  // -------------------------------------------------------------
+  // Single-Surah Offline Download UI (QA.5 Phase 5.5)
+  // -------------------------------------------------------------
+
+  Widget _buildDownloadSection(
+    QuranAudioState state,
+    bool isDark,
+    Color textColor,
+    Color secondaryText,
+  ) {
+    final surahNum = _effectiveSurahNumber;
+    final surahName = getSurahName(surahNum);
+    final reciter = state.selectedReciter;
+    final reciterId = reciter?.id ?? '7';
+    final reciterName = reciter?.arabicName ?? 'القارئ';
+
+    final displayStatus = state.getDownloadDisplayStatus(surahNum, reciterId);
+    final progress = state.getDownloadProgress(surahNum, reciterId);
+    final cubit = context.read<QuranAudioCubit>();
+    final isCompleted = displayStatus == AudioDownloadDisplayStatus.completed;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: isCompleted ? AppColors.goldenGradient : null,
+        color: isCompleted
+            ? null
+            : (isDark ? const Color(0xFF282828) : Colors.grey[50]),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: isCompleted
+              ? AppColors.lightGold.withValues(alpha: 0.6)
+              : AppColors.secondaryGold.withValues(alpha: 0.25),
+          width: 1.2,
+        ),
+        boxShadow: isCompleted
+            ? [
+                BoxShadow(
+                  color: AppColors.secondaryGold.withValues(alpha: 0.25),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ]
+            : null,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: isCompleted
+                      ? Colors.black.withValues(alpha: 0.12)
+                      : AppColors.secondaryGold.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  isCompleted
+                      ? Icons.check_circle_rounded
+                      : Icons.cloud_download_rounded,
+                  color: isCompleted
+                      ? const Color(0xFF1E1E1E)
+                      : AppColors.secondaryGold,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'سورة $surahName — $reciterName',
+                      style: TextStyle(
+                        fontFamily: 'Tajawal',
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: isCompleted ? const Color(0xFF1E1E1E) : textColor,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _getDownloadSubtitle(displayStatus, progress),
+                      style: TextStyle(
+                        fontFamily: 'Tajawal',
+                        fontSize: 12,
+                        fontWeight: isCompleted ? FontWeight.w500 : FontWeight.normal,
+                        color: isCompleted
+                            ? const Color(0xFF382E09)
+                            : (displayStatus == AudioDownloadDisplayStatus.failed
+                                ? Colors.redAccent
+                                : secondaryText),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _buildDownloadActionRow(
+            displayStatus: displayStatus,
+            progress: progress,
+            surahNumber: surahNum,
+            reciterId: reciterId,
+            cubit: cubit,
+            isDark: isDark,
+            secondaryText: secondaryText,
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getDownloadSubtitle(
+    AudioDownloadDisplayStatus status,
+    DownloadProgress? progress,
+  ) {
+    switch (status) {
+      case AudioDownloadDisplayStatus.completed:
+        return 'محملة ومحفوظة محليًا على الجهاز';
+      case AudioDownloadDisplayStatus.downloading:
+        final ratio = progress?.progressRatio ?? 0.0;
+        final pct = (ratio * 100).toInt();
+        if (pct > 0) {
+          return 'جاري التحميل... $pct%';
+        }
+        return 'جاري الاتصال وبدء التحميل...';
+      case AudioDownloadDisplayStatus.paused:
+        final ratio = progress?.progressRatio ?? 0.0;
+        final pct = (ratio * 100).toInt();
+        if (pct > 0) {
+          return 'التحميل متوقف مؤقتًا ($pct%)';
+        }
+        return 'التحميل متوقف مؤقتًا';
+      case AudioDownloadDisplayStatus.verifying:
+        return 'جاري التحقق من سلامة الملف الصوتي...';
+      case AudioDownloadDisplayStatus.failed:
+        return _formatUserFriendlyError(progress?.lastError);
+      case AudioDownloadDisplayStatus.cancelled:
+        return 'تم إلغاء التحميل';
+      case AudioDownloadDisplayStatus.notDownloaded:
+        return 'غير محملة — اضغط للتحميل والاستماع دون إنترنت';
+    }
+  }
+
+  String _formatUserFriendlyError(String? rawError) {
+    if (rawError == null || rawError.trim().isEmpty) {
+      return 'تعذر إتمام التحميل. يرجى التحقق من اتصال الإنترنت وإعادة المحاولة.';
+    }
+
+    final lower = rawError.toLowerCase();
+
+    // 1. Network, DNS, Connectivity & Socket errors
+    if (lower.contains('socketexception') ||
+        lower.contains('failed host lookup') ||
+        lower.contains('no address associated with hostname') ||
+        lower.contains('network is unreachable') ||
+        lower.contains('connection refused') ||
+        lower.contains('connection reset') ||
+        lower.contains('connection closed') ||
+        lower.contains('clientexception') ||
+        lower.contains('handshakeexception') ||
+        lower.contains('timeoutexception') ||
+        lower.contains('timed out')) {
+      return 'تعذر الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت وإعادة المحاولة.';
+    }
+
+    // 2. Storage & Permissions
+    if (lower.contains('no space left') || lower.contains('enospc') || lower.contains('disk full')) {
+      return 'المساحة التخزينية على جهازك غير كافية لإتمام التحميل.';
+    }
+    if (lower.contains('permission denied') || lower.contains('eacces') || lower.contains('access denied')) {
+      return 'تعذر حفظ الملف بسبب نقص صلاحيات التخزين على الجهاز.';
+    }
+
+    // 3. HTTP Server Status Codes
+    if (lower.contains('404') || lower.contains('not found')) {
+      return 'الملف الصوتي غير متوفر على الخادم لهذا القارئ.';
+    }
+    if (lower.contains('500') || lower.contains('502') || lower.contains('503') || lower.contains('504')) {
+      return 'الخادم غير متاح حاليًا. يرجى المحاولة في وقت لاحق.';
+    }
+
+    // 4. File integrity
+    if (lower.contains('stream truncated') || lower.contains('checksum mismatch') || lower.contains('corrupt')) {
+      return 'فشل التحقق من اكتمال الملف الصوتي. يرجى إعادة المحاولة.';
+    }
+
+    // If it contains Arabic letters and no raw exception traces, it's already localized
+    final hasArabic = RegExp(r'[\u0600-\u06FF]').hasMatch(rawError);
+    final hasExceptionKeywords = lower.contains('exception') ||
+        lower.contains('failed') ||
+        lower.contains('errno') ||
+        lower.contains('http') ||
+        lower.contains('os error');
+
+    if (hasArabic && !hasExceptionKeywords) {
+      return rawError;
+    }
+
+    return 'تعذر إتمام التحميل. يرجى التحقق من اتصال الإنترنت وإعادة المحاولة.';
+  }
+
+  Widget _buildDownloadActionRow({
+    required AudioDownloadDisplayStatus displayStatus,
+    required DownloadProgress? progress,
+    required int surahNumber,
+    required String reciterId,
+    required QuranAudioCubit cubit,
+    required bool isDark,
+    required Color secondaryText,
+  }) {
+    switch (displayStatus) {
+      case AudioDownloadDisplayStatus.notDownloaded:
+      case AudioDownloadDisplayStatus.cancelled:
+        return SizedBox(
+          width: double.infinity,
+          height: 40,
+          child: ElevatedButton.icon(
+            key: const Key('download_surah_button'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.secondaryGold,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: () {
+              cubit.startSurahDownload(
+                surahNumber: surahNumber,
+                reciterId: reciterId,
+              );
+            },
+            icon: const Icon(Icons.download_rounded, size: 18),
+            label: const Text(
+              'تحميل السورة الآن',
+              style: TextStyle(
+                fontFamily: 'Tajawal',
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        );
+
+      case AudioDownloadDisplayStatus.downloading:
+        final ratio = progress?.progressRatio;
+        return Column(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: LinearProgressIndicator(
+                key: const Key('download_progress_bar'),
+                value: (ratio != null && ratio > 0.0) ? ratio : null,
+                backgroundColor: isDark ? Colors.grey[800] : Colors.grey[300],
+                valueColor:
+                    const AlwaysStoppedAnimation<Color>(AppColors.secondaryGold),
+                minHeight: 6,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    key: const Key('download_pause_button'),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: AppColors.secondaryGold),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    onPressed: () {
+                      cubit.pauseSurahDownload(
+                        surahNumber: surahNumber,
+                        reciterId: reciterId,
+                      );
+                    },
+                    icon: const Icon(Icons.pause_rounded,
+                        size: 16, color: AppColors.secondaryGold),
+                    label: const Text(
+                      'إيقاف مؤقت',
+                      style: TextStyle(
+                        fontFamily: 'Tajawal',
+                        fontSize: 12,
+                        color: AppColors.secondaryGold,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    key: const Key('download_cancel_button'),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: Colors.red.withValues(alpha: 0.5)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    onPressed: () {
+                      cubit.cancelSurahDownload(
+                        surahNumber: surahNumber,
+                        reciterId: reciterId,
+                      );
+                    },
+                    icon: const Icon(Icons.close_rounded,
+                        size: 16, color: Colors.redAccent),
+                    label: const Text(
+                      'إلغاء',
+                      style: TextStyle(
+                        fontFamily: 'Tajawal',
+                        fontSize: 12,
+                        color: Colors.redAccent,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        );
+
+      case AudioDownloadDisplayStatus.paused:
+        final ratio = progress?.progressRatio ?? 0.0;
+        return Column(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: LinearProgressIndicator(
+                key: const Key('download_paused_progress_bar'),
+                value: ratio > 0.0 ? ratio : null,
+                backgroundColor: isDark ? Colors.grey[800] : Colors.grey[300],
+                valueColor:
+                    const AlwaysStoppedAnimation<Color>(Colors.orange),
+                minHeight: 6,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    key: const Key('download_resume_button'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.secondaryGold,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    onPressed: () {
+                      cubit.startSurahDownload(
+                        surahNumber: surahNumber,
+                        reciterId: reciterId,
+                      );
+                    },
+                    icon: const Icon(Icons.play_arrow_rounded, size: 16),
+                    label: const Text(
+                      'استئناف التحميل',
+                      style: TextStyle(
+                        fontFamily: 'Tajawal',
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    key: const Key('download_cancel_paused_button'),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: Colors.red.withValues(alpha: 0.5)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    onPressed: () {
+                      cubit.cancelSurahDownload(
+                        surahNumber: surahNumber,
+                        reciterId: reciterId,
+                      );
+                    },
+                    icon: const Icon(Icons.close_rounded,
+                        size: 16, color: Colors.redAccent),
+                    label: const Text(
+                      'إلغاء',
+                      style: TextStyle(
+                        fontFamily: 'Tajawal',
+                        fontSize: 12,
+                        color: Colors.redAccent,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        );
+
+      case AudioDownloadDisplayStatus.verifying:
+        return const Row(
+          key: Key('download_verifying_row'),
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor:
+                    AlwaysStoppedAnimation<Color>(AppColors.secondaryGold),
+              ),
+            ),
+            SizedBox(width: 10),
+            Flexible(
+              child: Text(
+                'التحقق من صحة الملف والترقية الذرية...',
+                style: TextStyle(
+                  fontFamily: 'Tajawal',
+                  fontSize: 12,
+                  color: AppColors.secondaryGold,
+                ),
+              ),
+            ),
+          ],
+        );
+
+      case AudioDownloadDisplayStatus.completed:
+        return Row(
+          key: const Key('download_completed_row'),
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.offline_pin_rounded,
+                    color: Color(0xFF1E1E1E),
+                    size: 16,
+                  ),
+                  SizedBox(width: 6),
+                  Text(
+                    'جاهزة للاستماع دون اتصال',
+                    style: TextStyle(
+                      fontFamily: 'Tajawal',
+                      fontSize: 12,
+                      color: Color(0xFF1E1E1E),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                key: const Key('delete_download_button'),
+                onTap: () {
+                  cubit.deleteDownloadedSurah(
+                    surahNumber: surahNumber,
+                    reciterId: reciterId,
+                  );
+                },
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.delete_outline_rounded,
+                        color: Color(0xFF7A1C1C),
+                        size: 16,
+                      ),
+                      SizedBox(width: 4),
+                      Text(
+                        'حذف',
+                        style: TextStyle(
+                          fontFamily: 'Tajawal',
+                          fontSize: 12,
+                          color: Color(0xFF7A1C1C),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+
+      case AudioDownloadDisplayStatus.failed:
+        return SizedBox(
+          width: double.infinity,
+          height: 40,
+          child: ElevatedButton.icon(
+            key: const Key('download_retry_button'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: () {
+              cubit.retrySurahDownload(
+                surahNumber: surahNumber,
+                reciterId: reciterId,
+              );
+            },
+            icon: const Icon(Icons.refresh_rounded, size: 18),
+            label: const Text(
+              'إعادة المحاولة',
+              style: TextStyle(
+                fontFamily: 'Tajawal',
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        );
+    }
   }
 }

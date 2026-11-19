@@ -133,6 +133,14 @@ class AudioDownloadRepositoryImpl implements BaseAudioDownloadRepository {
   }
 
   @override
+  Future<AudioDownload?> getDownloadRecord({
+    required int surahNumber,
+    required String reciterId,
+  }) async {
+    return await localDataSource.getDownloadRecord(surahNumber, reciterId);
+  }
+
+  @override
   Future<String?> getLocalAudioPath({
     required int surahNumber,
     required String reciterId,
