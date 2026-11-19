@@ -73,11 +73,7 @@ class QuranAudioPlayerImpl implements QuranAudioPlayer {
 
       // Self-healing synchronization: if player is actively playing and status is temporarily out of sync,
       // guarantee that _status is set to playing.
-      if (_player.playing &&
-          _status != QuranPlaybackStatus.playing &&
-          _status != QuranPlaybackStatus.paused &&
-          _status != QuranPlaybackStatus.completed &&
-          _status != QuranPlaybackStatus.idle) {
+      if (_player.playing && _status != QuranPlaybackStatus.playing) {
         _status = QuranPlaybackStatus.playing;
         _statusController.add(_status);
       }
@@ -134,6 +130,9 @@ class QuranAudioPlayerImpl implements QuranAudioPlayer {
 
   @override
   AudioRepeatMode get repeatMode => _repeatMode;
+
+  @override
+  int? get repeatCount => _repeatCount;
 
   int? get rangeStartAyah => _rangeStartAyah;
   int? get rangeEndAyah => _rangeEndAyah;

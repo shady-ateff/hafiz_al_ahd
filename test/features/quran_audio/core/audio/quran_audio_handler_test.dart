@@ -58,9 +58,13 @@ class FakeQuranAudioPlayerForHandler implements QuranAudioPlayer {
   SurahAudio? get currentTrack => currentTrackAudio;
 
   AudioRepeatMode testRepeatMode = AudioRepeatMode.continuous;
+  int? testRepeatCount;
 
   @override
   AudioRepeatMode get repeatMode => testRepeatMode;
+
+  @override
+  int? get repeatCount => testRepeatCount;
 
   @override
   Future<void> loadSurah({
@@ -114,7 +118,10 @@ class FakeQuranAudioPlayerForHandler implements QuranAudioPlayer {
     int? rangeStartAyah,
     int? rangeEndAyah,
     int? repeatCount,
-  }) async {}
+  }) async {
+    testRepeatMode = mode;
+    testRepeatCount = repeatCount;
+  }
 
   @override
   Future<void> dispose() async {

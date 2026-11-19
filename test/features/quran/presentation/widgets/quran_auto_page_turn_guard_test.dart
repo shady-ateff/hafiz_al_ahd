@@ -120,6 +120,8 @@ class _FakePlayer implements QuranAudioPlayer {
   SurahAudio? get currentTrack => null;
   @override
   AudioRepeatMode get repeatMode => AudioRepeatMode.off;
+  @override
+  int? get repeatCount => null;
 
   @override
   Future<void> loadSurah({required SurahAudio surahAudio, String? localFilePath, Duration? startPosition}) async {

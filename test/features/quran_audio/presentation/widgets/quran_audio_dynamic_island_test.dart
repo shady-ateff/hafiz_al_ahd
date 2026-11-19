@@ -96,7 +96,8 @@ class _FakePlayer implements QuranAudioPlayer {
   Duration _pos = Duration.zero;
   Duration? _dur;
   SurahAudio? _track;
-  AudioRepeatMode _repeatMode = AudioRepeatMode.off;
+  AudioRepeatMode _repeatMode = AudioRepeatMode.continuous;
+  int? _repeatCount;
   double volume = 1.0;
 
   @override
@@ -117,6 +118,8 @@ class _FakePlayer implements QuranAudioPlayer {
   SurahAudio? get currentTrack => _track;
   @override
   AudioRepeatMode get repeatMode => _repeatMode;
+  @override
+  int? get repeatCount => _repeatCount;
 
   @override
   Future<void> loadSurah({required SurahAudio surahAudio, String? localFilePath, Duration? startPosition}) async {
@@ -168,6 +171,7 @@ class _FakePlayer implements QuranAudioPlayer {
     int? repeatCount,
   }) async {
     _repeatMode = mode;
+    _repeatCount = repeatCount;
   }
 
   @override
@@ -379,25 +383,35 @@ void main() {
 
       expect(cubit.state.highlightState.repeatMode, equals(AudioRepeatMode.continuous));
 
-      // Tap Repeat button -> cycles to off
       final repeatBtn = find.byWidgetPredicate(
-        (w) => w is IconButton && (w.tooltip?.contains('تلاوة مستمرة') == true || w.tooltip?.contains('سورة كاملة') == true || w.tooltip?.contains('تكرار') == true),
+        (w) =>
+            w is IconButton &&
+            (w.tooltip?.contains('تلاوة مستمرة') == true ||
+                w.tooltip?.contains('تكرار') == true ||
+                w.tooltip == 'سورة كاملة فقط'),
       );
+
+      // Tap 1: continuous -> surah
       await tester.tap(repeatBtn);
       await tester.pump(const Duration(milliseconds: 50));
-      expect(cubit.state.highlightState.repeatMode, equals(AudioRepeatMode.off));
+      expect(cubit.state.highlightState.repeatMode, equals(AudioRepeatMode.surah));
 
-      // Tap Repeat button -> cycles to singleAyah
+      // Tap 2: surah -> singleAyah
       await tester.tap(repeatBtn);
       await tester.pump(const Duration(milliseconds: 50));
       expect(cubit.state.highlightState.repeatMode, equals(AudioRepeatMode.singleAyah));
 
-      // Tap Repeat button again -> cycles to range
+      // Tap 3: singleAyah -> range
       await tester.tap(repeatBtn);
       await tester.pump(const Duration(milliseconds: 50));
       expect(cubit.state.highlightState.repeatMode, equals(AudioRepeatMode.range));
 
-      // Tap Repeat button again -> cycles back to continuous
+      // Tap 4: range -> off
+      await tester.tap(repeatBtn);
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(cubit.state.highlightState.repeatMode, equals(AudioRepeatMode.off));
+
+      // Tap 5: off -> continuous
       await tester.tap(repeatBtn);
       await tester.pump(const Duration(milliseconds: 50));
       expect(cubit.state.highlightState.repeatMode, equals(AudioRepeatMode.continuous));

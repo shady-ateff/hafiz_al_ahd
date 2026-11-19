@@ -90,7 +90,8 @@ class _FakePlayer implements QuranAudioPlayer {
   Duration _pos = Duration.zero;
   Duration? _dur;
   SurahAudio? _track;
-  AudioRepeatMode _repeatMode = AudioRepeatMode.off;
+  AudioRepeatMode _repeatMode = AudioRepeatMode.continuous;
+  int? _repeatCount;
   double volume = 1.0;
 
   @override
@@ -111,6 +112,8 @@ class _FakePlayer implements QuranAudioPlayer {
   SurahAudio? get currentTrack => _track;
   @override
   AudioRepeatMode get repeatMode => _repeatMode;
+  @override
+  int? get repeatCount => _repeatCount;
 
   @override
   Future<void> loadSurah({required SurahAudio surahAudio, String? localFilePath, Duration? startPosition}) async {
@@ -162,6 +165,7 @@ class _FakePlayer implements QuranAudioPlayer {
     int? repeatCount,
   }) async {
     _repeatMode = mode;
+    _repeatCount = repeatCount;
   }
 
   @override
@@ -242,6 +246,7 @@ void main() {
       // Repeat mode scope options
       expect(find.text('مستمر'), findsOneWidget);
       expect(find.text('سورة كاملة'), findsOneWidget);
+      expect(find.text('تكرار سورة'), findsOneWidget);
       expect(find.text('تكرار آية'), findsOneWidget);
       expect(find.text('نطاق (حفظ)'), findsOneWidget);
 
@@ -251,6 +256,7 @@ void main() {
 
       // Memorization chips
       expect(find.text('مرة واحدة'), findsOneWidget);
+      expect(find.text('مرتان'), findsOneWidget);
       expect(find.text('٣ مرات'), findsOneWidget);
       expect(find.text('٥ مرات'), findsOneWidget);
       expect(find.text('١٠ مرات'), findsOneWidget);

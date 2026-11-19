@@ -130,7 +130,8 @@ class QuranAudioCubit extends Cubit<QuranAudioState> {
         final surahNum = item.extras?['surahNumber'] as int?;
         if (surahNum != null && surahNum != state.currentSurahNumber) {
           final track = audioHandler.currentTrack;
-          final isPlaying = audioHandler.status == QuranPlaybackStatus.playing;
+          final isPlaying = audioHandler.status == QuranPlaybackStatus.playing ||
+              audioHandler.isActuallyPlaying;
           final isBuffering = audioHandler.status == QuranPlaybackStatus.buffering;
 
           if (track != null && track.surahNumber == surahNum) {
@@ -139,7 +140,9 @@ class QuranAudioCubit extends Cubit<QuranAudioState> {
               currentSurahNumber: surahNum,
               currentSurahAudio: track,
               totalDuration: Duration(milliseconds: track.durationMs),
-              playbackStatus: audioHandler.status,
+              playbackStatus: isPlaying
+                  ? QuranPlaybackStatus.playing
+                  : (isBuffering ? QuranPlaybackStatus.buffering : audioHandler.status),
               highlightState: state.highlightState.copyWith(
                 clearActiveAyah: true,
                 isPlaying: isPlaying,
@@ -149,7 +152,9 @@ class QuranAudioCubit extends Cubit<QuranAudioState> {
           } else {
             emit(state.copyWith(
               currentSurahNumber: surahNum,
-              playbackStatus: audioHandler.status,
+              playbackStatus: isPlaying
+                  ? QuranPlaybackStatus.playing
+                  : (isBuffering ? QuranPlaybackStatus.buffering : audioHandler.status),
               highlightState: state.highlightState.copyWith(
                 clearActiveAyah: true,
                 isPlaying: isPlaying,
@@ -192,7 +197,7 @@ class QuranAudioCubit extends Cubit<QuranAudioState> {
 
     emit(state.copyWith(
       currentPosition: position,
-      playbackStatus: (isPlaying && !state.isPlaying && !state.isPaused && !state.isCompleted)
+      playbackStatus: (isPlaying && !state.isPlaying)
           ? QuranPlaybackStatus.playing
           : state.playbackStatus,
       highlightState: updatedHighlight,
@@ -210,6 +215,12 @@ class QuranAudioCubit extends Cubit<QuranAudioState> {
           isPlaying: true,
         ),
       ));
+      return;
+    }
+
+    if (state.highlightState.repeatMode == AudioRepeatMode.surah) {
+      // AudioHandler manages Surah repetition: if repeating, seek(0) & play()
+      // will emit playing; if all iterations completed, handler calls stop().
       return;
     }
 
@@ -600,6 +611,8 @@ class QuranAudioCubit extends Cubit<QuranAudioState> {
       clearRangeStart: startId == null,
       repeatRangeEnd: endId,
       clearRangeEnd: endId == null,
+      repeatCount: repeatCount,
+      clearRepeatCount: repeatCount == null,
     );
 
     emit(state.copyWith(highlightState: updatedHighlight));

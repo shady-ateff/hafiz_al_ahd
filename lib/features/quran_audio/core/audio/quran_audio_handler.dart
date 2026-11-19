@@ -69,10 +69,14 @@ class QuranAudioHandler extends BaseAudioHandler with SeekHandler {
   Duration? get duration => player.duration;
   SurahAudio? get currentTrack => _currentSurahAudio ?? player.currentTrack;
   AudioRepeatMode get repeatMode => player.repeatMode;
+  int? get repeatCount => player.repeatCount;
   int get activeAyahNumber => _activeAyahNumber;
   bool get isInterrupted => _interruptionDepth > 0;
   bool get isDucked => _isDucked;
   bool get isNavigating => _isNavigating;
+  int get currentSurahIteration => _currentSurahIteration;
+
+  int _currentSurahIteration = 1;
 
   Stream<QuranPlaybackStatus> get playbackStatusStream => player.playbackStatusStream;
   Stream<Duration> get positionStream => player.positionStream;
@@ -86,6 +90,8 @@ class QuranAudioHandler extends BaseAudioHandler with SeekHandler {
         if (player.repeatMode == AudioRepeatMode.continuous &&
             (_currentSurahAudio?.surahNumber ?? 0) < 114) {
           skipToNext();
+        } else if (player.repeatMode == AudioRepeatMode.surah) {
+          _handleSurahRepeat();
         } else {
           stop();
         }
@@ -258,6 +264,7 @@ class QuranAudioHandler extends BaseAudioHandler with SeekHandler {
     _currentSurahAudio = surahAudio;
     _lastSavedPositionMs = startPosition?.inMilliseconds ?? 0;
     _activeAyahNumber = 1;
+    _currentSurahIteration = 1;
 
     final name = reciterName ?? mediaItem.value?.artist ?? 'القرآن الكريم';
 
@@ -283,12 +290,32 @@ class QuranAudioHandler extends BaseAudioHandler with SeekHandler {
     int? rangeEndAyah,
     int? repeatCount,
   }) async {
+    _currentSurahIteration = 1;
     await player.setRepeatMode(
       mode,
       rangeStartAyah: rangeStartAyah,
       rangeEndAyah: rangeEndAyah,
       repeatCount: repeatCount,
     );
+  }
+
+  Future<void> _handleSurahRepeat() async {
+    final count = player.repeatCount;
+    if (count == null || count <= 0) {
+      // Infinite repeat (مستمر ∞)
+      debugPrint('[QuranAudioHandler] Surah repeat (infinite): restarting Surah ${_currentSurahAudio?.surahNumber}');
+      await seek(Duration.zero);
+      await play();
+    } else if (_currentSurahIteration < count) {
+      _currentSurahIteration++;
+      debugPrint('[QuranAudioHandler] Surah repeat: iteration $_currentSurahIteration of $count');
+      await seek(Duration.zero);
+      await play();
+    } else {
+      // All iterations completed!
+      debugPrint('[QuranAudioHandler] Surah repeat: completed all $count iterations');
+      await stop();
+    }
   }
 
   /// Sets active ayah timing for enforcing single ayah loops.

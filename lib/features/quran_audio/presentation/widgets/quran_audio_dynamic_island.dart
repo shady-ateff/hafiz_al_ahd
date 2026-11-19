@@ -727,12 +727,14 @@ class _QuranAudioDynamicIslandState extends State<QuranAudioDynamicIsland>
     switch (mode) {
       case AudioRepeatMode.continuous:
         return Icons.all_inclusive_rounded;
-      case AudioRepeatMode.off:
-        return Icons.format_list_numbered_rtl_rounded;
+      case AudioRepeatMode.surah:
+        return Icons.repeat_rounded;
       case AudioRepeatMode.singleAyah:
         return Icons.repeat_one_rounded;
       case AudioRepeatMode.range:
         return Icons.tune_rounded;
+      case AudioRepeatMode.off:
+        return Icons.format_list_numbered_rtl_rounded;
     }
   }
 
@@ -740,21 +742,24 @@ class _QuranAudioDynamicIslandState extends State<QuranAudioDynamicIsland>
     switch (mode) {
       case AudioRepeatMode.continuous:
         return 'تلاوة مستمرة (تلقائي للسورة التالية)';
-      case AudioRepeatMode.off:
-        return 'سورة كاملة فقط';
+      case AudioRepeatMode.surah:
+        return 'تكرار السورة';
       case AudioRepeatMode.singleAyah:
         return 'تكرار آية';
       case AudioRepeatMode.range:
         return 'تكرار نطاق آيات (حفظ)';
+      case AudioRepeatMode.off:
+        return 'سورة كاملة فقط';
     }
   }
 
   void _cycleRepeatMode(QuranAudioCubit cubit, AudioRepeatMode current) {
     final nextMode = switch (current) {
-      AudioRepeatMode.continuous => AudioRepeatMode.off,
-      AudioRepeatMode.off => AudioRepeatMode.singleAyah,
+      AudioRepeatMode.continuous => AudioRepeatMode.surah,
+      AudioRepeatMode.surah => AudioRepeatMode.singleAyah,
       AudioRepeatMode.singleAyah => AudioRepeatMode.range,
-      AudioRepeatMode.range => AudioRepeatMode.continuous,
+      AudioRepeatMode.range => AudioRepeatMode.off,
+      AudioRepeatMode.off => AudioRepeatMode.continuous,
     };
     cubit.setRepeatMode(nextMode);
   }

@@ -46,10 +46,12 @@ class _QuranAudioSettingsSheetState extends State<QuranAudioSettingsSheet> {
     _selectedMode = cubit.state.highlightState.repeatMode;
     _rangeStart = cubit.state.highlightState.repeatRangeStart?.ayahNumber ?? 1;
     _rangeEnd = cubit.state.highlightState.repeatRangeEnd?.ayahNumber ?? 5;
-    _repeatCount = (_selectedMode == AudioRepeatMode.off ||
-            _selectedMode == AudioRepeatMode.continuous)
-        ? 1
-        : 3;
+    final savedCount = cubit.state.highlightState.repeatCount;
+    _repeatCount = savedCount ??
+        ((_selectedMode == AudioRepeatMode.off ||
+                _selectedMode == AudioRepeatMode.continuous)
+            ? 1
+            : 3);
 
     // Trigger reciters load if empty
     if (cubit.state.reciters.isEmpty && !cubit.state.isLoadingReciters) {
@@ -168,14 +170,15 @@ class _QuranAudioSettingsSheetState extends State<QuranAudioSettingsSheet> {
                         _buildRangeConfig(state, isDark),
                       ],
 
-                      if (_selectedMode == AudioRepeatMode.singleAyah ||
+                      if (_selectedMode == AudioRepeatMode.surah ||
+                          _selectedMode == AudioRepeatMode.singleAyah ||
                           _selectedMode == AudioRepeatMode.range) ...[
                         const SizedBox(height: 24),
 
-                        // Section 3: Memorization Repeat Counts
+                        // Section 3: Repetition Count
                         _buildSectionHeader(
-                          'تكرار الحفظ (مرات إعادة الآية)',
-                          Icons.school_outlined,
+                          _getRepeatSectionTitle(_selectedMode),
+                          Icons.repeat_one_rounded,
                           textColor,
                         ),
                         const SizedBox(height: 10),
@@ -229,13 +232,15 @@ class _QuranAudioSettingsSheetState extends State<QuranAudioSettingsSheet> {
       children: [
         Icon(icon, size: 20, color: AppColors.secondaryGold),
         const SizedBox(width: 8),
-        Text(
-          title,
-          style: TextStyle(
-            fontFamily: 'Tajawal',
-            fontSize: 15,
-            fontWeight: FontWeight.bold,
-            color: color,
+        Expanded(
+          child: Text(
+            title,
+            style: TextStyle(
+              fontFamily: 'Tajawal',
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
           ),
         ),
       ],
@@ -372,7 +377,7 @@ class _QuranAudioSettingsSheetState extends State<QuranAudioSettingsSheet> {
   }
 
   Widget _buildRepeatModeSelector(bool isDark) {
-    final modes = [
+    final generalModes = [
       {
         'mode': AudioRepeatMode.continuous,
         'label': 'مستمر',
@@ -382,6 +387,14 @@ class _QuranAudioSettingsSheetState extends State<QuranAudioSettingsSheet> {
         'mode': AudioRepeatMode.off,
         'label': 'سورة كاملة',
         'icon': Icons.format_list_numbered_rtl_rounded,
+      },
+    ];
+
+    final repeatModes = [
+      {
+        'mode': AudioRepeatMode.surah,
+        'label': 'تكرار سورة',
+        'icon': Icons.repeat_rounded,
       },
       {
         'mode': AudioRepeatMode.singleAyah,
@@ -395,70 +408,85 @@ class _QuranAudioSettingsSheetState extends State<QuranAudioSettingsSheet> {
       },
     ];
 
-    return Row(
-      children: modes.map((m) {
-        final mode = m['mode'] as AudioRepeatMode;
-        final label = m['label'] as String;
-        final icon = m['icon'] as IconData;
-        final isSelected = _selectedMode == mode;
+    Widget buildButton(Map<String, dynamic> m) {
+      final mode = m['mode'] as AudioRepeatMode;
+      final label = m['label'] as String;
+      final icon = m['icon'] as IconData;
+      final isSelected = _selectedMode == mode;
 
-        return Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: InkWell(
-              onTap: () {
-                setState(() {
-                  _selectedMode = mode;
-                });
-              },
-              borderRadius: BorderRadius.circular(14),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  vertical: 12,
-                  horizontal: 8,
-                ),
-                decoration: BoxDecoration(
+      return Expanded(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: InkWell(
+            onTap: () {
+              setState(() {
+                _selectedMode = mode;
+                if (mode == AudioRepeatMode.continuous ||
+                    mode == AudioRepeatMode.off) {
+                  _repeatCount = 1;
+                } else if (_repeatCount <= 1) {
+                  _repeatCount = 3;
+                }
+              });
+            },
+            borderRadius: BorderRadius.circular(14),
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                vertical: 12,
+                horizontal: 6,
+              ),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? AppColors.secondaryGold.withValues(alpha: 0.18)
+                    : (isDark ? const Color(0xFF282828) : Colors.grey[100]),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
                   color: isSelected
-                      ? AppColors.secondaryGold.withValues(alpha: 0.18)
-                      : (isDark ? const Color(0xFF282828) : Colors.grey[100]),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
+                      ? AppColors.secondaryGold
+                      : Colors.transparent,
+                  width: 1.5,
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    icon,
+                    size: 20,
                     color: isSelected
                         ? AppColors.secondaryGold
-                        : Colors.transparent,
-                    width: 1.5,
+                        : (isDark ? Colors.white70 : Colors.black54),
                   ),
-                ),
-                child: Column(
-                  children: [
-                    Icon(
-                      icon,
-                      size: 20,
+                  const SizedBox(height: 6),
+                  Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: 'Tajawal',
+                      fontSize: 12,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.w500,
                       color: isSelected
                           ? AppColors.secondaryGold
-                          : (isDark ? Colors.white70 : Colors.black54),
+                          : (isDark ? Colors.white : Colors.black87),
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      label,
-                      style: TextStyle(
-                        fontFamily: 'Tajawal',
-                        fontSize: 12,
-                        fontWeight: isSelected
-                            ? FontWeight.bold
-                            : FontWeight.w500,
-                        color: isSelected
-                            ? AppColors.secondaryGold
-                            : (isDark ? Colors.white : Colors.black87),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
-        );
-      }).toList(),
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        Row(children: generalModes.map(buildButton).toList()),
+        const SizedBox(height: 8),
+        Row(children: repeatModes.map(buildButton).toList()),
+      ],
     );
   }
 
@@ -571,9 +599,23 @@ class _QuranAudioSettingsSheetState extends State<QuranAudioSettingsSheet> {
     );
   }
 
+  String _getRepeatSectionTitle(AudioRepeatMode mode) {
+    switch (mode) {
+      case AudioRepeatMode.surah:
+        return 'عدد مرات تكرار السورة';
+      case AudioRepeatMode.singleAyah:
+        return 'عدد مرات تكرار الآية';
+      case AudioRepeatMode.range:
+        return 'عدد مرات تكرار النطاق';
+      default:
+        return 'عدد مرات التكرار';
+    }
+  }
+
   Widget _buildRepeatCountChips(bool isDark) {
     final counts = [
       {'count': 1, 'label': 'مرة واحدة'},
+      {'count': 2, 'label': 'مرتان'},
       {'count': 3, 'label': '٣ مرات'},
       {'count': 5, 'label': '٥ مرات'},
       {'count': 10, 'label': '١٠ مرات'},

@@ -42,6 +42,9 @@ abstract class QuranAudioPlayer {
   /// Currently configured repeat mode.
   AudioRepeatMode get repeatMode;
 
+  /// Currently configured repetition count (null or 0 means infinite loop).
+  int? get repeatCount;
+
   /// Loads and prepares a Surah for playback.
   ///
   /// If [localFilePath] is provided and valid, playback is sourced from local storage.

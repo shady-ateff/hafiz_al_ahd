@@ -6,14 +6,17 @@ enum AudioRepeatMode {
   /// Continuous recitation advancing automatically to the next Surah upon completion (مستمر).
   continuous,
 
-  /// Plays only the current Surah and stops when complete (سورة كاملة).
-  off,
+  /// Repeat the current Surah (تكرار السورة).
+  surah,
 
   /// Repeat the currently reciting Ayah continuously (تكرار آية).
   singleAyah,
 
   /// Repeat a defined range of Ayahs continuously (نطاق آيات - حفظ).
   range,
+
+  /// Plays only the current Surah and stops when complete (سورة كاملة).
+  off,
 }
 
 /// Represents the dedicated UI highlighting state driven purely by audio playback tracking.
@@ -40,6 +43,9 @@ class AudioHighlightState extends Equatable {
   /// End of the Ayah repetition range (when [repeatMode] is [AudioRepeatMode.range]).
   final AyahId? repeatRangeEnd;
 
+  /// Number of times to repeat the Surah, Ayah, or Range (null or 0 means infinite loop).
+  final int? repeatCount;
+
   const AudioHighlightState({
     this.activeAyah,
     this.isPlaying = false,
@@ -47,6 +53,7 @@ class AudioHighlightState extends Equatable {
     this.repeatMode = AudioRepeatMode.continuous,
     this.repeatRangeStart,
     this.repeatRangeEnd,
+    this.repeatCount,
   });
 
   /// Initial idle state.
@@ -62,6 +69,8 @@ class AudioHighlightState extends Equatable {
     bool clearRangeStart = false,
     AyahId? repeatRangeEnd,
     bool clearRangeEnd = false,
+    int? repeatCount,
+    bool clearRepeatCount = false,
   }) {
     return AudioHighlightState(
       activeAyah: clearActiveAyah ? null : (activeAyah ?? this.activeAyah),
@@ -70,6 +79,7 @@ class AudioHighlightState extends Equatable {
       repeatMode: repeatMode ?? this.repeatMode,
       repeatRangeStart: clearRangeStart ? null : (repeatRangeStart ?? this.repeatRangeStart),
       repeatRangeEnd: clearRangeEnd ? null : (repeatRangeEnd ?? this.repeatRangeEnd),
+      repeatCount: clearRepeatCount ? null : (repeatCount ?? this.repeatCount),
     );
   }
 
@@ -81,5 +91,6 @@ class AudioHighlightState extends Equatable {
         repeatMode,
         repeatRangeStart,
         repeatRangeEnd,
+        repeatCount,
       ];
 }
