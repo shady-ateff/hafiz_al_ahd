@@ -13,6 +13,9 @@ import 'package:hafiz_al_ahd/features/quran_audio/domain/entities/audio_reciter.
 import 'package:hafiz_al_ahd/features/quran_audio/domain/entities/ayah_timing.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/domain/entities/download_progress.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/domain/entities/playback_position.dart';
+import 'package:hafiz_al_ahd/features/quran_audio/domain/entities/single_surah_download_result.dart';
+import 'package:hafiz_al_ahd/features/quran_audio/domain/entities/quran_download_queue_progress.dart';
+import 'package:hafiz_al_ahd/features/quran_audio/domain/entities/quran_download_queue_status.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/domain/entities/storage_reconciliation_summary.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/domain/entities/surah_audio.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/domain/errors/quran_audio_failures.dart';
@@ -55,6 +58,25 @@ class _FakeDownloadService implements BaseQuranAudioDownloadService {
     downloadCalls++;
     final c = _getController(surahNumber, reciterId);
     return c.stream;
+  }
+
+  @override
+  Future<SingleSurahDownloadResult> downloadSurahAndWait({
+    required int surahNumber,
+    required String reciterId,
+    required String audioUrl,
+    int? expectedTotalBytes,
+    void Function(DownloadProgress progress)? onProgress,
+    bool skipCoordinatorReservation = false,
+  }) async {
+    downloadCalls++;
+    return SingleSurahDownloadResult.completed(
+      surahNumber: surahNumber,
+      reciterId: reciterId,
+      filePath: '/dummy/$surahNumber.mp3',
+      totalBytes: expectedTotalBytes ?? 1024,
+      sha256: 'dummy_hash',
+    );
   }
 
   @override
@@ -116,12 +138,42 @@ class _FakeDownloadRepository implements BaseAudioDownloadRepository {
   }
 
   @override
-  Future<List<AudioDownload>> getAllDownloadedRecords() async => [];
+  Future<List<AudioDownload>> getAllDownloadedRecords() async =>
+      downloadedSurahs
+          .map((k) {
+            final parts = k.split(':');
+            final reciterId = parts[0];
+            final surah = int.parse(parts[1]);
+            return AudioDownload(
+              surahNumber: surah,
+              reciterId: reciterId,
+              localRelativePath: 'reciter_$reciterId/surah_$surah.mp3',
+              status: AudioDownloadStatus.completed,
+              actualSizeBytes: 1000,
+              sha256: 'valid_sha256_hash_$surah',
+              transferIntegrityVerified: true,
+            );
+          })
+          .toList();
 
   @override
   Future<List<AudioDownload>> getDownloadedSurahs(
           {required String reciterId}) async =>
-      [];
+      downloadedSurahs
+          .where((k) => k.startsWith('$reciterId:'))
+          .map((k) {
+            final surah = int.parse(k.split(':')[1]);
+            return AudioDownload(
+              surahNumber: surah,
+              reciterId: reciterId,
+              localRelativePath: 'reciter_$reciterId/surah_$surah.mp3',
+              status: AudioDownloadStatus.completed,
+              actualSizeBytes: 1000,
+              sha256: 'valid_sha256_hash_$surah',
+              transferIntegrityVerified: true,
+            );
+          })
+          .toList();
 
   @override
   Future<AudioDownload?> getDownloadRecord(
@@ -940,6 +992,199 @@ void main() {
       );
 
       await unconfiguredCubit.close();
+    });
+
+    testWidgets('15. Full-Quran Offline Download (QA.6 Phase 6.7): Renders section and initial download button', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(buildTestWidget(surahNumber: 1));
+      await tester.pumpAndSettle();
+
+      await tester.drag(find.byType(ListView).first, const Offset(0, -600));
+      await tester.pumpAndSettle();
+
+      final sectionHeader = find.text('تحميل المصحف كاملاً للاستماع دون إنترنت');
+      expect(sectionHeader, findsOneWidget);
+
+      final startBtn = find.text('بدء تحميل المصحف كاملاً');
+      expect(startBtn, findsOneWidget);
+    });
+
+    testWidgets('16. Full-Quran Offline Download (QA.6 Phase 6.7): Renders running progress, pause & cancel buttons', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      cubit.emit(cubit.state.copyWith(
+        fullQuranProgress: const QuranDownloadQueueProgress(
+          queueId: 'q1',
+          reciterId: '7',
+          status: QuranDownloadQueueStatus.running,
+          totalItems: 114,
+          completedItems: 10,
+          activeSurahNumber: 11,
+          aggregateRatio: 0.1,
+          downloadedBytes: 10000,
+        ),
+      ));
+
+      await tester.pumpWidget(buildTestWidget(surahNumber: 1));
+      await tester.pumpAndSettle();
+
+      await tester.drag(find.byType(ListView).first, const Offset(0, -600));
+      await tester.pumpAndSettle();
+
+      final pauseBtn = find.text('إيقاف مؤقت');
+      expect(pauseBtn, findsOneWidget);
+
+      final cancelBtn = find.text('إلغاء التحميل');
+      expect(cancelBtn, findsOneWidget);
+
+      expect(find.textContaining('تم تحميل 10 من 114 سورة (10%)'), findsOneWidget);
+      expect(find.byType(LinearProgressIndicator), findsWidgets);
+    });
+
+    testWidgets('17. Full-Quran Offline Download (QA.6 Phase 6.7): Renders paused state with resume button', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      cubit.emit(cubit.state.copyWith(
+        fullQuranProgress: const QuranDownloadQueueProgress(
+          queueId: 'q1',
+          reciterId: '7',
+          status: QuranDownloadQueueStatus.paused,
+          totalItems: 114,
+          completedItems: 10,
+          aggregateRatio: 0.1,
+        ),
+      ));
+
+      await tester.pumpWidget(buildTestWidget(surahNumber: 1));
+      await tester.pumpAndSettle();
+
+      await tester.drag(find.byType(ListView).first, const Offset(0, -600));
+      await tester.pumpAndSettle();
+
+      final resumeBtn = find.text('استئناف التحميل');
+      expect(resumeBtn, findsOneWidget);
+
+      final cancelBtn = find.text('إلغاء التحميل');
+      expect(cancelBtn, findsOneWidget);
+      expect(find.textContaining('متوقف مؤقتاً'), findsWidgets);
+    });
+
+    testWidgets('18. Full-Quran Offline Download (QA.6 Phase 6.7): Renders failed state with retry button', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      cubit.emit(cubit.state.copyWith(
+        fullQuranProgress: const QuranDownloadQueueProgress(
+          queueId: 'q1',
+          reciterId: '7',
+          status: QuranDownloadQueueStatus.failed,
+          totalItems: 114,
+          completedItems: 5,
+          lastError: 'المساحة التخزينية المتاحة غير كافية',
+        ),
+      ));
+
+      await tester.pumpWidget(buildTestWidget(surahNumber: 1));
+      await tester.pumpAndSettle();
+
+      await tester.drag(find.byType(ListView).first, const Offset(0, -600));
+      await tester.pumpAndSettle();
+
+      final retryBtn = find.text('إعادة المحاولة');
+      expect(retryBtn, findsOneWidget);
+
+      expect(find.textContaining('المساحة التخزينية المتاحة غير كافية'), findsOneWidget);
+    });
+
+    testWidgets('19. Full-Quran Offline Download (QA.6 Phase 6.7): Renders completed state with gold style and offline indicator', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      for (int i = 1; i <= 114; i++) {
+        fakeDownloadRepo.downloadedSurahs.add('7:$i');
+      }
+
+      cubit.emit(cubit.state.copyWith(
+        isFullQuranDownloaded: true,
+      ));
+
+      await tester.pumpWidget(buildTestWidget(surahNumber: 1));
+      await tester.pumpAndSettle();
+
+      await tester.drag(find.byType(ListView).first, const Offset(0, -600));
+      await tester.pumpAndSettle();
+
+      final completedTitle = find.textContaining('المصحف كاملاً');
+      expect(completedTitle, findsWidgets);
+
+      expect(find.text('جميع السور (114 سورة) محملة وجاهزة للاستماع دون إنترنت'), findsOneWidget);
+      expect(find.text('جاهز للاستماع دون اتصال'), findsWidgets);
+    });
+
+    testWidgets('20. Reciter card tags in top row reflect downloading and downloaded states', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      for (int i = 1; i <= 114; i++) {
+        fakeDownloadRepo.downloadedSurahs.add('7:$i');
+      }
+
+      // 1. Downloading state for reciter 7 (Mishari)
+      cubit.emit(cubit.state.copyWith(
+        fullQuranProgress: const QuranDownloadQueueProgress(
+          queueId: 'q1',
+          reciterId: '7',
+          status: QuranDownloadQueueStatus.running,
+          totalItems: 114,
+          completedItems: 10,
+        ),
+      ));
+
+      await tester.pumpWidget(buildTestWidget(surahNumber: 1));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // Top row reciters are visible without scrolling
+      expect(find.text('جاري التحميل...'), findsWidgets);
+
+      // 2. Completed state for reciter 7
+      cubit.emit(cubit.state.copyWith(
+        clearFullQuranProgress: true,
+        isFullQuranDownloaded: true,
+        downloadedReciterIds: {'7'},
+      ));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.text('محمل يعمل بلا إنترنت'), findsWidgets);
     });
   });
 }

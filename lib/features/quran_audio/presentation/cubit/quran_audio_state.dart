@@ -4,6 +4,7 @@ import '../../domain/entities/audio_download.dart';
 import '../../domain/entities/audio_highlight_state.dart';
 import '../../domain/entities/audio_reciter.dart';
 import '../../domain/entities/download_progress.dart';
+import '../../domain/entities/quran_download_queue_progress.dart';
 import '../../domain/entities/surah_audio.dart';
 
 /// State representation for the Quran Audio presentation subsystem.
@@ -28,6 +29,11 @@ class QuranAudioState extends Equatable {
   final bool isOfflineError;
   final double playbackSpeed;
   final Map<String, DownloadProgress> downloadProgressMap;
+  final QuranDownloadQueueProgress? fullQuranProgress;
+  final bool isFullQuranDownloaded;
+  final Set<String>? _downloadedReciterIds;
+
+  Set<String> get downloadedReciterIds => _downloadedReciterIds ?? const {};
 
   const QuranAudioState({
     this.reciters = const [],
@@ -45,7 +51,10 @@ class QuranAudioState extends Equatable {
     this.isOfflineError = false,
     this.playbackSpeed = 1.0,
     this.downloadProgressMap = const {},
-  });
+    this.fullQuranProgress,
+    this.isFullQuranDownloaded = false,
+    Set<String>? downloadedReciterIds = const {},
+  }) : _downloadedReciterIds = downloadedReciterIds;
 
   bool get isPlaying => playbackStatus == QuranPlaybackStatus.playing;
   bool get isPaused => playbackStatus == QuranPlaybackStatus.paused;
@@ -87,6 +96,10 @@ class QuranAudioState extends Equatable {
     bool? isOfflineError,
     double? playbackSpeed,
     Map<String, DownloadProgress>? downloadProgressMap,
+    QuranDownloadQueueProgress? fullQuranProgress,
+    bool clearFullQuranProgress = false,
+    bool? isFullQuranDownloaded,
+    Set<String>? downloadedReciterIds,
   }) {
     return QuranAudioState(
       reciters: reciters ?? this.reciters,
@@ -104,6 +117,9 @@ class QuranAudioState extends Equatable {
       isOfflineError: isOfflineError ?? this.isOfflineError,
       playbackSpeed: playbackSpeed ?? this.playbackSpeed,
       downloadProgressMap: downloadProgressMap ?? this.downloadProgressMap,
+      fullQuranProgress: clearFullQuranProgress ? null : (fullQuranProgress ?? this.fullQuranProgress),
+      isFullQuranDownloaded: isFullQuranDownloaded ?? this.isFullQuranDownloaded,
+      downloadedReciterIds: downloadedReciterIds ?? this.downloadedReciterIds,
     );
   }
 
@@ -124,5 +140,8 @@ class QuranAudioState extends Equatable {
         isOfflineError,
         playbackSpeed,
         downloadProgressMap,
+        fullQuranProgress,
+        isFullQuranDownloaded,
+        downloadedReciterIds,
       ];
 }

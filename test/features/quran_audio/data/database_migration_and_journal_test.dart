@@ -35,8 +35,8 @@ void main() {
   });
 
   group('Database Schema Migration v1 -> v2 (Contract 5.1-A & D3-8)', () {
-    test('verifies database version bump to 2', () {
-      expect(QuranAudioDatabase.kDatabaseVersion, 2);
+    test('verifies database version bump to 2 or higher (v3 in QA.6)', () {
+      expect(QuranAudioDatabase.kDatabaseVersion, greaterThanOrEqualTo(2));
     });
 
     test('deserializes legacy v1 row with backfilled completed_at and unverified transfer', () {

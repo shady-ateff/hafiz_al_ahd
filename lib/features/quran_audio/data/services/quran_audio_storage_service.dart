@@ -17,9 +17,50 @@ class QuranAudioStorageService {
   static const String kStagingDirName = '.staging';
   static const String kQuarantineDirName = '.quarantine';
 
-  final Directory Function()? customBaseDirectoryProvider;
+  /// 25 MB OS/WAL Safety Floor (Blueprint C6).
+  static const int kSafetyFloorBytes = 25 * 1024 * 1024;
 
-  const QuranAudioStorageService({this.customBaseDirectoryProvider});
+  final Directory Function()? customBaseDirectoryProvider;
+  final Future<int?> Function()? customDiskSpaceProvider;
+
+  const QuranAudioStorageService({
+    this.customBaseDirectoryProvider,
+    this.customDiskSpaceProvider,
+  });
+
+  /// Returns the available free disk space in bytes for the storage partition.
+  ///
+  /// Priority:
+  /// 1. Uses [customDiskSpaceProvider] if injected (e.g. tests or platform bridges).
+  /// 2. If running on Android/Linux, queries storage mount via `df -k`.
+  /// 3. Returns null if platform disk space query is unsupported or fails,
+  ///    allowing indeterminate preflight handling without blocking operations.
+  Future<int?> getAvailableDiskSpace() async {
+    if (customDiskSpaceProvider != null) {
+      return await customDiskSpaceProvider!();
+    }
+    try {
+      if (Platform.isAndroid || Platform.isLinux) {
+        final storageDir = await getStorageDirectory();
+        final result = await Process.run('df', ['-k', storageDir.path]);
+        if (result.exitCode == 0) {
+          final lines = (result.stdout as String).trim().split('\n');
+          if (lines.length >= 2) {
+            final parts = lines[1].trim().split(RegExp(r'\s+'));
+            if (parts.length >= 4) {
+              final availKb = int.tryParse(parts[3]);
+              if (availKb != null) {
+                return availKb * 1024;
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('[QuranAudioStorageService] getAvailableDiskSpace error: $e');
+    }
+    return null;
+  }
 
   /// Resolves the root Quran Audio storage directory.
   Future<Directory> getStorageDirectory() async {

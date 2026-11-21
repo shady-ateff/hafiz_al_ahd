@@ -3,11 +3,16 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 import '../../domain/entities/promotion_journal_entry.dart';
+import '../../domain/entities/quran_download_queue.dart';
+import '../../domain/entities/quran_download_queue_item.dart';
+import '../../domain/entities/quran_download_queue_status.dart';
 import '../models/audio_download_model.dart';
 import '../models/audio_reciter_model.dart';
 import '../models/ayah_timing_model.dart';
 import '../models/playback_position_model.dart';
 import '../models/promotion_journal_model.dart';
+import '../models/quran_download_queue_item_model.dart';
+import '../models/quran_download_queue_model.dart';
 import '../models/surah_audio_model.dart';
 
 /// Database contract for the Quran Audio subsystem.
@@ -56,6 +61,44 @@ abstract class BaseQuranAudioDatabase {
   });
   Future<void> savePlaybackPosition(PlaybackPositionModel position);
 
+  // Full-Quran Download Queue (QA.6 Phase 6.3)
+  Future<void> createQueue({
+    required QuranDownloadQueueModel queue,
+    required List<QuranDownloadQueueItemModel> items,
+  });
+  Future<QuranDownloadQueueModel?> getActiveQueue();
+  Future<QuranDownloadQueueModel?> getQueueById(String queueId);
+  Future<QuranDownloadQueueModel?> getLatestQueueForReciter(String reciterId);
+  Future<List<QuranDownloadQueueItemModel>> getQueueItems(String queueId);
+  Future<void> updateQueueStatus({
+    required String queueId,
+    required QuranDownloadQueueStatus status,
+    DateTime? completedAt,
+  });
+  Future<void> updateQueueProgress({
+    required String queueId,
+    required int completedItems,
+    required int downloadedBytes,
+    int? totalExpectedBytes,
+  });
+  Future<void> updateQueueItemStatus({
+    required String queueId,
+    required int surahNumber,
+    required QuranDownloadQueueItemStatus status,
+    int? downloadedBytes,
+    String? lastError,
+  });
+  Future<void> updateQueueAndItemStatusAtomic({
+    required String queueId,
+    required int surahNumber,
+    required QuranDownloadQueueStatus queueStatus,
+    required QuranDownloadQueueItemStatus itemStatus,
+    int? downloadedBytes,
+    String? lastError,
+  });
+  Future<void> retryFailedQueueItems(String queueId);
+  Future<void> deleteQueue(String queueId);
+
   Future<void> close();
 }
 
@@ -66,7 +109,7 @@ abstract class BaseQuranAudioDatabase {
 /// from the existing Quran text database (`quran_v7.db`).
 class QuranAudioDatabase implements BaseQuranAudioDatabase {
   static const String kDatabaseName = 'quran_audio.db';
-  static const int kDatabaseVersion = 2;
+  static const int kDatabaseVersion = 3;
 
   Database? _db;
   final String? customDatabasePath;
@@ -78,6 +121,8 @@ class QuranAudioDatabase implements BaseQuranAudioDatabase {
   final Map<String, AudioDownloadModel> _memDownloads = {};
   final Map<String, PromotionJournalEntry> _memJournals = {};
   final Map<String, PlaybackPositionModel> _memPositions = {};
+  final Map<String, QuranDownloadQueue> _memQueues = {};
+  final Map<String, List<QuranDownloadQueueItem>> _memQueueItems = {};
   bool _useInMemoryFallback = false;
 
   QuranAudioDatabase({this.customDatabasePath});
@@ -105,6 +150,7 @@ class QuranAudioDatabase implements BaseQuranAudioDatabase {
       _db = await openDatabase(
         dbPath,
         version: kDatabaseVersion,
+        onConfigure: _onConfigure,
         onCreate: _onCreate,
         onUpgrade: _onUpgrade,
       );
@@ -112,6 +158,10 @@ class QuranAudioDatabase implements BaseQuranAudioDatabase {
       debugPrint('[QuranAudioDatabase] SQLite init failed, falling back to memory store: $e');
       _useInMemoryFallback = true;
     }
+  }
+
+  Future<void> _onConfigure(Database db) async {
+    await db.execute('PRAGMA foreign_keys = ON;');
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -205,6 +255,50 @@ class QuranAudioDatabase implements BaseQuranAudioDatabase {
         PRIMARY KEY (reciter_id, surah_number)
       );
     ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS quran_download_queues (
+        id TEXT PRIMARY KEY,
+        reciter_id TEXT NOT NULL,
+        status TEXT NOT NULL,
+        total_items INTEGER NOT NULL DEFAULT 114,
+        completed_items INTEGER NOT NULL DEFAULT 0,
+        total_expected_bytes INTEGER,
+        downloaded_bytes INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        completed_at TEXT
+      );
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS quran_download_queue_items (
+        id TEXT PRIMARY KEY,
+        queue_id TEXT NOT NULL,
+        surah_number INTEGER NOT NULL,
+        position INTEGER NOT NULL,
+        status TEXT NOT NULL,
+        expected_bytes INTEGER,
+        downloaded_bytes INTEGER NOT NULL DEFAULT 0,
+        attempt_count INTEGER NOT NULL DEFAULT 0,
+        last_error TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY (queue_id) REFERENCES quran_download_queues (id) ON DELETE CASCADE,
+        UNIQUE(queue_id, surah_number),
+        UNIQUE(queue_id, position)
+      );
+    ''');
+
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_queue_items_queue_pos
+      ON quran_download_queue_items (queue_id, position);
+    ''');
+
+    await db.execute('''
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_single_active_queue
+      ON quran_download_queues ((CASE WHEN status IN ('pending', 'running', 'paused') THEN 1 ELSE NULL END));
+    ''');
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -242,6 +336,80 @@ class QuranAudioDatabase implements BaseQuranAudioDatabase {
           PRIMARY KEY (reciter_id, surah_number)
         );
       ''');
+    }
+
+    if (oldVersion < 3) {
+      await db.transaction((txn) async {
+        await txn.execute('''
+          CREATE TABLE IF NOT EXISTS quran_download_queues (
+            id TEXT PRIMARY KEY,
+            reciter_id TEXT NOT NULL,
+            status TEXT NOT NULL,
+            total_items INTEGER NOT NULL DEFAULT 114,
+            completed_items INTEGER NOT NULL DEFAULT 0,
+            total_expected_bytes INTEGER,
+            downloaded_bytes INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            completed_at TEXT
+          );
+        ''');
+
+        await txn.execute('''
+          CREATE TABLE IF NOT EXISTS quran_download_queue_items (
+            id TEXT PRIMARY KEY,
+            queue_id TEXT NOT NULL,
+            surah_number INTEGER NOT NULL,
+            position INTEGER NOT NULL,
+            status TEXT NOT NULL,
+            expected_bytes INTEGER,
+            downloaded_bytes INTEGER NOT NULL DEFAULT 0,
+            attempt_count INTEGER NOT NULL DEFAULT 0,
+            last_error TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            FOREIGN KEY (queue_id) REFERENCES quran_download_queues (id) ON DELETE CASCADE,
+            UNIQUE(queue_id, surah_number),
+            UNIQUE(queue_id, position)
+          );
+        ''');
+
+        await txn.execute('''
+          CREATE INDEX IF NOT EXISTS idx_queue_items_queue_pos
+          ON quran_download_queue_items (queue_id, position);
+        ''');
+
+        // Pre-Index Legacy Sanitization with deterministic tie-breaker
+        final activeQueues = await txn.rawQuery('''
+          SELECT id FROM quran_download_queues
+          WHERE status IN ('pending', 'running', 'paused')
+          ORDER BY updated_at DESC, created_at DESC, id DESC;
+        ''');
+
+        if (activeQueues.isNotEmpty) {
+          final survivingId = activeQueues.first['id'] as String;
+          final nowIso = DateTime.now().toIso8601String();
+          await txn.rawUpdate('''
+            UPDATE quran_download_queues
+            SET status = 'paused', updated_at = ?
+            WHERE id = ?;
+          ''', [nowIso, survivingId]);
+
+          for (int i = 1; i < activeQueues.length; i++) {
+            final demotedId = activeQueues[i]['id'] as String;
+            await txn.rawUpdate('''
+              UPDATE quran_download_queues
+              SET status = 'cancelled', updated_at = ?
+              WHERE id = ?;
+            ''', [nowIso, demotedId]);
+          }
+        }
+
+        await txn.execute('''
+          CREATE UNIQUE INDEX IF NOT EXISTS idx_single_active_queue
+          ON quran_download_queues ((CASE WHEN status IN ('pending', 'running', 'paused') THEN 1 ELSE NULL END));
+        ''');
+      });
     }
   }
 
@@ -653,6 +821,413 @@ class QuranAudioDatabase implements BaseQuranAudioDatabase {
       'quran_audio_playback_positions',
       position.toJson(),
       conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Full-Quran Download Queue (QA.6 Phase 6.3)
+  // ---------------------------------------------------------------------------
+
+  @override
+  Future<void> createQueue({
+    required QuranDownloadQueueModel queue,
+    required List<QuranDownloadQueueItemModel> items,
+  }) async {
+    await init();
+    if (_useInMemoryFallback) {
+      if (queue.status.isActive) {
+        final existingActive = _memQueues.values.any((q) => q.status.isActive);
+        if (existingActive) {
+          throw StateError('Active queue already exists');
+        }
+      }
+      _memQueues[queue.id] = queue;
+      _memQueueItems[queue.id] = List.from(items);
+      return;
+    }
+
+    await _db!.transaction((txn) async {
+      await txn.insert(
+        'quran_download_queues',
+        queue.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.fail,
+      );
+
+      final batch = txn.batch();
+      for (final item in items) {
+        batch.insert(
+          'quran_download_queue_items',
+          item.toMap(),
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+      }
+      await batch.commit(noResult: true);
+    });
+  }
+
+  @override
+  Future<QuranDownloadQueueModel?> getActiveQueue() async {
+    await init();
+    if (_useInMemoryFallback) {
+      try {
+        final q = _memQueues.values.firstWhere((q) => q.status.isActive);
+        final items = (_memQueueItems[q.id] ?? [])
+            .map((i) => QuranDownloadQueueItemModel.fromEntity(i))
+            .toList();
+        return QuranDownloadQueueModel.fromEntity(q.copyWith(items: items));
+      } catch (_) {
+        return null;
+      }
+    }
+
+    final maps = await _db!.query(
+      'quran_download_queues',
+      where: "status IN ('pending', 'running', 'paused')",
+      limit: 1,
+    );
+
+    if (maps.isEmpty) return null;
+    final queueMap = maps.first;
+    final queueId = queueMap['id'] as String;
+
+    final itemMaps = await _db!.query(
+      'quran_download_queue_items',
+      where: 'queue_id = ?',
+      whereArgs: [queueId],
+      orderBy: 'position ASC',
+    );
+
+    final items = itemMaps.map((m) => QuranDownloadQueueItemModel.fromMap(m)).toList();
+    return QuranDownloadQueueModel.fromMap(queueMap, items);
+  }
+
+  @override
+  Future<QuranDownloadQueueModel?> getQueueById(String queueId) async {
+    await init();
+    if (_useInMemoryFallback) {
+      final q = _memQueues[queueId];
+      if (q == null) return null;
+      final items = (_memQueueItems[queueId] ?? [])
+          .map((i) => QuranDownloadQueueItemModel.fromEntity(i))
+          .toList();
+      return QuranDownloadQueueModel.fromEntity(q.copyWith(items: items));
+    }
+
+    final maps = await _db!.query(
+      'quran_download_queues',
+      where: 'id = ?',
+      whereArgs: [queueId],
+      limit: 1,
+    );
+
+    if (maps.isEmpty) return null;
+    final itemMaps = await _db!.query(
+      'quran_download_queue_items',
+      where: 'queue_id = ?',
+      whereArgs: [queueId],
+      orderBy: 'position ASC',
+    );
+
+    final items = itemMaps.map((m) => QuranDownloadQueueItemModel.fromMap(m)).toList();
+    return QuranDownloadQueueModel.fromMap(maps.first, items);
+  }
+
+  @override
+  Future<QuranDownloadQueueModel?> getLatestQueueForReciter(String reciterId) async {
+    await init();
+    if (_useInMemoryFallback) {
+      final queues = _memQueues.values.where((q) => q.reciterId == reciterId).toList();
+      if (queues.isEmpty) return null;
+      queues.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+      final q = queues.first;
+      final items = (_memQueueItems[q.id] ?? [])
+          .map((i) => QuranDownloadQueueItemModel.fromEntity(i))
+          .toList();
+      return QuranDownloadQueueModel.fromEntity(q.copyWith(items: items));
+    }
+
+    final maps = await _db!.query(
+      'quran_download_queues',
+      where: 'reciter_id = ?',
+      whereArgs: [reciterId],
+      orderBy: 'updated_at DESC, created_at DESC, id DESC',
+      limit: 1,
+    );
+
+    if (maps.isEmpty) return null;
+    final queueMap = maps.first;
+    final queueId = queueMap['id'] as String;
+
+    final itemMaps = await _db!.query(
+      'quran_download_queue_items',
+      where: 'queue_id = ?',
+      whereArgs: [queueId],
+      orderBy: 'position ASC',
+    );
+
+    final items = itemMaps.map((m) => QuranDownloadQueueItemModel.fromMap(m)).toList();
+    return QuranDownloadQueueModel.fromMap(queueMap, items);
+  }
+
+  @override
+  Future<List<QuranDownloadQueueItemModel>> getQueueItems(String queueId) async {
+    await init();
+    if (_useInMemoryFallback) {
+      final items = (_memQueueItems[queueId] ?? []).toList();
+      items.sort((a, b) => a.position.compareTo(b.position));
+      return items.map((i) => QuranDownloadQueueItemModel.fromEntity(i)).toList();
+    }
+
+    final maps = await _db!.query(
+      'quran_download_queue_items',
+      where: 'queue_id = ?',
+      whereArgs: [queueId],
+      orderBy: 'position ASC',
+    );
+
+    return maps.map((m) => QuranDownloadQueueItemModel.fromMap(m)).toList();
+  }
+
+  @override
+  Future<void> updateQueueStatus({
+    required String queueId,
+    required QuranDownloadQueueStatus status,
+    DateTime? completedAt,
+  }) async {
+    await init();
+    final nowIso = DateTime.now().toIso8601String();
+
+    if (_useInMemoryFallback) {
+      final q = _memQueues[queueId];
+      if (q != null) {
+        _memQueues[queueId] = q.copyWith(
+          status: status,
+          updatedAt: DateTime.parse(nowIso),
+          completedAt: completedAt ?? (status.isCompleted ? DateTime.parse(nowIso) : q.completedAt),
+        );
+      }
+      return;
+    }
+
+    final Map<String, dynamic> updates = {
+      'status': status.toDbString(),
+      'updated_at': nowIso,
+    };
+    if (completedAt != null) {
+      updates['completed_at'] = completedAt.toIso8601String();
+    } else if (status.isCompleted) {
+      updates['completed_at'] = nowIso;
+    }
+
+    await _db!.update(
+      'quran_download_queues',
+      updates,
+      where: 'id = ?',
+      whereArgs: [queueId],
+    );
+  }
+
+  @override
+  Future<void> updateQueueProgress({
+    required String queueId,
+    required int completedItems,
+    required int downloadedBytes,
+    int? totalExpectedBytes,
+  }) async {
+    await init();
+    final nowIso = DateTime.now().toIso8601String();
+
+    if (_useInMemoryFallback) {
+      final q = _memQueues[queueId];
+      if (q != null) {
+        _memQueues[queueId] = q.copyWith(
+          completedItems: completedItems,
+          downloadedBytes: downloadedBytes,
+          totalExpectedBytes: totalExpectedBytes ?? q.totalExpectedBytes,
+          updatedAt: DateTime.parse(nowIso),
+        );
+      }
+      return;
+    }
+
+    final Map<String, dynamic> updates = {
+      'completed_items': completedItems,
+      'downloaded_bytes': downloadedBytes,
+      'updated_at': nowIso,
+    };
+    if (totalExpectedBytes != null) {
+      updates['total_expected_bytes'] = totalExpectedBytes;
+    }
+
+    await _db!.update(
+      'quran_download_queues',
+      updates,
+      where: 'id = ?',
+      whereArgs: [queueId],
+    );
+  }
+
+  @override
+  Future<void> updateQueueItemStatus({
+    required String queueId,
+    required int surahNumber,
+    required QuranDownloadQueueItemStatus status,
+    int? downloadedBytes,
+    String? lastError,
+  }) async {
+    await init();
+    final nowIso = DateTime.now().toIso8601String();
+
+    if (_useInMemoryFallback) {
+      final items = _memQueueItems[queueId];
+      if (items != null) {
+        final idx = items.indexWhere((i) => i.surahNumber == surahNumber);
+        if (idx != -1) {
+          items[idx] = items[idx].copyWith(
+            status: status,
+            downloadedBytes: downloadedBytes ?? items[idx].downloadedBytes,
+            lastError: lastError,
+            updatedAt: DateTime.parse(nowIso),
+          );
+        }
+      }
+      return;
+    }
+
+    final Map<String, dynamic> updates = {
+      'status': status.toDbString(),
+      'updated_at': nowIso,
+    };
+    if (downloadedBytes != null) updates['downloaded_bytes'] = downloadedBytes;
+    if (lastError != null) updates['last_error'] = lastError;
+
+    await _db!.update(
+      'quran_download_queue_items',
+      updates,
+      where: 'queue_id = ? AND surah_number = ?',
+      whereArgs: [queueId, surahNumber],
+    );
+  }
+
+  @override
+  Future<void> updateQueueAndItemStatusAtomic({
+    required String queueId,
+    required int surahNumber,
+    required QuranDownloadQueueStatus queueStatus,
+    required QuranDownloadQueueItemStatus itemStatus,
+    int? downloadedBytes,
+    String? lastError,
+  }) async {
+    await init();
+    final nowIso = DateTime.now().toIso8601String();
+
+    if (_useInMemoryFallback) {
+      await updateQueueItemStatus(
+        queueId: queueId,
+        surahNumber: surahNumber,
+        status: itemStatus,
+        downloadedBytes: downloadedBytes,
+        lastError: lastError,
+      );
+      await updateQueueStatus(queueId: queueId, status: queueStatus);
+      return;
+    }
+
+    await _db!.transaction((txn) async {
+      final Map<String, dynamic> itemUpdates = {
+        'status': itemStatus.toDbString(),
+        'updated_at': nowIso,
+      };
+      if (downloadedBytes != null) itemUpdates['downloaded_bytes'] = downloadedBytes;
+      if (lastError != null) itemUpdates['last_error'] = lastError;
+
+      await txn.update(
+        'quran_download_queue_items',
+        itemUpdates,
+        where: 'queue_id = ? AND surah_number = ?',
+        whereArgs: [queueId, surahNumber],
+      );
+
+      final Map<String, dynamic> queueUpdates = {
+        'status': queueStatus.toDbString(),
+        'updated_at': nowIso,
+      };
+      if (queueStatus.isCompleted) {
+        queueUpdates['completed_at'] = nowIso;
+      }
+
+      await txn.update(
+        'quran_download_queues',
+        queueUpdates,
+        where: 'id = ?',
+        whereArgs: [queueId],
+      );
+    });
+  }
+
+  @override
+  Future<void> retryFailedQueueItems(String queueId) async {
+    await init();
+    final nowIso = DateTime.now().toIso8601String();
+
+    if (_useInMemoryFallback) {
+      final items = _memQueueItems[queueId];
+      if (items != null) {
+        for (int i = 0; i < items.length; i++) {
+          if (items[i].status.isFailed) {
+            items[i] = items[i].copyWith(
+              status: QuranDownloadQueueItemStatus.pending,
+              attemptCount: items[i].attemptCount + 1,
+              clearLastError: true,
+              updatedAt: DateTime.parse(nowIso),
+            );
+          }
+        }
+      }
+      final q = _memQueues[queueId];
+      if (q != null) {
+        _memQueues[queueId] = q.copyWith(
+          status: QuranDownloadQueueStatus.running,
+          updatedAt: DateTime.parse(nowIso),
+        );
+      }
+      return;
+    }
+
+    await _db!.transaction((txn) async {
+      // 1. Reset all failed items to pending and increment attempt_count
+      await txn.rawUpdate('''
+        UPDATE quran_download_queue_items
+        SET status = 'pending',
+            attempt_count = attempt_count + 1,
+            last_error = NULL,
+            updated_at = ?
+        WHERE queue_id = ? AND status = 'failed';
+      ''', [nowIso, queueId]);
+
+      // 2. Transition queue to running
+      await txn.rawUpdate('''
+        UPDATE quran_download_queues
+        SET status = 'running',
+            updated_at = ?
+        WHERE id = ?;
+      ''', [nowIso, queueId]);
+    });
+  }
+
+  @override
+  Future<void> deleteQueue(String queueId) async {
+    await init();
+    if (_useInMemoryFallback) {
+      _memQueues.remove(queueId);
+      _memQueueItems.remove(queueId);
+      return;
+    }
+
+    await _db!.delete(
+      'quran_download_queues',
+      where: 'id = ?',
+      whereArgs: [queueId],
     );
   }
 

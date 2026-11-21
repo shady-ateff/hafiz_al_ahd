@@ -5,12 +5,15 @@ import '../../core/audio/quran_audio_handler.dart';
 import '../../core/audio/quran_audio_player.dart';
 import '../../core/tracking/ayah_tracking_engine.dart';
 import '../../data/services/quran_audio_download_service.dart';
+import '../../data/services/quran_audio_queue_service.dart';
 import '../../domain/entities/audio_download.dart';
 import '../../domain/entities/audio_highlight_state.dart';
 import '../../domain/entities/audio_reciter.dart';
 import '../../domain/entities/ayah_timing.dart';
 import '../../domain/entities/download_progress.dart';
 import '../../domain/entities/playback_position.dart';
+import '../../domain/entities/quran_download_queue_progress.dart';
+import '../../domain/entities/storage_preflight_result.dart';
 import '../../domain/errors/quran_audio_failures.dart';
 import '../../domain/repositories/base_audio_download_repository.dart';
 import '../../domain/usecases/get_playback_position_use_case.dart';
@@ -38,6 +41,7 @@ class QuranAudioCubit extends Cubit<QuranAudioState> {
   final GetPlaybackPositionUseCase getPlaybackPositionUseCase;
   final BaseQuranAudioDownloadService? downloadService;
   final BaseAudioDownloadRepository? downloadRepository;
+  final QuranAudioQueueService? queueService;
 
   final Map<String, StreamSubscription<DownloadProgress>> _downloadSubs = {};
 
@@ -45,6 +49,7 @@ class QuranAudioCubit extends Cubit<QuranAudioState> {
   StreamSubscription<Duration>? _positionSub;
   StreamSubscription<Duration?>? _durationSub;
   StreamSubscription<MediaItem?>? _mediaItemSub;
+  StreamSubscription<QuranDownloadQueueProgress>? _queueProgressSub;
 
   QuranAudioCubit({
     required this.getRecitersUseCase,
@@ -55,6 +60,7 @@ class QuranAudioCubit extends Cubit<QuranAudioState> {
     required this.getPlaybackPositionUseCase,
     this.downloadService,
     this.downloadRepository,
+    this.queueService,
   }) : super(QuranAudioState(
           reciters: AudioReciter.kDefaultReciters,
           selectedReciter: AudioReciter.kDefaultReciter,
@@ -63,6 +69,25 @@ class QuranAudioCubit extends Cubit<QuranAudioState> {
     _reconnectToOngoingAudio();
     // 2. Subscribe to active event streams SECOND so subsequent updates are seamlessly processed
     _initHandlerSubscriptions();
+    _initQueueSubscription();
+  }
+
+  void _initQueueSubscription() {
+    if (queueService != null) {
+      if (queueService!.currentProgress != null) {
+        emit(state.copyWith(fullQuranProgress: queueService!.currentProgress));
+      }
+      _queueProgressSub = queueService!.progressStream.listen((p) {
+        emit(state.copyWith(fullQuranProgress: p));
+        if (p.isCompleted) {
+          final updatedSet = Set<String>.from(state.downloadedReciterIds)..add(p.reciterId);
+          emit(state.copyWith(
+            downloadedReciterIds: updatedSet,
+            isFullQuranDownloaded: state.selectedReciter?.id == p.reciterId ? true : state.isFullQuranDownloaded,
+          ));
+        }
+      });
+    }
   }
 
   void _reconnectToOngoingAudio() {
@@ -353,6 +378,8 @@ class QuranAudioCubit extends Cubit<QuranAudioState> {
         },
       );
     }
+
+    await checkAllDownloadedReciters();
   }
 
   /// Selects an active reciter for playback.
@@ -369,10 +396,13 @@ class QuranAudioCubit extends Cubit<QuranAudioState> {
 
     if (reciter != null) {
       trackingEngine.reset();
+      final isFull = state.downloadedReciterIds.contains(reciter.id);
       emit(state.copyWith(
         selectedReciter: reciter,
+        isFullQuranDownloaded: isFull,
         highlightState: state.highlightState.copyWith(clearActiveAyah: true),
       ));
+      checkFullQuranStatus(reciter.id);
 
       if (state.currentSurahNumber != null && (state.isPlaying || state.isPaused)) {
         playSurah(surahNumber: state.currentSurahNumber!, reciterId: reciter.id);
@@ -894,6 +924,126 @@ class QuranAudioCubit extends Cubit<QuranAudioState> {
     emit(state.copyWith(downloadProgressMap: map));
   }
 
+  // ---------------------------------------------------------------------------
+  // Full-Quran Audio Download Management (QA.6 Phase 6.7)
+  // ---------------------------------------------------------------------------
+
+  /// Checks whether all 114 Surahs for [reciterId] are verified downloaded on disk.
+  Future<void> checkFullQuranStatus(String reciterId) async {
+    if (downloadRepository != null) {
+      final records = await downloadRepository!.getDownloadedSurahs(reciterId: reciterId);
+      final isFull = records.length >= 114;
+      final updatedSet = Set<String>.from(state.downloadedReciterIds);
+      if (isFull) {
+        updatedSet.add(reciterId);
+      } else {
+        updatedSet.remove(reciterId);
+      }
+      emit(state.copyWith(
+        isFullQuranDownloaded: isFull,
+        downloadedReciterIds: updatedSet,
+      ));
+    }
+  }
+
+  /// Checks all reciters to identify which ones have complete 114-surah offline libraries.
+  Future<void> checkAllDownloadedReciters() async {
+    if (downloadRepository != null) {
+      final allRecords = await downloadRepository!.getAllDownloadedRecords();
+      final countMap = <String, int>{};
+      for (final rec in allRecords) {
+        if (rec.isPlayable) {
+          countMap[rec.reciterId] = (countMap[rec.reciterId] ?? 0) + 1;
+        }
+      }
+      final completedReciters = <String>{};
+      countMap.forEach((reciterId, count) {
+        if (count >= 114) {
+          completedReciters.add(reciterId);
+        }
+      });
+      emit(state.copyWith(
+        downloadedReciterIds: completedReciters,
+        isFullQuranDownloaded: state.selectedReciter != null && completedReciters.contains(state.selectedReciter!.id),
+      ));
+    }
+  }
+
+  /// Checks storage preflight before full-Quran download.
+  Future<StoragePreflightResult?> checkFullQuranPreflight({
+    required String reciterId,
+    List<int?>? expectedSurahSizes,
+  }) async {
+    return await queueService?.checkStoragePreflight(
+      reciterId: reciterId,
+      expectedSurahSizes: expectedSurahSizes,
+    );
+  }
+
+  /// Starts full-Quran sequential download queue for [reciterId].
+  Future<void> startFullQuranDownload({
+    required String reciterId,
+    FutureOr<String> Function(int surahNumber)? urlBuilder,
+    List<int>? expectedSurahSizes,
+  }) async {
+    if (queueService == null) {
+      throw StateError('QuranAudioQueueService is required for full Quran download.');
+    }
+
+    final effectiveUrlBuilder = urlBuilder ?? (surahNum) async {
+      final res = await getSurahAudioUseCase(surahNumber: surahNum, reciterId: reciterId);
+      return res.fold((_) => '', (audio) => audio.audioUrl);
+    };
+
+    await queueService!.startQueue(
+      reciterId: reciterId,
+      urlBuilder: effectiveUrlBuilder,
+      expectedSurahSizes: expectedSurahSizes,
+    );
+  }
+
+  /// Pauses active full-Quran download queue.
+  Future<void> pauseFullQuranDownload(String queueId) async {
+    await queueService?.pauseQueue(queueId);
+  }
+
+  /// Resumes paused full-Quran download queue.
+  Future<void> resumeFullQuranDownload({
+    required String queueId,
+    required String reciterId,
+    FutureOr<String> Function(int surahNumber)? urlBuilder,
+  }) async {
+    final effectiveUrlBuilder = urlBuilder ?? (surahNum) async {
+      final res = await getSurahAudioUseCase(surahNumber: surahNum, reciterId: reciterId);
+      return res.fold((_) => '', (audio) => audio.audioUrl);
+    };
+    await queueService?.resumeQueue(
+      queueId: queueId,
+      urlBuilder: effectiveUrlBuilder,
+    );
+  }
+
+  /// Cancels full-Quran download queue.
+  Future<void> cancelFullQuranDownload(String queueId) async {
+    await queueService?.cancelQueue(queueId);
+  }
+
+  /// Retries failed items in full-Quran download queue.
+  Future<void> retryFullQuranDownload({
+    required String queueId,
+    required String reciterId,
+    FutureOr<String> Function(int surahNumber)? urlBuilder,
+  }) async {
+    final effectiveUrlBuilder = urlBuilder ?? (surahNum) async {
+      final res = await getSurahAudioUseCase(surahNumber: surahNum, reciterId: reciterId);
+      return res.fold((_) => '', (audio) => audio.audioUrl);
+    };
+    await queueService?.retryQueue(
+      queueId: queueId,
+      urlBuilder: effectiveUrlBuilder,
+    );
+  }
+
   @override
   Future<void> close() async {
     // 1. Persist current listening position
@@ -904,6 +1054,7 @@ class QuranAudioCubit extends Cubit<QuranAudioState> {
     await _positionSub?.cancel();
     await _durationSub?.cancel();
     await _mediaItemSub?.cancel();
+    await _queueProgressSub?.cancel();
 
     for (final sub in _downloadSubs.values) {
       sub.cancel();

@@ -7,6 +7,8 @@ import '../../domain/entities/audio_download.dart';
 import '../../domain/entities/download_progress.dart';
 import '../../domain/entities/download_recovery_action.dart';
 import '../../domain/entities/download_resource_identity.dart';
+import '../../domain/entities/single_surah_download_result.dart';
+import '../../domain/services/base_quran_audio_download_coordinator.dart';
 import '../datasources/quran_audio_local_data_source.dart';
 import '../models/audio_download_model.dart';
 import 'quran_audio_storage_service.dart';
@@ -41,6 +43,16 @@ abstract class BaseQuranAudioDownloadService {
 
   /// Watches real-time progress updates for a specific Surah download.
   Stream<DownloadProgress> watchProgress(int surahNumber, String reciterId);
+
+  /// Downloads a single Surah and awaits authoritative completion, returning a [SingleSurahDownloadResult].
+  Future<SingleSurahDownloadResult> downloadSurahAndWait({
+    required int surahNumber,
+    required String reciterId,
+    required String audioUrl,
+    int? expectedTotalBytes,
+    void Function(DownloadProgress progress)? onProgress,
+    bool skipCoordinatorReservation = false,
+  });
 
   /// Cleans up all active download streams and controllers on disposal.
   void dispose();
@@ -85,6 +97,7 @@ class QuranAudioDownloadService implements BaseQuranAudioDownloadService {
   final BaseQuranAudioLocalDataSource localDataSource;
   final QuranAudioStorageService storageService;
   final http.Client Function()? clientFactory;
+  final BaseQuranAudioDownloadCoordinator? coordinator;
 
   final Map<String, StreamController<DownloadProgress>> _controllers = {};
   final Map<String, DownloadProgress> _latestProgress = {};
@@ -94,6 +107,7 @@ class QuranAudioDownloadService implements BaseQuranAudioDownloadService {
     required this.localDataSource,
     required this.storageService,
     this.clientFactory,
+    this.coordinator,
   });
 
   String _taskKey(int surahNumber, String reciterId) => '$reciterId:$surahNumber';
@@ -133,6 +147,7 @@ class QuranAudioDownloadService implements BaseQuranAudioDownloadService {
     required String reciterId,
     required String audioUrl,
     int? expectedTotalBytes,
+    bool skipCoordinatorReservation = false,
   }) {
     // 1. Argument validations
     if (surahNumber < 1 || surahNumber > 114) {
@@ -159,6 +174,7 @@ class QuranAudioDownloadService implements BaseQuranAudioDownloadService {
       reciterId: reciterId,
       audioUrl: audioUrl,
       expectedTotalBytes: expectedTotalBytes,
+      skipCoordinatorReservation: skipCoordinatorReservation,
     );
 
     return controller.stream;
@@ -181,12 +197,34 @@ class QuranAudioDownloadService implements BaseQuranAudioDownloadService {
     required String reciterId,
     required String audioUrl,
     int? expectedTotalBytes,
+    bool skipCoordinatorReservation = false,
   }) async {
     final effectiveAudioUrl = normalizeAudioUrl(audioUrl);
     final key = _taskKey(surahNumber, reciterId);
     final client = clientFactory != null ? clientFactory!() : http.Client();
     final task = _ActiveDownloadTask(client: client);
     _activeTasks[key] = task;
+
+    DownloadReservationTicket? reservationTicket;
+    if (!skipCoordinatorReservation && coordinator != null) {
+      try {
+        reservationTicket = await coordinator!.reserveSingleSurah(
+          surahNumber: surahNumber,
+          reciterId: reciterId,
+        );
+      } catch (e) {
+        _activeTasks.remove(key);
+        client.close();
+        _emitProgress(DownloadProgress(
+          surahNumber: surahNumber,
+          reciterId: reciterId,
+          status: AudioDownloadStatus.failed,
+          downloadedBytes: 0,
+          lastError: e.toString(),
+        ));
+        return;
+      }
+    }
 
     IOSink? sink;
     File? stagingFile;
@@ -503,6 +541,7 @@ class QuranAudioDownloadService implements BaseQuranAudioDownloadService {
         ));
       }
     } finally {
+      reservationTicket?.dispose();
       _activeTasks.remove(key);
       try {
         await sink?.close();
@@ -657,6 +696,147 @@ class QuranAudioDownloadService implements BaseQuranAudioDownloadService {
       audioUrl: audioUrl,
       expectedTotalBytes: expectedTotalBytes,
     );
+  }
+
+  @override
+  Future<SingleSurahDownloadResult> downloadSurahAndWait({
+    required int surahNumber,
+    required String reciterId,
+    required String audioUrl,
+    int? expectedTotalBytes,
+    void Function(DownloadProgress progress)? onProgress,
+    bool skipCoordinatorReservation = false,
+  }) async {
+    SingleSurahDownloadResult? terminalResult;
+
+    try {
+      final stream = downloadSurah(
+        surahNumber: surahNumber,
+        reciterId: reciterId,
+        audioUrl: audioUrl,
+        expectedTotalBytes: expectedTotalBytes,
+        skipCoordinatorReservation: skipCoordinatorReservation,
+      );
+
+      await for (final progress in stream) {
+        if (onProgress != null) {
+          try {
+            onProgress(progress);
+          } catch (e) {
+            debugPrint('[downloadSurahAndWait] Telemetry callback error: $e');
+          }
+        }
+
+        if (progress.status == AudioDownloadStatus.completed) {
+          terminalResult = await _authoritativeVerifyCompletion(
+            surahNumber: surahNumber,
+            reciterId: reciterId,
+          );
+          break;
+        } else if (progress.status == AudioDownloadStatus.failed) {
+          terminalResult = SingleSurahDownloadResult.failed(
+            surahNumber: surahNumber,
+            reciterId: reciterId,
+            errorMessage: progress.lastError ?? 'Download failed',
+            downloadedBytes: progress.downloadedBytes,
+          );
+          break;
+        } else if (progress.status == AudioDownloadStatus.paused) {
+          terminalResult = SingleSurahDownloadResult.paused(
+            surahNumber: surahNumber,
+            reciterId: reciterId,
+            downloadedBytes: progress.downloadedBytes,
+          );
+          break;
+        } else if (progress.status == AudioDownloadStatus.cancelled) {
+          terminalResult = SingleSurahDownloadResult.cancelled(
+            surahNumber: surahNumber,
+            reciterId: reciterId,
+          );
+          break;
+        }
+      }
+    } catch (e) {
+      terminalResult = SingleSurahDownloadResult.failed(
+        surahNumber: surahNumber,
+        reciterId: reciterId,
+        errorMessage: 'Download stream error: $e',
+      );
+    }
+
+    terminalResult ??= await _authoritativeReconcileAfterStreamDone(
+      surahNumber: surahNumber,
+      reciterId: reciterId,
+    );
+
+    return terminalResult;
+  }
+
+  Future<SingleSurahDownloadResult> _authoritativeVerifyCompletion({
+    required int surahNumber,
+    required String reciterId,
+  }) async {
+    final record = await localDataSource.getDownloadRecord(surahNumber, reciterId);
+    final file = await storageService.resolveSurahFile(surahNumber, reciterId);
+
+    final bool isRecordValid = record != null &&
+        record.status == AudioDownloadStatus.completed &&
+        record.transferIntegrityVerified;
+
+    final bool isFileValid = await file.exists() &&
+        await file.length() > 0 &&
+        (record == null || await file.length() == record.actualSizeBytes);
+
+    if (isRecordValid && isFileValid) {
+      return SingleSurahDownloadResult.completed(
+        surahNumber: surahNumber,
+        reciterId: reciterId,
+        filePath: file.path,
+        totalBytes: record.actualSizeBytes,
+        sha256: record.sha256 ?? '',
+      );
+    }
+
+    return SingleSurahDownloadResult.failed(
+      surahNumber: surahNumber,
+      reciterId: reciterId,
+      errorMessage: 'Authoritative completion verification failed '
+          '(recordValid=$isRecordValid, fileValid=$isFileValid)',
+    );
+  }
+
+  Future<SingleSurahDownloadResult> _authoritativeReconcileAfterStreamDone({
+    required int surahNumber,
+    required String reciterId,
+  }) async {
+    final record = await localDataSource.getDownloadRecord(surahNumber, reciterId);
+    if (record == null) {
+      return SingleSurahDownloadResult.failed(
+        surahNumber: surahNumber,
+        reciterId: reciterId,
+        errorMessage: 'Download terminated prematurely without record',
+      );
+    }
+
+    if (record.status == AudioDownloadStatus.completed) {
+      return _authoritativeVerifyCompletion(
+        surahNumber: surahNumber,
+        reciterId: reciterId,
+      );
+    } else if (record.status == AudioDownloadStatus.paused) {
+      return SingleSurahDownloadResult.paused(
+        surahNumber: surahNumber,
+        reciterId: reciterId,
+        downloadedBytes: record.actualSizeBytes,
+      );
+    } else {
+      return SingleSurahDownloadResult.failed(
+        surahNumber: surahNumber,
+        reciterId: reciterId,
+        errorMessage: 'Stream closed prematurely with record in status: ${record.status}',
+        downloadedBytes: record.actualSizeBytes,
+      );
+    }
   }
 
   @override

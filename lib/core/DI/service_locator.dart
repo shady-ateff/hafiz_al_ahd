@@ -87,12 +87,17 @@ import 'package:hafiz_al_ahd/features/quran_audio/core/tracking/ayah_tracking_en
 import 'package:hafiz_al_ahd/features/quran_audio/data/datasources/quran_audio_database.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/data/datasources/quran_audio_local_data_source.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/data/datasources/quran_audio_remote_data_source.dart';
+import 'package:hafiz_al_ahd/features/quran_audio/data/repositories/audio_download_queue_repository_impl.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/data/repositories/audio_download_repository_impl.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/data/repositories/quran_audio_repository_impl.dart';
+import 'package:hafiz_al_ahd/features/quran_audio/data/services/quran_audio_download_coordinator.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/data/services/quran_audio_download_service.dart';
+import 'package:hafiz_al_ahd/features/quran_audio/data/services/quran_audio_queue_service.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/data/services/quran_audio_storage_service.dart';
+import 'package:hafiz_al_ahd/features/quran_audio/domain/repositories/base_audio_download_queue_repository.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/domain/repositories/base_audio_download_repository.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/domain/repositories/base_quran_audio_repository.dart';
+import 'package:hafiz_al_ahd/features/quran_audio/domain/services/base_quran_audio_download_coordinator.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/domain/usecases/delete_download_use_case.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/domain/usecases/get_downloaded_audio_use_case.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/domain/usecases/get_playback_position_use_case.dart';
@@ -415,12 +420,30 @@ Future<void> init() async {
       storageService: sl(),
     ),
   );
+  sl.registerLazySingleton<BaseAudioDownloadQueueRepository>(
+    () => AudioDownloadQueueRepositoryImpl(
+      database: sl(),
+    ),
+  );
+  sl.registerLazySingleton<BaseQuranAudioDownloadCoordinator>(
+    () => QuranAudioDownloadCoordinator(),
+  );
   sl.registerLazySingleton<BaseQuranAudioDownloadService>(
     () => QuranAudioDownloadService(
       localDataSource: sl(),
       storageService: sl(),
+      coordinator: sl(),
     ),
   );
+  final queueService = QuranAudioQueueService(
+    queueRepository: sl(),
+    downloadService: sl(),
+    localDataSource: sl(),
+    storageService: sl(),
+    coordinator: sl(),
+  );
+  sl.registerSingleton<QuranAudioQueueService>(queueService);
+  await queueService.recoverInterruptedQueuesOnStartup();
   sl.registerLazySingleton<AyahTimingValidator>(
     () => const AyahTimingValidator(),
   );
@@ -456,6 +479,7 @@ Future<void> init() async {
       getPlaybackPositionUseCase: sl(),
       downloadService: sl(),
       downloadRepository: sl(),
+      queueService: sl(),
     ),
   );
 

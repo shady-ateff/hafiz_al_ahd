@@ -57,3 +57,11 @@ class QuranAudioPlaybackFailure extends QuranAudioFailure {
     super.message = 'حدث خطأ أثناء تشغيل الملف الصوتي',
   });
 }
+
+/// Concurrency conflict failure (e.g. attempting simultaneous single-Surah and full-Quran downloads).
+class QuranAudioConflictFailure extends QuranAudioFailure {
+  QuranAudioConflictFailure({
+    super.message = 'تعارض في عملية التنزيل: توجد عملية تنزيل أخرى قيد التنفيذ حاليًا',
+  });
+}
+

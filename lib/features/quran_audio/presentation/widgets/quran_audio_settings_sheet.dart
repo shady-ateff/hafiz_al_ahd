@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/domain/entities/audio_download.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/domain/entities/audio_highlight_state.dart';
+import 'package:hafiz_al_ahd/features/quran_audio/domain/entities/audio_reciter.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/domain/entities/download_progress.dart';
+import 'package:hafiz_al_ahd/features/quran_audio/domain/entities/quran_download_queue_progress.dart';
 import '../../../../core/utils/app_colors.dart';
 import '../../../../core/widgets/app_loader.dart';
 import '../../../quran/data/datasources/surah_names.dart';
@@ -71,9 +73,11 @@ class _QuranAudioSettingsSheetState extends State<QuranAudioSettingsSheet> {
             ? 1
             : 3);
 
-    // Trigger reciters load if empty
+    // Trigger reciters load if empty, otherwise query full downloaded reciters immediately
     if (cubit.state.reciters.isEmpty && !cubit.state.isLoadingReciters) {
       cubit.init();
+    } else {
+      cubit.checkAllDownloadedReciters();
     }
 
     // Check single-Surah download status for active Surah & Reciter
@@ -84,6 +88,8 @@ class _QuranAudioSettingsSheetState extends State<QuranAudioSettingsSheet> {
         surahNumber: _effectiveSurahNumber,
         reciterId: reciterId,
       );
+      cubit.checkFullQuranStatus(reciterId);
+      cubit.checkAllDownloadedReciters();
     });
   }
 
@@ -148,16 +154,17 @@ class _QuranAudioSettingsSheetState extends State<QuranAudioSettingsSheet> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  Text(
-                    'إعدادات التلاوة والحفظ',
-                    style: TextStyle(
-                      fontFamily: 'Tajawal',
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: textColor,
+                  Expanded(
+                    child: Text(
+                      'إعدادات التلاوة والحفظ',
+                      style: TextStyle(
+                        fontFamily: 'Tajawal',
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: textColor,
+                      ),
                     ),
                   ),
-                  const Spacer(),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
                     icon: Icon(Icons.close_rounded, color: secondaryText),
@@ -222,6 +229,16 @@ class _QuranAudioSettingsSheetState extends State<QuranAudioSettingsSheet> {
                       ),
                       const SizedBox(height: 10),
                       _buildDownloadSection(state, isDark, textColor, secondaryText),
+
+                      // Section 5: Full-Quran Offline Download (QA.6 Phase 6.7)
+                      const SizedBox(height: 24),
+                      _buildSectionHeader(
+                        'تحميل المصحف كاملاً للاستماع دون إنترنت',
+                        Icons.library_books_rounded,
+                        textColor,
+                      ),
+                      const SizedBox(height: 10),
+                      _buildFullQuranDownloadSection(state, isDark, textColor, secondaryText),
 
                       const SizedBox(height: 30),
                     ],
@@ -332,6 +349,16 @@ class _QuranAudioSettingsSheetState extends State<QuranAudioSettingsSheet> {
         itemBuilder: (context, index) {
           final reciter = reciters[index];
           final isSelected = state.selectedReciter?.id == reciter.id;
+          final queueProgress = state.fullQuranProgress;
+          final isReciterDownloading = queueProgress != null &&
+              queueProgress.reciterId == reciter.id &&
+              queueProgress.isRunning;
+          final isReciterPaused = queueProgress != null &&
+              queueProgress.reciterId == reciter.id &&
+              queueProgress.status.isPaused;
+          final isReciterCompleted = (state.isFullQuranDownloaded && state.selectedReciter?.id == reciter.id) ||
+              state.downloadedReciterIds.contains(reciter.id) ||
+              (queueProgress != null && queueProgress.reciterId == reciter.id && queueProgress.isCompleted);
 
           return InkWell(
             onTap: () {
@@ -340,6 +367,7 @@ class _QuranAudioSettingsSheetState extends State<QuranAudioSettingsSheet> {
                     surahNumber: _effectiveSurahNumber,
                     reciterId: reciter.id,
                   );
+              context.read<QuranAudioCubit>().checkFullQuranStatus(reciter.id);
             },
             borderRadius: BorderRadius.circular(16),
             child: AnimatedContainer(
@@ -381,9 +409,7 @@ class _QuranAudioSettingsSheetState extends State<QuranAudioSettingsSheet> {
                   ),
                   const SizedBox(height: 5),
                   Text(
-                    reciter.arabicName.isNotEmpty
-                        ? reciter.arabicName
-                        : reciter.name,
+                    reciter.displayName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
@@ -398,7 +424,107 @@ class _QuranAudioSettingsSheetState extends State<QuranAudioSettingsSheet> {
                           : (isDark ? Colors.white : Colors.black87),
                     ),
                   ),
-                  if (reciter.style != null) ...[
+                  if (isReciterDownloading) ...[
+                    const SizedBox(height: 3),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                      decoration: BoxDecoration(
+                        color: AppColors.secondaryGold.withValues(alpha: 0.18),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: AppColors.secondaryGold.withValues(alpha: 0.5),
+                          width: 0.8,
+                        ),
+                      ),
+                      child: const FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.downloading_rounded,
+                              size: 11,
+                              color: AppColors.secondaryGold,
+                            ),
+                            SizedBox(width: 3),
+                            Text(
+                              'جاري التحميل...',
+                              style: TextStyle(
+                                fontFamily: 'Tajawal',
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.secondaryGold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ] else if (isReciterPaused) ...[
+                    const SizedBox(height: 3),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: Colors.orange.withValues(alpha: 0.4),
+                          width: 0.8,
+                        ),
+                      ),
+                      child: const FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.pause_circle_rounded, size: 10, color: Colors.orange),
+                            SizedBox(width: 3),
+                            Text(
+                              'متوقف مؤقتاً',
+                              style: TextStyle(
+                                fontFamily: 'Tajawal',
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.orange,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ] else if (isReciterCompleted) ...[
+                    const SizedBox(height: 3),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: Colors.green.withValues(alpha: 0.4),
+                          width: 0.8,
+                        ),
+                      ),
+                      child: const FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.offline_pin_rounded, size: 10, color: Colors.green),
+                            SizedBox(width: 3),
+                            Text(
+                              'محمل يعمل بلا إنترنت',
+                              style: TextStyle(
+                                fontFamily: 'Tajawal',
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ] else if (reciter.style != null) ...[
                     Text(
                       reciter.style!,
                       maxLines: 1,
@@ -1267,5 +1393,478 @@ class _QuranAudioSettingsSheetState extends State<QuranAudioSettingsSheet> {
           ),
         );
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Full-Quran Download UI (QA.6 Phase 6.7)
+  // ---------------------------------------------------------------------------
+
+  Widget _buildFullQuranDownloadSection(
+    QuranAudioState state,
+    bool isDark,
+    Color textColor,
+    Color secondaryText,
+  ) {
+    final cubit = context.read<QuranAudioCubit>();
+    final reciter = state.selectedReciter ?? AudioReciter.kDefaultReciter;
+    final progress = state.fullQuranProgress;
+    final hasActiveQueue = progress != null &&
+        progress.reciterId == reciter.id &&
+        !progress.status.isCancelled;
+
+    final isCompleted = state.isFullQuranDownloaded ||
+        (hasActiveQueue && progress.isCompleted);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: isCompleted ? AppColors.goldenGradient : null,
+        color: isCompleted
+            ? null
+            : (isDark ? const Color(0xFF282828) : Colors.grey[50]),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: isCompleted
+              ? AppColors.lightGold.withValues(alpha: 0.6)
+              : AppColors.secondaryGold.withValues(alpha: 0.25),
+          width: 1.2,
+        ),
+        boxShadow: isCompleted
+            ? [
+                BoxShadow(
+                  color: AppColors.secondaryGold.withValues(alpha: 0.25),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ]
+            : null,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: isCompleted
+                      ? Colors.black.withValues(alpha: 0.12)
+                      : AppColors.secondaryGold.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  isCompleted
+                      ? Icons.check_circle_rounded
+                      : Icons.library_books_rounded,
+                  color: isCompleted
+                      ? const Color(0xFF1E1E1E)
+                      : AppColors.secondaryGold,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 8,
+                      runSpacing: 4,
+                      children: [
+                        Text(
+                          'المصحف كاملاً — ${reciter.displayName}',
+                          style: TextStyle(
+                            fontFamily: 'Tajawal',
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: isCompleted ? const Color(0xFF1E1E1E) : textColor,
+                          ),
+                        ),
+                        if (hasActiveQueue && progress.isRunning) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppColors.secondaryGold.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: AppColors.secondaryGold.withValues(alpha: 0.5),
+                                width: 0.8,
+                              ),
+                            ),
+                            child: const Text(
+                              'جاري التحميل...',
+                              style: TextStyle(
+                                fontFamily: 'Tajawal',
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.secondaryGold,
+                              ),
+                            ),
+                          ),
+                        ] else if (isCompleted) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1E1E1E).withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Text(
+                              'محمل يعمل بلا إنترنت',
+                              style: TextStyle(
+                                fontFamily: 'Tajawal',
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF1E1E1E),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _getFullQuranSubtitle(isCompleted, hasActiveQueue, progress),
+                      style: TextStyle(
+                        fontFamily: 'Tajawal',
+                        fontSize: 12,
+                        fontWeight: isCompleted ? FontWeight.w500 : FontWeight.normal,
+                        color: isCompleted
+                            ? const Color(0xFF382E09)
+                            : (hasActiveQueue && progress.status.isFailed
+                                ? Colors.redAccent
+                                : secondaryText),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _buildFullQuranActionRow(
+            isCompleted: isCompleted,
+            hasActiveQueue: hasActiveQueue,
+            progress: progress,
+            reciter: reciter,
+            cubit: cubit,
+            isDark: isDark,
+            secondaryText: secondaryText,
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getFullQuranSubtitle(
+    bool isCompleted,
+    bool hasActiveQueue,
+    QuranDownloadQueueProgress? progress,
+  ) {
+    if (isCompleted) {
+      return 'جميع السور (114 سورة) محملة وجاهزة للاستماع دون إنترنت';
+    }
+    if (hasActiveQueue && progress != null) {
+      if (progress.isRunning) {
+        final activeName = progress.activeSurahNumber != null
+            ? ' • سورة ${getSurahName(progress.activeSurahNumber!)}'
+            : '';
+        return 'تم تحميل ${progress.completedItems} من 114 سورة (${(progress.aggregateRatio * 100).toInt()}%)$activeName';
+      } else if (progress.status.isPaused) {
+        return 'متوقف مؤقتاً • تم تحميل ${progress.completedItems} من 114 سورة';
+      } else if (progress.status.isFailed) {
+        return progress.lastError ?? 'فشل التحميل • اضغط لإعادة المحاولة';
+      }
+    }
+    return 'تحميل جميع سور القرآن (114 سورة) للاستماع دون اتصال';
+  }
+
+  Widget _buildFullQuranActionRow({
+    required bool isCompleted,
+    required bool hasActiveQueue,
+    required QuranDownloadQueueProgress? progress,
+    required AudioReciter reciter,
+    required QuranAudioCubit cubit,
+    required bool isDark,
+    required Color secondaryText,
+  }) {
+    if (isCompleted) {
+      return Row(
+        children: [
+          const Icon(Icons.offline_pin_rounded, size: 16, color: Color(0xFF1E1E1E)),
+          const SizedBox(width: 6),
+          const Text(
+            'جاهز للاستماع دون اتصال',
+            style: TextStyle(
+              fontFamily: 'Tajawal',
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1E1E1E),
+            ),
+          ),
+        ],
+      );
+    }
+
+    if (hasActiveQueue && progress != null) {
+      if (progress.isRunning) {
+        return Column(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: LinearProgressIndicator(
+                value: progress.aggregateRatio > 0 ? progress.aggregateRatio : null,
+                minHeight: 6,
+                backgroundColor: isDark ? Colors.white12 : Colors.grey[200],
+                valueColor: const AlwaysStoppedAnimation<Color>(AppColors.secondaryGold),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.secondaryGold,
+                      side: const BorderSide(color: AppColors.secondaryGold, width: 1.2),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                    ),
+                    onPressed: () => cubit.pauseFullQuranDownload(progress.queueId),
+                    icon: const Icon(Icons.pause_rounded, size: 18),
+                    label: const Text('إيقاف مؤقت', style: TextStyle(fontFamily: 'Tajawal', fontSize: 13, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.redAccent,
+                      side: BorderSide(color: Colors.redAccent.withValues(alpha: 0.7), width: 1.2),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                    ),
+                    onPressed: () => cubit.cancelFullQuranDownload(progress.queueId),
+                    icon: const Icon(Icons.close_rounded, size: 18),
+                    label: const Text('إلغاء التحميل', style: TextStyle(fontFamily: 'Tajawal', fontSize: 13)),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        );
+      } else if (progress.status.isPaused) {
+        return Column(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: LinearProgressIndicator(
+                value: progress.aggregateRatio,
+                minHeight: 6,
+                backgroundColor: isDark ? Colors.white12 : Colors.grey[200],
+                valueColor: const AlwaysStoppedAnimation<Color>(Colors.orangeAccent),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.secondaryGold,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      elevation: 0,
+                    ),
+                    onPressed: () => cubit.resumeFullQuranDownload(
+                      queueId: progress.queueId,
+                      reciterId: reciter.id,
+                    ),
+                    icon: const Icon(Icons.play_arrow_rounded, size: 18),
+                    label: const Text('استئناف التحميل', style: TextStyle(fontFamily: 'Tajawal', fontSize: 13, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.redAccent,
+                      side: BorderSide(color: Colors.redAccent.withValues(alpha: 0.7), width: 1.2),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                    ),
+                    onPressed: () => cubit.cancelFullQuranDownload(progress.queueId),
+                    icon: const Icon(Icons.close_rounded, size: 18),
+                    label: const Text('إلغاء التحميل', style: TextStyle(fontFamily: 'Tajawal', fontSize: 13)),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        );
+      } else if (progress.status.isFailed) {
+        return Row(
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.redAccent,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  elevation: 0,
+                ),
+                onPressed: () => cubit.retryFullQuranDownload(
+                  queueId: progress.queueId,
+                  reciterId: reciter.id,
+                ),
+                icon: const Icon(Icons.refresh_rounded, size: 18),
+                label: const Text('إعادة المحاولة', style: TextStyle(fontFamily: 'Tajawal', fontSize: 13, fontWeight: FontWeight.bold)),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: secondaryText,
+                  side: BorderSide(color: secondaryText.withValues(alpha: 0.5), width: 1.2),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                ),
+                onPressed: () => cubit.cancelFullQuranDownload(progress.queueId),
+                icon: const Icon(Icons.close_rounded, size: 18),
+                label: const Text('إلغاء', style: TextStyle(fontFamily: 'Tajawal', fontSize: 13)),
+              ),
+            ),
+          ],
+        );
+      }
+    }
+
+    // Idle: Not started yet
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: isDark ? const Color(0xFF383838) : Colors.white,
+          foregroundColor: AppColors.secondaryGold,
+          side: const BorderSide(color: AppColors.secondaryGold, width: 1.2),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          elevation: 0,
+        ),
+        onPressed: () => _handleStartFullQuranDownload(context, cubit, reciter),
+        icon: const Icon(Icons.download_for_offline_rounded, size: 18),
+        label: const Text(
+          'بدء تحميل المصحف كاملاً',
+          style: TextStyle(
+            fontFamily: 'Tajawal',
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handleStartFullQuranDownload(
+    BuildContext context,
+    QuranAudioCubit cubit,
+    AudioReciter reciter,
+  ) async {
+    final preflight = await cubit.checkFullQuranPreflight(reciterId: reciter.id);
+
+    if (!context.mounted) return;
+
+    if (preflight != null && preflight.isInsufficient) {
+      final reqMb = (preflight.requiredBytes! / (1024 * 1024)).toStringAsFixed(1);
+      final availMb = (preflight.availableBytes! / (1024 * 1024)).toStringAsFixed(1);
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          title: const Text('المساحة التخزينية غير كافية', style: TextStyle(fontFamily: 'Tajawal', fontWeight: FontWeight.bold)),
+          content: Text(
+            'المساحة المطلوبة: $reqMb ميجابايت\nالمساحة المتاحة: $availMb ميجابايت\n\nيرجى توفير مساحة كافية على الجهاز ثم إعادة المحاولة.',
+            style: const TextStyle(fontFamily: 'Tajawal', height: 1.5),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('حسناً', style: TextStyle(fontFamily: 'Tajawal', fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    if (preflight != null && preflight.isIndeterminate) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          title: const Text('تنبيه المساحة التخزينية', style: TextStyle(fontFamily: 'Tajawal', fontWeight: FontWeight.bold)),
+          content: const Text(
+            'حجم بعض السور غير محدد مسبقًا. لا يمكن حساب المساحة الإجمالية بدقة. هل ترغب في المتابعة؟',
+            style: TextStyle(fontFamily: 'Tajawal', height: 1.5),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('إلغاء', style: TextStyle(fontFamily: 'Tajawal')),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.secondaryGold,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              onPressed: () {
+                Navigator.pop(ctx);
+                cubit.startFullQuranDownload(reciterId: reciter.id);
+              },
+              child: const Text('متابعة التحميل', style: TextStyle(fontFamily: 'Tajawal', fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    // Sufficient space confirmation
+    final reqMbText = preflight?.requiredBytes != null
+        ? '\n\nالمساحة التقديرية المطلوبة: حوالي ${(preflight!.requiredBytes! / (1024 * 1024)).toStringAsFixed(1)} ميجابايت.'
+        : '';
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Text('تحميل المصحف كاملاً', style: TextStyle(fontFamily: 'Tajawal', fontWeight: FontWeight.bold)),
+        content: Text(
+          'سيتم تحميل جميع سور القرآن الكريم (114 سورة) للقارئ ${reciter.displayName} لتكون متاحة دائماً دون اتصال بالإنترنت.$reqMbText',
+          style: const TextStyle(fontFamily: 'Tajawal', height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('إلغاء', style: TextStyle(fontFamily: 'Tajawal')),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.secondaryGold,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () {
+              Navigator.pop(ctx);
+              cubit.startFullQuranDownload(reciterId: reciter.id);
+            },
+            child: const Text('بدء التحميل', style: TextStyle(fontFamily: 'Tajawal', fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
   }
 }
