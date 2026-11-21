@@ -21,7 +21,31 @@ void main() {
       expect(reciter.displayName, 'مشاري راشد العفاسي');
     });
 
-    test('falls back to English name when arabicName is empty', () {
+    test('resolves canonical Arabic name when arabicName contains English text', () {
+      final reciter = AudioReciter(
+        id: '7',
+        name: 'Mishari Rashid al-`Afasy',
+        arabicName: 'Mishari Rashid al-`Afasy',
+        style: 'Murattal',
+      );
+
+      expect(reciter.id, '7');
+      expect(reciter.arabicName, 'مشاري راشد العفاسي');
+      expect(reciter.displayName, 'مشاري راشد العفاسي');
+    });
+
+    test('resolves canonical Arabic name by name heuristic if ID unknown', () {
+      final reciter = AudioReciter(
+        id: '999',
+        name: 'Sudais Reciter',
+        arabicName: 'Sudais Reciter',
+      );
+
+      expect(reciter.arabicName, 'عبدالرحمن السديس');
+      expect(reciter.displayName, 'عبدالرحمن السديس');
+    });
+
+    test('falls back to English name when arabicName is empty and unknown ID', () {
       final reciter = AudioReciter(
         id: '99',
         name: 'English Name',

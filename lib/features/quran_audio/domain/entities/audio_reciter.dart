@@ -29,19 +29,81 @@ class AudioReciter extends Equatable {
   AudioReciter({
     required this.id,
     required this.name,
-    required this.arabicName,
+    String? arabicName,
     this.style,
     this.qirat,
     this.description,
     this.provider = 'quran_foundation',
     this.availableFormat = 'mp3',
-  }) {
+  }) : arabicName = (name.trim().isEmpty && (arabicName == null || arabicName.trim().isEmpty))
+            ? ''
+            : _resolveEffectiveArabicName(id, name, arabicName) {
     if (id.trim().isEmpty) {
       throw ArgumentError.value(id, 'id', 'Reciter ID cannot be empty');
     }
-    if (name.trim().isEmpty && arabicName.trim().isEmpty) {
+    if (name.trim().isEmpty && (arabicName == null || arabicName.trim().isEmpty)) {
       throw ArgumentError('Reciter must have at least an English or Arabic name');
     }
+  }
+
+  /// Canonical Arabic names map for standard reciters to ensure Arabic presentation.
+  static const Map<String, String> kCanonicalArabicNames = {
+    '1': 'عبد الباسط عبد الصمد (مجود)',
+    '2': 'عبد الباسط عبد الصمد',
+    '3': 'عبدالرحمن السديس',
+    '4': 'أبو بكر الشاطري',
+    '5': 'هاني الرفاعي',
+    '6': 'محمود خليل الحصري',
+    '7': 'مشاري راشد العفاسي',
+    '8': 'علي جابر',
+    '9': 'محمد صديق المنشاوي',
+    '10': 'سعود الشريم',
+    '11': 'محمد محمود الطبلاوي',
+    '12': 'محمود خليل الحصري (معلم)',
+    '97': 'ياسر الدوسري',
+  };
+
+  /// Heuristically resolves canonical Arabic name by English name keywords.
+  static String? resolveArabicNameByName(String englishName) {
+    final lower = englishName.toLowerCase();
+    if (lower.contains('afasy') || lower.contains('afasi')) return 'مشاري راشد العفاسي';
+    if (lower.contains('sudais')) return 'عبدالرحمن السديس';
+    if (lower.contains('shuraim')) return 'سعود الشريم';
+    if (lower.contains('husary') || lower.contains('hussary')) return 'محمود خليل الحصري';
+    if (lower.contains('minshawi')) return 'محمد صديق المنشاوي';
+    if (lower.contains('baset') || lower.contains('basit')) return 'عبد الباسط عبد الصمد';
+    if (lower.contains('dussary') || lower.contains('dosari') || lower.contains('dossari')) return 'ياسر الدوسري';
+    if (lower.contains('shatri')) return 'أبو بكر الشاطري';
+    if (lower.contains('rifai')) return 'هاني الرفاعي';
+    if (lower.contains('tablawi')) return 'محمد محمود الطبلاوي';
+    if (lower.contains('jaber')) return 'علي جابر';
+    if (lower.contains('ghamadi') || lower.contains('ghamdi')) return 'سعد الغامدي';
+    if (lower.contains('muaiqly') || lower.contains('mueaqly') || lower.contains('maher')) return 'ماهر المعيقلي';
+    if (lower.contains('ajmy') || lower.contains('ajmi')) return 'أحمد بن علي العجمي';
+    if (lower.contains('basfar')) return 'عبدالله بصفر';
+    if (lower.contains('qahtani')) return 'خالد القحطاني';
+    if (lower.contains('fares') || lower.contains('abbad')) return 'فارس عباد';
+    return null;
+  }
+
+  static String _resolveEffectiveArabicName(String id, String name, String? arabicName) {
+    final trimmed = arabicName?.trim() ?? '';
+    // 1. If arabicName contains genuine Arabic characters, honor it
+    if (trimmed.isNotEmpty && RegExp(r'[\u0600-\u06FF]').hasMatch(trimmed)) {
+      return trimmed;
+    }
+    // 2. Lookup in canonical map by ID
+    final canonicalById = kCanonicalArabicNames[id];
+    if (canonicalById != null && canonicalById.isNotEmpty) {
+      return canonicalById;
+    }
+    // 3. Heuristic lookup by English name
+    final canonicalByName = resolveArabicNameByName(name);
+    if (canonicalByName != null && canonicalByName.isNotEmpty) {
+      return canonicalByName;
+    }
+    // 4. Fallback to trimmed arabicName or name
+    return trimmed.isNotEmpty ? trimmed : name.trim();
   }
 
   /// Preferred display name in Arabic if available, falling back to English.

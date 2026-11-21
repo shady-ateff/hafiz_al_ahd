@@ -29,6 +29,22 @@ void main() {
       expect(model.qirat, 'Hafs');
     });
 
+    test('AudioReciterModel resolves Arabic name when translated_name is english', () {
+      final json = {
+        'id': 7,
+        'name': 'Mishari Rashid al-`Afasy',
+        'style': {'name': 'Murattal', 'language_name': 'english'},
+        'qirat': {'name': 'Hafs', 'language_name': 'english'},
+        'translated_name': {'name': 'Mishari Rashid al-`Afasy', 'language_name': 'english'}
+      };
+
+      final model = AudioReciterModel.fromJson(json);
+
+      expect(model.id, '7');
+      expect(model.arabicName, 'مشاري راشد العفاسي');
+      expect(model.displayName, 'مشاري راشد العفاسي');
+    });
+
     test('SurahAudioModel parses Quran Foundation chapter audio JSON', () {
       final json = {
         'id': 911,

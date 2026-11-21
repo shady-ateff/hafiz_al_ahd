@@ -94,10 +94,13 @@ import 'package:hafiz_al_ahd/features/quran_audio/data/services/quran_audio_down
 import 'package:hafiz_al_ahd/features/quran_audio/data/services/quran_audio_download_service.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/data/services/quran_audio_queue_service.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/data/services/quran_audio_storage_service.dart';
+import 'package:hafiz_al_ahd/features/quran_audio/data/services/quran_download_notification_manager.dart';
+import 'package:hafiz_al_ahd/features/quran_audio/data/services/quran_download_notification_service.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/domain/repositories/base_audio_download_queue_repository.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/domain/repositories/base_audio_download_repository.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/domain/repositories/base_quran_audio_repository.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/domain/services/base_quran_audio_download_coordinator.dart';
+import 'package:hafiz_al_ahd/features/quran_audio/domain/services/base_quran_download_notification_service.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/domain/usecases/delete_download_use_case.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/domain/usecases/get_downloaded_audio_use_case.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/domain/usecases/get_playback_position_use_case.dart';
@@ -444,6 +447,17 @@ Future<void> init() async {
   );
   sl.registerSingleton<QuranAudioQueueService>(queueService);
   await queueService.recoverInterruptedQueuesOnStartup();
+
+  sl.registerLazySingleton<BaseQuranDownloadNotificationService>(
+    () => QuranDownloadNotificationService(),
+  );
+
+  final notificationManager = QuranDownloadNotificationManager(
+    notificationService: sl(),
+    localDataSource: sl(),
+  );
+  notificationManager.bindQueueService(queueService);
+  sl.registerSingleton<QuranDownloadNotificationManager>(notificationManager);
   sl.registerLazySingleton<AyahTimingValidator>(
     () => const AyahTimingValidator(),
   );
@@ -480,6 +494,7 @@ Future<void> init() async {
       downloadService: sl(),
       downloadRepository: sl(),
       queueService: sl(),
+      notificationManager: sl(),
     ),
   );
 

@@ -5,6 +5,7 @@ import 'package:hafiz_al_ahd/features/quran_audio/domain/entities/audio_highligh
 import 'package:hafiz_al_ahd/features/quran_audio/domain/entities/audio_reciter.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/domain/entities/download_progress.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/domain/entities/quran_download_queue_progress.dart';
+import '../../data/services/quran_download_notification_manager.dart';
 import '../../../../core/utils/app_colors.dart';
 import '../../../../core/widgets/app_loader.dart';
 import '../../../quran/data/datasources/surah_names.dart';
@@ -1003,63 +1004,8 @@ class _QuranAudioSettingsSheetState extends State<QuranAudioSettingsSheet> {
     }
   }
 
-  String _formatUserFriendlyError(String? rawError) {
-    if (rawError == null || rawError.trim().isEmpty) {
-      return 'تعذر إتمام التحميل. يرجى التحقق من اتصال الإنترنت وإعادة المحاولة.';
-    }
-
-    final lower = rawError.toLowerCase();
-
-    // 1. Network, DNS, Connectivity & Socket errors
-    if (lower.contains('socketexception') ||
-        lower.contains('failed host lookup') ||
-        lower.contains('no address associated with hostname') ||
-        lower.contains('network is unreachable') ||
-        lower.contains('connection refused') ||
-        lower.contains('connection reset') ||
-        lower.contains('connection closed') ||
-        lower.contains('clientexception') ||
-        lower.contains('handshakeexception') ||
-        lower.contains('timeoutexception') ||
-        lower.contains('timed out')) {
-      return 'تعذر الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت وإعادة المحاولة.';
-    }
-
-    // 2. Storage & Permissions
-    if (lower.contains('no space left') || lower.contains('enospc') || lower.contains('disk full')) {
-      return 'المساحة التخزينية على جهازك غير كافية لإتمام التحميل.';
-    }
-    if (lower.contains('permission denied') || lower.contains('eacces') || lower.contains('access denied')) {
-      return 'تعذر حفظ الملف بسبب نقص صلاحيات التخزين على الجهاز.';
-    }
-
-    // 3. HTTP Server Status Codes
-    if (lower.contains('404') || lower.contains('not found')) {
-      return 'الملف الصوتي غير متوفر على الخادم لهذا القارئ.';
-    }
-    if (lower.contains('500') || lower.contains('502') || lower.contains('503') || lower.contains('504')) {
-      return 'الخادم غير متاح حاليًا. يرجى المحاولة في وقت لاحق.';
-    }
-
-    // 4. File integrity
-    if (lower.contains('stream truncated') || lower.contains('checksum mismatch') || lower.contains('corrupt')) {
-      return 'فشل التحقق من اكتمال الملف الصوتي. يرجى إعادة المحاولة.';
-    }
-
-    // If it contains Arabic letters and no raw exception traces, it's already localized
-    final hasArabic = RegExp(r'[\u0600-\u06FF]').hasMatch(rawError);
-    final hasExceptionKeywords = lower.contains('exception') ||
-        lower.contains('failed') ||
-        lower.contains('errno') ||
-        lower.contains('http') ||
-        lower.contains('os error');
-
-    if (hasArabic && !hasExceptionKeywords) {
-      return rawError;
-    }
-
-    return 'تعذر إتمام التحميل. يرجى التحقق من اتصال الإنترنت وإعادة المحاولة.';
-  }
+  String _formatUserFriendlyError(String? rawError) =>
+      formatUserFriendlyAudioError(rawError);
 
   Widget _buildDownloadActionRow({
     required AudioDownloadDisplayStatus displayStatus,

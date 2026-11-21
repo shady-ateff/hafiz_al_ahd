@@ -6,6 +6,7 @@ import '../../core/audio/quran_audio_player.dart';
 import '../../core/tracking/ayah_tracking_engine.dart';
 import '../../data/services/quran_audio_download_service.dart';
 import '../../data/services/quran_audio_queue_service.dart';
+import '../../data/services/quran_download_notification_manager.dart';
 import '../../domain/entities/audio_download.dart';
 import '../../domain/entities/audio_highlight_state.dart';
 import '../../domain/entities/audio_reciter.dart';
@@ -42,6 +43,7 @@ class QuranAudioCubit extends Cubit<QuranAudioState> {
   final BaseQuranAudioDownloadService? downloadService;
   final BaseAudioDownloadRepository? downloadRepository;
   final QuranAudioQueueService? queueService;
+  final QuranDownloadNotificationManager? notificationManager;
 
   final Map<String, StreamSubscription<DownloadProgress>> _downloadSubs = {};
 
@@ -61,6 +63,7 @@ class QuranAudioCubit extends Cubit<QuranAudioState> {
     this.downloadService,
     this.downloadRepository,
     this.queueService,
+    this.notificationManager,
   }) : super(QuranAudioState(
           reciters: AudioReciter.kDefaultReciters,
           selectedReciter: AudioReciter.kDefaultReciter,
@@ -840,6 +843,13 @@ class QuranAudioCubit extends Cubit<QuranAudioState> {
           audioUrl: surahAudio.audioUrl,
         );
 
+        notificationManager?.trackSingleSurahDownload(
+          surahNumber: surahNumber,
+          reciterId: reciterId,
+          reciterName: state.selectedReciter?.displayName,
+          progressStream: stream,
+        );
+
         _downloadSubs[key] = stream.listen((progress) {
           final map = Map<String, DownloadProgress>.from(state.downloadProgressMap)..[key] = progress;
           emit(state.copyWith(downloadProgressMap: map));
@@ -891,6 +901,7 @@ class QuranAudioCubit extends Cubit<QuranAudioState> {
     _downloadSubs[key]?.cancel();
     _downloadSubs.remove(key);
     await downloadService!.cancelDownload(surahNumber, reciterId);
+    await notificationManager?.cancelSingleSurahSession();
 
     // Immediately remove from state map so UI transitions to notDownloaded
     final map = Map<String, DownloadProgress>.from(state.downloadProgressMap)..remove(key);
@@ -1026,6 +1037,7 @@ class QuranAudioCubit extends Cubit<QuranAudioState> {
   /// Cancels full-Quran download queue.
   Future<void> cancelFullQuranDownload(String queueId) async {
     await queueService?.cancelQueue(queueId);
+    await notificationManager?.cancelQueueSession();
   }
 
   /// Retries failed items in full-Quran download queue.

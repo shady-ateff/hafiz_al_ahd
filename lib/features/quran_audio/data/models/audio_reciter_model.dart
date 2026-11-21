@@ -26,6 +26,14 @@ class AudioReciterModel extends AudioReciter {
         arabicName = tn['name']?.toString() ?? '';
       }
     }
+    // If arabicName is still empty or lacks Arabic letters, resolve via canonical mapping
+    if (arabicName.isEmpty || !RegExp(r'[\u0600-\u06FF]').hasMatch(arabicName)) {
+      final resolved = AudioReciter.kCanonicalArabicNames[id] ??
+          AudioReciter.resolveArabicNameByName(name);
+      if (resolved != null && resolved.isNotEmpty) {
+        arabicName = resolved;
+      }
+    }
     if (arabicName.isEmpty) {
       arabicName = name;
     }
