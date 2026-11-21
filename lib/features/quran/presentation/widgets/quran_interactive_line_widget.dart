@@ -14,6 +14,8 @@ class QuranInteractiveLineWidget extends StatefulWidget {
   final Color textColor;
   final AyahId? selectedAyahId;
   final Color? highlightColor;
+  final AyahId? audioHighlightedAyahId;
+  final Color? audioHighlightColor;
   final ValueChanged<QuranWord>? onWordTapped;
   final ValueChanged<QuranWord>? onWordLongPressed;
 
@@ -25,6 +27,8 @@ class QuranInteractiveLineWidget extends StatefulWidget {
     required this.textColor,
     this.selectedAyahId,
     this.highlightColor,
+    this.audioHighlightedAyahId,
+    this.audioHighlightColor,
     this.onWordTapped,
     this.onWordLongPressed,
   });
@@ -63,8 +67,12 @@ class _QuranInteractiveLineWidgetState
         widget.selectedAyahId != oldWidget.selectedAyahId &&
             (_containsAyah(widget.selectedAyahId) ||
                 _containsAyah(oldWidget.selectedAyahId));
+    final audioHighlightAffectsThisLine =
+        widget.audioHighlightedAyahId != oldWidget.audioHighlightedAyahId &&
+            (_containsAyah(widget.audioHighlightedAyahId) ||
+                _containsAyah(oldWidget.audioHighlightedAyahId));
 
-    if (lineChanged || callbacksChanged || selectionAffectsThisLine) {
+    if (lineChanged || callbacksChanged || selectionAffectsThisLine || audioHighlightAffectsThisLine) {
       _syncRecognizers();
     }
   }
@@ -158,12 +166,20 @@ class _QuranInteractiveLineWidgetState
     final List<InlineSpan> spans = [];
     final selectedId = widget.selectedAyahId;
     final highlight = widget.highlightColor;
+    final audioAyahId = widget.audioHighlightedAyahId;
+    final audioHighlight = widget.audioHighlightColor ?? const Color(0x382E7D32); // Soothing Quranic recitation green
 
     for (int i = 0; i < words.length; i++) {
       final word = words[i];
       final isSelected = selectedId != null && word.ayahId == selectedId;
-      final wordStyle = (isSelected && highlight != null)
-          ? TextStyle(backgroundColor: highlight)
+      final isAudioActive = audioAyahId != null && word.ayahId == audioAyahId;
+
+      final Color? effectiveBg = isSelected
+          ? highlight
+          : (isAudioActive ? audioHighlight : null);
+
+      final wordStyle = effectiveBg != null
+          ? TextStyle(backgroundColor: effectiveBg)
           : null;
 
       // 1. Interactive Word Span
@@ -175,13 +191,20 @@ class _QuranInteractiveLineWidgetState
         ),
       );
 
-      // 2. Inter-word space (highlighted only if both this word and the next word belong to the selected Ayah)
+      // 2. Inter-word space (highlighted only if both this word and the next word belong to the highlighted Ayah)
       if (i < words.length - 1) {
         final nextWord = words[i + 1];
         final nextIsSelected =
             selectedId != null && nextWord.ayahId == selectedId;
-        final spaceStyle = (isSelected && nextIsSelected && highlight != null)
-            ? TextStyle(backgroundColor: highlight)
+        final nextIsAudioActive =
+            audioAyahId != null && nextWord.ayahId == audioAyahId;
+
+        final Color? effectiveSpaceBg = (isSelected && nextIsSelected)
+            ? highlight
+            : ((isAudioActive && nextIsAudioActive) ? audioHighlight : null);
+
+        final spaceStyle = effectiveSpaceBg != null
+            ? TextStyle(backgroundColor: effectiveSpaceBg)
             : null;
 
         spans.add(

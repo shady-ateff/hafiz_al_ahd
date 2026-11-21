@@ -133,6 +133,19 @@ class AboutAppScreen extends StatelessWidget {
               textColor,
             ),
             _buildFeatureItem(
+              'مشغل التلاوة الصوتي والتتبع اللحظي',
+              'الاستماع لتلاوة كبار القراء مع تظليل الآية المقروءة آنيًا، وتقليب الصفحات التلقائي، والتحكم عبر الجزيرة التفاعلية وإشعارات النظام في الخلفية.',
+              Icons.headphones_rounded,
+              textColor,
+            ),
+         
+            _buildFeatureItem(
+              'تحميل السور والمصحف كاملاً (بلا إنترنت)',
+              'إمكانية تحميل تلاوة أي سورة أو المصحف كاملاً للقارئ المفضل للاستماع دون اتصال، مع إشعارات تقدم التحميل ومتابعتها في الخلفية.',
+              Icons.download_for_offline_rounded,
+              textColor,
+            ),
+            _buildFeatureItem(
               'التفسير الميسر المدمج (بدون إنترنت)',
               'عرض فوري لتفسير ومعاني الآيات بمجرد النقر عليها دون الحاجة لأي اتصال بالإنترنت.',
               Icons.menu_book_rounded,
@@ -240,7 +253,7 @@ class AboutAppScreen extends StatelessWidget {
                   ),
                   _buildDetailRow(
                     'تاريخ التحديث',
-                    '07/11/2026',
+                    '21/11/2026',
                     textColor,
                     dividerColor,
                   ),

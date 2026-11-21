@@ -11,6 +11,7 @@ class QuranAyahActionBottomSheet extends StatelessWidget {
   final QuranAyah ayah;
   final bool isBookmarked;
   final Color? bookmarkColor;
+  final VoidCallback? onPlayAudioTap;
   final VoidCallback? onTafseerTap;
   final VoidCallback? onCopyTap;
   final VoidCallback? onShareTap;
@@ -22,6 +23,7 @@ class QuranAyahActionBottomSheet extends StatelessWidget {
     required this.ayah,
     this.isBookmarked = false,
     this.bookmarkColor,
+    this.onPlayAudioTap,
     this.onTafseerTap,
     this.onCopyTap,
     this.onShareTap,
@@ -57,7 +59,7 @@ class QuranAyahActionBottomSheet extends StatelessWidget {
         ? totalContentHeight / screenHeight
         : 0.45;
     final initialSize = calculatedFraction.clamp(minSize, maxSize);
-    final snapSizes = [minSize, initialSize, maxSize].toSet().toList()..sort();
+    final snapSizes = {minSize, initialSize, maxSize}.toList()..sort();
 
     final sheetBgColor = isDark
         ? AppColors.primaryBlack
@@ -203,6 +205,12 @@ class QuranAyahActionBottomSheet extends StatelessWidget {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
+                              _buildActionButton(
+                                context: context,
+                                icon: Icons.play_circle_outline_rounded,
+                                label: 'استماع',
+                                onTap: onPlayAudioTap,
+                              ),
                               _buildActionButton(
                                 context: context,
                                 icon: Icons.auto_stories_outlined,

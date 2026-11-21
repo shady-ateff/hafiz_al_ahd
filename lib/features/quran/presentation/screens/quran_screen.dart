@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -29,6 +30,10 @@ import '../widgets/quran_bookmarks_bottom_sheet.dart';
 import '../widgets/quran_bookmark_edit_sheet.dart';
 import '../widgets/quran_tafseer_bottom_sheet.dart';
 import '../services/quran_atlas_prewarmer.dart';
+import 'package:hafiz_al_ahd/features/quran_audio/presentation/cubit/quran_audio_cubit.dart';
+import 'package:hafiz_al_ahd/features/quran_audio/presentation/cubit/quran_audio_state.dart';
+import 'package:hafiz_al_ahd/features/quran_audio/presentation/widgets/quran_audio_dynamic_island.dart';
+import '../../data/datasources/surah_names.dart';
 
 class QuranScreen extends StatefulWidget {
   final int? initialPage;
@@ -78,33 +83,51 @@ class QuranScreen extends StatefulWidget {
               ),
             ],
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildInstructionRow(
-                icon: Icons.touch_app_rounded,
-                title: 'اضغط مطولاً على أي كلمة',
-                desc:
-                    'لعرض الآية كاملة والوصول إلى خياراتها (تفسير، نسخ، واستماع).',
-                isDark: isDark,
-              ),
-              const SizedBox(height: 14),
-              _buildInstructionRow(
-                icon: Icons.fullscreen_rounded,
-                title: 'اضغط ضغطة سريعة في أي مكان',
-                desc:
-                    'لإخفاء أو إظهار أشرطة التطبيق والاستمتاع بالقراءة في وضع ملء الشاشة.',
-                isDark: isDark,
-              ),
-              const SizedBox(height: 14),
-              _buildInstructionRow(
-                icon: Icons.swipe_rounded,
-                title: 'اسحب يميناً أو يساراً',
-                desc: 'للتنقل السريع والسلس بين صفحات المصحف الشريف.',
-                isDark: isDark,
-              ),
-            ],
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildInstructionRow(
+                  icon: Icons.touch_app_rounded,
+                  title: 'اضغط مطولاً على أي كلمة',
+                  desc:
+                      'لعرض الآية كاملة والوصول إلى خياراتها (تفسير، نسخ، واستماع مباشر).',
+                  isDark: isDark,
+                ),
+                const SizedBox(height: 14),
+                _buildInstructionRow(
+                  icon: Icons.headphones_rounded,
+                  title: 'مشغل التلاوة الصوتي الذكي',
+                  desc:
+                      'شريط تفاعلي عائم للتحكم بالتلاوة، مع تظليل الآية المقروءة آنيًا وتقليب الصفحات تلقائيًا مع صوت القارئ.',
+                  isDark: isDark,
+                ),
+                const SizedBox(height: 14),
+                _buildInstructionRow(
+                  icon: Icons.tune_rounded,
+                  title: 'إعدادات الحفظ والتكرار والتحميل',
+                  desc:
+                      'من أيقونة الإعدادات: اختر قارئك المفضل، وفعّل تكرار الآية أو السورة أو نطاق الحفظ، وحمّل السور أو المصحف كاملاً للاستماع دون إنترنت.',
+                  isDark: isDark,
+                ),
+                const SizedBox(height: 14),
+                _buildInstructionRow(
+                  icon: Icons.fullscreen_rounded,
+                  title: 'اضغط ضغطة سريعة في أي مكان',
+                  desc:
+                      'لإخفاء أو إظهار أشرطة التطبيق والاستمتاع بالقراءة في وضع ملء الشاشة.',
+                  isDark: isDark,
+                ),
+                const SizedBox(height: 14),
+                _buildInstructionRow(
+                  icon: Icons.swipe_rounded,
+                  title: 'اسحب يميناً أو يساراً',
+                  desc: 'للتنقل السريع والسلس بين صفحات المصحف الشريف.',
+                  isDark: isDark,
+                ),
+              ],
+            ),
           ),
           actions: [
             Center(
@@ -205,6 +228,10 @@ class _QuranScreenState extends State<QuranScreen>
 
   ModalBottomSheetRoute<void>? _activeAyahSheetRoute;
   bool _isAyahSheetOpen = false;
+  bool _isAutoPageAnimating = false;
+  DateTime _lastUserPageInteractionTime = DateTime.fromMillisecondsSinceEpoch(0);
+  int? _pendingTargetPage;
+  Timer? _pendingPageTurnTimer;
   int _selectionRequestToken = 0;
 
   final Map<int, ValueChanged<QuranWord>> _tappedCallbacks = {};
@@ -305,6 +332,7 @@ class _QuranScreenState extends State<QuranScreen>
 
   @override
   void dispose() {
+    _pendingPageTurnTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _atlasPrewarmer.dispose();
     _closeActiveSheetRouteOnly();
@@ -327,6 +355,7 @@ class _QuranScreenState extends State<QuranScreen>
           route.navigator!.removeRoute(route);
         }
       }
+      _checkAndApplyPendingPageTurn();
     }
   }
 
@@ -340,6 +369,89 @@ class _QuranScreenState extends State<QuranScreen>
         return null;
       }
     }
+  }
+
+  QuranAudioCubit? _tryGetAudioCubit(BuildContext context) {
+    try {
+      return context.read<QuranAudioCubit>();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  void _checkAndApplyPendingPageTurn() {
+    if (!mounted || _pendingTargetPage == null) return;
+    final cubit = _tryGetAudioCubit(context);
+    if (cubit == null || !cubit.state.isPlaying) {
+      _pendingPageTurnTimer?.cancel();
+      _pendingPageTurnTimer = null;
+      _pendingTargetPage = null;
+      return;
+    }
+
+    // 1. Guard: Route occlusion by Modal Bottom Sheet or Dialog
+    if (!_isRouteActive || _isAyahSheetOpen) {
+      _pendingPageTurnTimer?.cancel();
+      _pendingPageTurnTimer = Timer(const Duration(milliseconds: 500), _checkAndApplyPendingPageTurn);
+      return;
+    }
+
+    // 2. Guard: Ongoing animation
+    if (_isAutoPageAnimating) return;
+
+    // 3. Guard: User actively dragging/scrolling PageView
+    if (_pageController.hasClients &&
+        _pageController.position.haveDimensions &&
+        _pageController.position.isScrollingNotifier.value) {
+      _pendingPageTurnTimer?.cancel();
+      _pendingPageTurnTimer = Timer(const Duration(milliseconds: 300), _checkAndApplyPendingPageTurn);
+      return;
+    }
+
+    // 4. Guard: Cooldown after manual touch (1500ms)
+    final elapsed = DateTime.now().difference(_lastUserPageInteractionTime).inMilliseconds;
+    if (elapsed < 1500) {
+      final remaining = (1500 - elapsed).clamp(50, 1500);
+      _pendingPageTurnTimer?.cancel();
+      _pendingPageTurnTimer = Timer(Duration(milliseconds: remaining + 50), _checkAndApplyPendingPageTurn);
+      return;
+    }
+
+    final targetPage = _pendingTargetPage!;
+    if (_currentPageNotifier.value != targetPage && _pageController.hasClients) {
+      final animatedTargetPage = targetPage;
+      _isAutoPageAnimating = true;
+      _pageController
+          .animateToPage(
+            animatedTargetPage - 1,
+            duration: const Duration(milliseconds: 350),
+            curve: Curves.easeInOut,
+          )
+          .then((_) {
+            // Race condition guard: only clear pending target if not superseded by a newer target
+            if (_pendingTargetPage == animatedTargetPage) {
+              _pendingTargetPage = null;
+            }
+          })
+          .catchError((_) {})
+          .whenComplete(() {
+            _isAutoPageAnimating = false;
+            // If a newer target arrived while animating, trigger it immediately
+            if (_pendingTargetPage != null && _pendingTargetPage != _currentPageNotifier.value) {
+              _checkAndApplyPendingPageTurn();
+            }
+          });
+    } else {
+      _pendingTargetPage = null;
+    }
+  }
+
+  void _handlePlayAyahAudio(QuranAyah ayah) {
+    _closeActiveSheetRouteOnly();
+    try {
+      final audioCubit = _tryGetAudioCubit(context);
+      audioCubit?.playAyah(ayah.id);
+    } catch (_) {}
   }
 
   Future<void> _openAyahBottomSheet(QuranAyah ayah) async {
@@ -363,6 +475,7 @@ class _QuranScreenState extends State<QuranScreen>
                 isBookmarked: isBookmarked,
                 bookmarkColor: bookmarkColor,
                 onCloseTap: () => _closeActiveSheetRouteOnly(),
+                onPlayAudioTap: () => _handlePlayAyahAudio(ayah),
                 onTafseerTap: () => _handleOpenTafseer(ayah),
                 onCopyTap: () => _handleCopyAyah(ayah),
                 onShareTap: () => _handleShareAyah(ayah),
@@ -375,6 +488,7 @@ class _QuranScreenState extends State<QuranScreen>
             ayah: ayah,
             isBookmarked: false,
             onCloseTap: () => _closeActiveSheetRouteOnly(),
+            onPlayAudioTap: () => _handlePlayAyahAudio(ayah),
             onTafseerTap: () => _handleOpenTafseer(ayah),
             onCopyTap: () => _handleCopyAyah(ayah),
             onShareTap: () => _handleShareAyah(ayah),
@@ -401,6 +515,7 @@ class _QuranScreenState extends State<QuranScreen>
         _activeAyahSheetRoute = null;
         _isAyahSheetOpen = false;
       }
+      _checkAndApplyPendingPageTurn();
     }
   }
 
@@ -432,6 +547,7 @@ class _QuranScreenState extends State<QuranScreen>
         _activeAyahSheetRoute = null;
         _isAyahSheetOpen = false;
       }
+      _checkAndApplyPendingPageTurn();
     }
   }
 
@@ -976,6 +1092,8 @@ class _QuranScreenState extends State<QuranScreen>
 
   @override
   Widget build(BuildContext context) {
+    final audioCubit = _tryGetAudioCubit(context);
+
     return BlocBuilder<QuranSettingsCubit, QuranSettingsState>(
       builder: (context, settingsState) {
         final isDark = _isDarkMode(context, settingsState.quranThemeMode);
@@ -986,22 +1104,48 @@ class _QuranScreenState extends State<QuranScreen>
             ? Colors.white70
             : AppColors.darkSilverMarble;
 
-        return Scaffold(
-          resizeToAvoidBottomInset: false,
-          backgroundColor: bgColor,
-          body: Stack(
+        Widget buildBody(AyahId? activeAudioAyah) {
+          return Stack(
             children: [
               // 1. PageView
               GestureDetector(
                 onTap: _toggleFullScreen,
-                child: PageView.builder(
+                child: NotificationListener<ScrollNotification>(
+                  onNotification: (notification) {
+                    final bool isUserGesture = notification is UserScrollNotification ||
+                        (notification is ScrollUpdateNotification && notification.dragDetails != null);
+
+                    if (isUserGesture && !_isAutoPageAnimating) {
+                      _lastUserPageInteractionTime = DateTime.now();
+                    } else if (notification is ScrollEndNotification) {
+                      // Only update interaction timestamp if initiated by user gesture, NOT programmatic animation
+                      if (!_isAutoPageAnimating && notification.dragDetails != null) {
+                        _lastUserPageInteractionTime = DateTime.now();
+                      }
+                      if (_pendingTargetPage != null && !_isAutoPageAnimating) {
+                        _pendingPageTurnTimer?.cancel();
+                        _pendingPageTurnTimer = Timer(
+                          const Duration(milliseconds: 1550),
+                          _checkAndApplyPendingPageTurn,
+                        );
+                      }
+                    }
+                    return false;
+                  },
+                  child: PageView.builder(
                   controller: _pageController,
                   reverse: false,
                   itemCount: 604,
                   allowImplicitScrolling: true,
                   onPageChanged: (index) {
+                    if (!_isAutoPageAnimating) {
+                      _lastUserPageInteractionTime = DateTime.now();
+                    }
                     final int pageNumber = index + 1;
                     _currentPageNotifier.value = pageNumber;
+                    if (_pendingTargetPage == pageNumber) {
+                      _pendingTargetPage = null;
+                    }
                     _selectionRequestToken++;
                     _closeActiveSheetRouteOnly();
                     context.read<QuranCubit>().clearSelection();
@@ -1232,6 +1376,7 @@ class _QuranScreenState extends State<QuranScreen>
                             isFontLoaded: effectiveState.isFontLoaded,
                             lineMappings: effectiveState.lineMappings,
                             selectedAyahId: effectiveState.selectedAyahId,
+                            audioHighlightedAyahId: activeAudioAyah,
                             onWordTapped: _getWordTappedCallback(pageNumber),
                             onWordLongPressed: _getWordLongPressedCallback(pageNumber),
                           );
@@ -1243,6 +1388,7 @@ class _QuranScreenState extends State<QuranScreen>
                   },
                 ),
               ),
+            ),
 
               // 2. Header AppBar
               AnimatedPositioned(
@@ -1250,8 +1396,10 @@ class _QuranScreenState extends State<QuranScreen>
                 top: _isFullScreen ? -150 : 0,
                 left: 0,
                 right: 0,
-                child: Container(
-                  decoration: BoxDecoration(
+                child: IgnorePointer(
+                  ignoring: _isFullScreen,
+                  child: Container(
+                    decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
                         const Color.fromARGB(255, 90, 90, 90),
@@ -1372,6 +1520,7 @@ class _QuranScreenState extends State<QuranScreen>
                   ),
                 ),
               ),
+            ),
 
               // 3. Bottom Slider
               AnimatedPositioned(
@@ -1379,109 +1528,249 @@ class _QuranScreenState extends State<QuranScreen>
                 bottom: _isFullScreen ? -150 : 30,
                 left: 20,
                 right: 20,
-                child: AnimatedOpacity(
-                  duration: const Duration(milliseconds: 300),
-                  opacity: _isFullScreen ? 0.0 : 1.0,
-                  child: ValueListenableBuilder<int>(
-                    valueListenable: _currentPageNotifier,
-                    builder: (context, currentPage, child) {
-                      return Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 15,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? const Color(0xFF222222).withValues(alpha: 0.9)
-                              : Colors.white.withValues(alpha: 0.9),
-                          borderRadius: BorderRadius.circular(30),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.1),
-                              blurRadius: 10,
-                              offset: const Offset(0, 5),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            InkWell(
-                              onTap: _showPageJumpDialog,
-                              borderRadius: BorderRadius.circular(8),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: AppColors.secondaryGold.withValues(alpha: 0.15),
-                                  border: Border.all(color: AppColors.secondaryGold.withValues(alpha: 0.5)),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.edit_rounded,
-                                      size: 14,
-                                      color: isDark ? Colors.white70 : AppColors.deepBackground,
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      '$currentPage',
-                                      style: TextStyle(
-                                        fontFamily: 'Tajawal',
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                        color: isDark
+                child: IgnorePointer(
+                  ignoring: _isFullScreen,
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 300),
+                    opacity: _isFullScreen ? 0.0 : 1.0,
+                    child: ValueListenableBuilder<int>(
+                      valueListenable: _currentPageNotifier,
+                      builder: (context, currentPage, child) {
+                        return Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 15,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? const Color(0xFF222222).withValues(alpha: 0.9)
+                                : Colors.white.withValues(alpha: 0.9),
+                            borderRadius: BorderRadius.circular(30),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.1),
+                                blurRadius: 10,
+                                offset: const Offset(0, 5),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              InkWell(
+                                onTap: _showPageJumpDialog,
+                                borderRadius: BorderRadius.circular(8),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.secondaryGold.withValues(alpha: 0.15),
+                                    border: Border.all(color: AppColors.secondaryGold.withValues(alpha: 0.5)),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.edit_rounded,
+                                        size: 14,
+                                        color: isDark ? Colors.white70 : AppColors.deepBackground,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        '$currentPage',
+                                        style: TextStyle(
+                                          fontFamily: 'Tajawal',
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                          color: isDark
                                             ? Colors.white
                                             : AppColors.deepBackground,
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
-                            Expanded(
-                              child: SliderTheme(
-                                data: SliderThemeData(
-                                  activeTrackColor: const Color(0xffD4AF37),
-                                  inactiveTrackColor: isDark
-                                      ? Colors.grey[800]
-                                      : const Color(0xffD4AF37).withValues(alpha: 0.3),
-                                  thumbColor: const Color(0xffD4AF37),
-                                  trackHeight: 4.0,
-                                ),
-                                child: Slider(
-                                  value: currentPage.toDouble(),
-                                  min: 1,
-                                  max: 604,
-                                  onChanged: (value) {
-                                    _currentPageNotifier.value = value.toInt();
-                                  },
-                                  onChangeEnd: (value) {
-                                    _pageController.jumpToPage(value.toInt() - 1);
-                                  },
+                              Expanded(
+                                child: SliderTheme(
+                                  data: SliderThemeData(
+                                    activeTrackColor: const Color(0xffD4AF37),
+                                    inactiveTrackColor: isDark
+                                        ? Colors.grey[800]
+                                        : const Color(0xffD4AF37).withValues(alpha: 0.3),
+                                    thumbColor: const Color(0xffD4AF37),
+                                    trackHeight: 4.0,
+                                  ),
+                                  child: Slider(
+                                    value: currentPage.toDouble(),
+                                    min: 1,
+                                    max: 604,
+                                    onChanged: (value) {
+                                      _currentPageNotifier.value = value.toInt();
+                                    },
+                                    onChangeEnd: (value) {
+                                      _pageController.jumpToPage(value.toInt() - 1);
+                                    },
+                                  ),
                                 ),
                               ),
-                            ),
-                            Text(
-                              '604',
-                              style: TextStyle(
-                                fontFamily: 'Tajawal',
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: isDark
-                                    ? Colors.white
-                                    : AppColors.deepBackground,
+                              Text(
+                                '604',
+                                style: TextStyle(
+                                  fontFamily: 'Tajawal',
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: isDark
+                                      ? Colors.white
+                                      : AppColors.deepBackground,
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
+                            ],
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 ),
               ),
+
+              // 4. Floating Dynamic Island Audio Player
+              if (audioCubit != null)
+                AnimatedPositioned(
+                  duration: const Duration(milliseconds: 320),
+                  curve: Curves.easeOutCubic,
+                  bottom: _isFullScreen ? -220 : 92,
+                  left: 16,
+                  right: 16,
+                  child: IgnorePointer(
+                    ignoring: _isFullScreen,
+                    child: AnimatedOpacity(
+                      duration: const Duration(milliseconds: 280),
+                      opacity: _isFullScreen ? 0.0 : 1.0,
+                      child: ValueListenableBuilder<int>(
+                        valueListenable: _currentPageNotifier,
+                        builder: (context, currentPage, _) {
+                          final pageSurah = getSurahNumberForPage(currentPage);
+                          final firstAyah = sl<BaseQuranMappingRepository>()
+                              .getFirstAyahOnPage(currentPage);
+                          return BlocProvider.value(
+                            value: audioCubit,
+                            child: QuranAudioDynamicIsland(
+                              key: const ValueKey('quran_audio_dynamic_island'),
+                              defaultSurahNumber: firstAyah?.surahNumber ?? pageSurah,
+                              defaultStartAyahNumber: firstAyah?.ayahNumber,
+                              isFullScreen: _isFullScreen,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ),
             ],
-          ),
+          );
+        }
+
+        Widget bodyContent;
+        if (audioCubit != null) {
+          bodyContent = BlocListener<QuranAudioCubit, QuranAudioState>(
+            bloc: audioCubit,
+            listenWhen: (prev, curr) =>
+                (prev.isPlaying != curr.isPlaying) ||
+                (curr.isPlaying &&
+                    prev.highlightState.activeAyah != curr.highlightState.activeAyah &&
+                    curr.highlightState.activeAyah != null),
+            listener: (context, state) async {
+              if (!state.isPlaying) {
+                // Audio stopped or paused: immediately cancel any pending target and active timer
+                _pendingPageTurnTimer?.cancel();
+                _pendingPageTurnTimer = null;
+                _pendingTargetPage = null;
+                return;
+              }
+              final activeAyah = state.highlightState.activeAyah;
+              if (activeAyah == null) return;
+
+              try {
+                final mappingRepo = sl<BaseQuranMappingRepository>();
+                final res = await mappingRepo.getAyah(activeAyah);
+                res.fold((_) {}, (ayah) async {
+                  if (!mounted) return;
+                  final targetPage = ayah.pageNumber;
+
+                  // If already on the target page, clear pending request
+                  if (_currentPageNotifier.value == targetPage) {
+                    _pendingTargetPage = null;
+                    return;
+                  }
+
+                  // 1. Guard against route occlusion (Bottom Sheet, Dialog, or active sheet)
+                  if (!_isRouteActive || _isAyahSheetOpen) {
+                    _pendingTargetPage = targetPage;
+                    return;
+                  }
+
+                  // 2. Guard against ongoing auto-animation
+                  if (_isAutoPageAnimating) {
+                    _pendingTargetPage = targetPage;
+                    return;
+                  }
+
+                  // 3. Guard against active user page drag/scroll
+                  if (_pageController.hasClients &&
+                      _pageController.position.haveDimensions &&
+                      _pageController.position.isScrollingNotifier.value) {
+                    _pendingTargetPage = targetPage;
+                    return;
+                  }
+
+                  // 4. Guard against recent manual interaction cooldown (1500ms)
+                  final elapsedSinceInteraction =
+                      DateTime.now().difference(_lastUserPageInteractionTime).inMilliseconds;
+                  if (elapsedSinceInteraction < 1500) {
+                    _pendingTargetPage = targetPage;
+                    final remaining = (1500 - elapsedSinceInteraction).clamp(50, 1500);
+                    _pendingPageTurnTimer?.cancel();
+                    _pendingPageTurnTimer = Timer(
+                      Duration(milliseconds: remaining + 50),
+                      _checkAndApplyPendingPageTurn,
+                    );
+                    return;
+                  }
+
+                  // All clear: execute smooth auto-page turn immediately
+                  if (_pageController.hasClients && !_isAutoPageAnimating) {
+                    _isAutoPageAnimating = true;
+                    _pendingTargetPage = null;
+                    try {
+                      await _pageController.animateToPage(
+                        targetPage - 1,
+                        duration: const Duration(milliseconds: 350),
+                        curve: Curves.easeInOut,
+                      );
+                    } finally {
+                      _isAutoPageAnimating = false;
+                    }
+                  }
+                });
+              } catch (_) {}
+            },
+            child: BlocBuilder<QuranAudioCubit, QuranAudioState>(
+              bloc: audioCubit,
+              buildWhen: (prev, curr) =>
+                  prev.highlightState.activeAyah != curr.highlightState.activeAyah,
+              builder: (context, audioState) {
+                return buildBody(audioState.highlightState.activeAyah);
+              },
+            ),
+          );
+        } else {
+          bodyContent = buildBody(null);
+        }
+
+        return Scaffold(
+          resizeToAvoidBottomInset: false,
+          backgroundColor: bgColor,
+          body: bodyContent,
         );
       },
     );

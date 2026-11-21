@@ -144,6 +144,17 @@ void main() {
       expect(highResult.isLeft(), isTrue);
       highResult.fold((f) => expect(f.message, contains('Invalid page number: 605')), (_) => fail(''));
     });
+
+    test('getFirstAyahOnPage accurately resolves first ayah for any physical page', () {
+      expect(repository.getFirstAyahOnPage(1), equals(AyahId(surahNumber: 1, ayahNumber: 1)));
+      expect(repository.getFirstAyahOnPage(2), equals(AyahId(surahNumber: 2, ayahNumber: 1)));
+      expect(repository.getFirstAyahOnPage(3), equals(AyahId(surahNumber: 2, ayahNumber: 6)));
+      expect(repository.getFirstAyahOnPage(48), equals(AyahId(surahNumber: 2, ayahNumber: 282)));
+      expect(repository.getFirstAyahOnPage(446), equals(AyahId(surahNumber: 37, ayahNumber: 1)));
+      expect(repository.getFirstAyahOnPage(447), equals(AyahId(surahNumber: 37, ayahNumber: 25)));
+      expect(repository.getFirstAyahOnPage(0), isNull);
+      expect(repository.getFirstAyahOnPage(605), isNull);
+    });
   });
 
   group('QuranMappingRepository Ayah & Segment Lookup Tests', () {

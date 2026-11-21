@@ -149,6 +149,19 @@ class QuranMappingRepositoryImpl implements BaseQuranMappingRepository {
 
     return Right(word);
   }
+
+  @override
+  AyahId? getFirstAyahOnPage(int pageNumber) {
+    if (!_isInitialized) return null;
+    final lines = _pagesIndex[pageNumber];
+    if (lines == null || lines.isEmpty) return null;
+    for (final line in lines) {
+      if (line.words.isNotEmpty) {
+        return line.words.first.ayahId;
+      }
+    }
+    return null;
+  }
 }
 
 /// Internal immutable transfer container holding the indexed Quran mapping dataset

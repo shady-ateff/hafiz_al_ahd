@@ -22,6 +22,7 @@ import 'package:hafiz_al_ahd/features/gamification/presentation/cubit/gamificati
 import 'package:hafiz_al_ahd/features/quran/presentation/cubit/quran_cubit.dart'; // 👈 استيراد المصحف
 import 'package:hafiz_al_ahd/features/quran/presentation/cubit/quran_settings_cubit.dart';
 import 'package:hafiz_al_ahd/features/quran/presentation/cubit/quran_bookmark_cubit.dart'; // 👈 استيراد اعدادات المصحف
+import 'package:hafiz_al_ahd/features/quran_audio/presentation/cubit/quran_audio_cubit.dart';
 import 'package:hafiz_al_ahd/features/notifications/presentation/cubit/prayer_alarm_settings_cubit.dart';
 import 'package:hafiz_al_ahd/features/splash/splash_screen.dart';
 import 'package:window_manager/window_manager.dart';
@@ -134,6 +135,7 @@ class _AppState extends State<App> with TrayListener, WindowListener {
         BlocProvider(create: (context) => sl<QuranCubit>()), // 👈 إضافة QuranCubit
         BlocProvider(create: (context) => sl<QuranSettingsCubit>()),
         BlocProvider(create: (context) => sl<QuranBookmarkCubit>()..loadBookmarks()), // 👈 إضافة اعدادات المصحف
+        BlocProvider(create: (context) => sl<QuranAudioCubit>()..init()),
       ],
       child: BlocBuilder<ThemeCubit, ThemeState>(
         builder: (context, themeState) {
