@@ -83,33 +83,51 @@ class QuranScreen extends StatefulWidget {
               ),
             ],
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildInstructionRow(
-                icon: Icons.touch_app_rounded,
-                title: 'اضغط مطولاً على أي كلمة',
-                desc:
-                    'لعرض الآية كاملة والوصول إلى خياراتها (تفسير، نسخ، واستماع).',
-                isDark: isDark,
-              ),
-              const SizedBox(height: 14),
-              _buildInstructionRow(
-                icon: Icons.fullscreen_rounded,
-                title: 'اضغط ضغطة سريعة في أي مكان',
-                desc:
-                    'لإخفاء أو إظهار أشرطة التطبيق والاستمتاع بالقراءة في وضع ملء الشاشة.',
-                isDark: isDark,
-              ),
-              const SizedBox(height: 14),
-              _buildInstructionRow(
-                icon: Icons.swipe_rounded,
-                title: 'اسحب يميناً أو يساراً',
-                desc: 'للتنقل السريع والسلس بين صفحات المصحف الشريف.',
-                isDark: isDark,
-              ),
-            ],
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildInstructionRow(
+                  icon: Icons.touch_app_rounded,
+                  title: 'اضغط مطولاً على أي كلمة',
+                  desc:
+                      'لعرض الآية كاملة والوصول إلى خياراتها (تفسير، نسخ، واستماع مباشر).',
+                  isDark: isDark,
+                ),
+                const SizedBox(height: 14),
+                _buildInstructionRow(
+                  icon: Icons.headphones_rounded,
+                  title: 'مشغل التلاوة الصوتي الذكي',
+                  desc:
+                      'شريط تفاعلي عائم للتحكم بالتلاوة، مع تظليل الآية المقروءة آنيًا وتقليب الصفحات تلقائيًا مع صوت القارئ.',
+                  isDark: isDark,
+                ),
+                const SizedBox(height: 14),
+                _buildInstructionRow(
+                  icon: Icons.tune_rounded,
+                  title: 'إعدادات الحفظ والتكرار والتحميل',
+                  desc:
+                      'من أيقونة الإعدادات: اختر قارئك المفضل، وفعّل تكرار الآية أو السورة أو نطاق الحفظ، وحمّل السور أو المصحف كاملاً للاستماع دون إنترنت.',
+                  isDark: isDark,
+                ),
+                const SizedBox(height: 14),
+                _buildInstructionRow(
+                  icon: Icons.fullscreen_rounded,
+                  title: 'اضغط ضغطة سريعة في أي مكان',
+                  desc:
+                      'لإخفاء أو إظهار أشرطة التطبيق والاستمتاع بالقراءة في وضع ملء الشاشة.',
+                  isDark: isDark,
+                ),
+                const SizedBox(height: 14),
+                _buildInstructionRow(
+                  icon: Icons.swipe_rounded,
+                  title: 'اسحب يميناً أو يساراً',
+                  desc: 'للتنقل السريع والسلس بين صفحات المصحف الشريف.',
+                  isDark: isDark,
+                ),
+              ],
+            ),
           ),
           actions: [
             Center(
