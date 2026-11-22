@@ -11,6 +11,7 @@ import android.util.Log
 import android.view.Display
 import android.view.WindowManager
 import com.ryanheise.audioservice.AudioServiceActivity
+import com.shadyatef.hafiz_alahd.focus_poc.FocusPoCChannelHandler
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
@@ -23,6 +24,7 @@ class MainActivity : AudioServiceActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        handleFocusWardIntent(intent)
 
         // Ensure window is attached and ready before requesting display mode
         window.decorView.post {
@@ -54,6 +56,20 @@ class MainActivity : AudioServiceActivity() {
     override fun onResume() {
         super.onResume()
         setOptimalDisplayMode()
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleFocusWardIntent(intent)
+    }
+
+    private fun handleFocusWardIntent(intent: Intent?) {
+        val wardTarget = intent?.getStringExtra("focus_ward_target")
+        if (!wardTarget.isNullOrBlank()) {
+            FocusPoCChannelHandler.pendingWardIntent = wardTarget
+            FocusPoCChannelHandler.notifyEvent("onNavigateToWard", mapOf("wardTitle" to wardTarget))
+        }
     }
 
     /**
@@ -153,6 +169,9 @@ class MainActivity : AudioServiceActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        // Focus Mode PoC Channel Registration (Isolated)
+        FocusPoCChannelHandler(this).register(flutterEngine.dartExecutor.binaryMessenger)
+
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             if (call.method == "scheduleExactAlarm") {
                 val triggerTime = call.argument<Long>("triggerTime") ?: 0L

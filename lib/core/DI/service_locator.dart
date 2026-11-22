@@ -50,6 +50,35 @@ import 'package:hafiz_al_ahd/core/config/catalog_config.dart';
 import 'package:hafiz_al_ahd/features/notifications/developer/di/developer_service_locator.dart';
 import 'package:hafiz_al_ahd/features/notifications/presentation/cubit/prayer_alarm_settings_cubit.dart';
 
+// --- Focus Mode Imports ---
+import 'package:hafiz_al_ahd/features/focus_mode/domain/ports/adhkar_completion_port.dart';
+import 'package:hafiz_al_ahd/features/focus_mode/domain/ports/focus_app_exemption_port.dart';
+import 'package:hafiz_al_ahd/features/focus_mode/domain/ports/focus_enforcement_port.dart';
+import 'package:hafiz_al_ahd/features/focus_mode/domain/ports/focus_scheduling_port.dart';
+import 'package:hafiz_al_ahd/features/focus_mode/domain/ports/quran_reading_completion_port.dart';
+import 'package:hafiz_al_ahd/features/focus_mode/domain/repositories/focus_app_exemption_repository.dart';
+import 'package:hafiz_al_ahd/features/focus_mode/domain/repositories/focus_schedule_repository.dart';
+import 'package:hafiz_al_ahd/features/focus_mode/domain/repositories/focus_session_repository.dart';
+import 'package:hafiz_al_ahd/features/focus_mode/domain/services/focus_app_manager_coordinator.dart';
+import 'package:hafiz_al_ahd/features/focus_mode/domain/services/focus_schedule_coordinator.dart';
+import 'package:hafiz_al_ahd/features/focus_mode/domain/services/focus_session_coordinator.dart';
+import 'package:hafiz_al_ahd/features/focus_mode/domain/services/focus_session_recovery_manager.dart';
+import 'package:hafiz_al_ahd/features/focus_mode/presentation/cubits/focus_app_selection/focus_app_selection_cubit.dart';
+import 'package:hafiz_al_ahd/features/focus_mode/presentation/cubits/focus_permissions/focus_permissions_cubit.dart';
+import 'package:hafiz_al_ahd/features/focus_mode/presentation/cubits/focus_settings/focus_settings_cubit.dart';
+import 'package:hafiz_al_ahd/features/focus_mode/data/datasources/focus_database.dart';
+import 'package:hafiz_al_ahd/features/focus_mode/data/datasources/focus_app_exemption_local_data_source.dart';
+import 'package:hafiz_al_ahd/features/focus_mode/data/datasources/focus_schedule_local_data_source.dart';
+import 'package:hafiz_al_ahd/features/focus_mode/data/datasources/focus_session_local_data_source.dart';
+import 'package:hafiz_al_ahd/features/focus_mode/data/ports/in_memory_adhkar_completion_port.dart';
+import 'package:hafiz_al_ahd/features/focus_mode/data/ports/in_memory_quran_reading_completion_port.dart';
+import 'package:hafiz_al_ahd/features/focus_mode/data/ports/native_focus_app_exemption_port.dart';
+import 'package:hafiz_al_ahd/features/focus_mode/data/ports/native_focus_enforcement_port.dart';
+import 'package:hafiz_al_ahd/features/focus_mode/data/ports/native_focus_scheduling_port.dart';
+import 'package:hafiz_al_ahd/features/focus_mode/data/repositories/focus_app_exemption_repository_impl.dart';
+import 'package:hafiz_al_ahd/features/focus_mode/data/repositories/focus_schedule_repository_impl.dart';
+import 'package:hafiz_al_ahd/features/focus_mode/data/repositories/focus_session_repository_impl.dart';
+
 // --- Quran Imports ---
 import 'package:hafiz_al_ahd/features/quran/data/datasources/quran_local_data_source.dart';
 import 'package:hafiz_al_ahd/features/quran/domain/repositories/base_quran_repository.dart';
@@ -504,4 +533,90 @@ Future<void> init() async {
   if (isCatalogDeveloperToolsActive) {
     registerDeveloperServices(sl);
   }
+
+  // ---------------------------------------------------
+  // 6. Focus Mode (Domain Completion, SQLite, Recovery & Scheduling Engine)
+  // ---------------------------------------------------
+  final focusDb = FocusDatabase();
+  final focusLocalDataSource =
+      FocusSessionLocalDataSourceImpl(focusDatabase: focusDb);
+  final focusRepository =
+      FocusSessionRepositoryImpl(localDataSource: focusLocalDataSource);
+
+  final focusScheduleDataSource =
+      FocusScheduleLocalDataSourceImpl(focusDatabase: focusDb);
+  final focusScheduleRepository =
+      FocusScheduleRepositoryImpl(localDataSource: focusScheduleDataSource);
+  final focusSchedulingPort = NativeFocusSchedulingPort();
+
+  final focusAppExemptionDataSource =
+      FocusAppExemptionLocalDataSourceImpl(focusDatabase: focusDb);
+  final focusAppExemptionRepository = FocusAppExemptionRepositoryImpl(
+      localDataSource: focusAppExemptionDataSource);
+  final focusAppExemptionPort = NativeFocusAppExemptionPort();
+
+  sl.registerSingleton<FocusDatabase>(focusDb);
+  sl.registerSingleton<FocusSessionLocalDataSource>(focusLocalDataSource);
+  sl.registerSingleton<FocusSessionRepository>(focusRepository);
+  sl.registerSingleton<FocusScheduleLocalDataSource>(focusScheduleDataSource);
+  sl.registerSingleton<FocusScheduleRepository>(focusScheduleRepository);
+  sl.registerSingleton<FocusSchedulingPort>(focusSchedulingPort);
+  sl.registerSingleton<FocusAppExemptionLocalDataSource>(
+      focusAppExemptionDataSource);
+  sl.registerSingleton<FocusAppExemptionRepository>(focusAppExemptionRepository);
+  sl.registerSingleton<FocusAppExemptionPort>(focusAppExemptionPort);
+
+  final adhkarCompletionPort = InMemoryAdhkarCompletionPort();
+  final quranReadingCompletionPort = InMemoryQuranReadingCompletionPort();
+  const focusEnforcementPort = NativeFocusEnforcementPort();
+  sl.registerSingleton<AdhkarCompletionPort>(adhkarCompletionPort);
+  sl.registerSingleton<QuranReadingCompletionPort>(quranReadingCompletionPort);
+  sl.registerSingleton<FocusEnforcementPort>(focusEnforcementPort);
+
+  sl.registerLazySingleton<FocusSessionRecoveryManager>(
+    () => FocusSessionRecoveryManager(
+      repository: sl<FocusSessionRepository>(),
+      enforcementPort: sl<FocusEnforcementPort>(),
+    ),
+  );
+
+  sl.registerLazySingleton<FocusSessionCoordinator>(
+    () => FocusSessionCoordinator(
+      adhkarPort: sl<AdhkarCompletionPort>(),
+      quranPort: sl<QuranReadingCompletionPort>(),
+      enforcementPort: sl<FocusEnforcementPort>(),
+      repository: sl<FocusSessionRepository>(),
+    ),
+  );
+
+  sl.registerLazySingleton<FocusScheduleCoordinator>(
+    () => FocusScheduleCoordinator(
+      repository: sl<FocusScheduleRepository>(),
+      schedulingPort: sl<FocusSchedulingPort>(),
+    ),
+  );
+
+  sl.registerLazySingleton<FocusAppManagerCoordinator>(
+    () => FocusAppManagerCoordinator(
+      port: sl<FocusAppExemptionPort>(),
+      repository: sl<FocusAppExemptionRepository>(),
+    ),
+  );
+
+  sl.registerFactory<FocusPermissionsCubit>(() => FocusPermissionsCubit());
+  sl.registerFactory<FocusSettingsCubit>(
+    () => FocusSettingsCubit(
+      scheduleCoordinator: sl<FocusScheduleCoordinator>(),
+      sessionCoordinator: sl<FocusSessionCoordinator>(),
+      scheduleRepository: sl<FocusScheduleRepository>(),
+      appExemptionRepository: sl<FocusAppExemptionRepository>(),
+      recoveryManager: sl<FocusSessionRecoveryManager>(),
+      prefs: sl<SharedPreferences>(),
+    ),
+  );
+  sl.registerFactory<FocusAppSelectionCubit>(
+    () => FocusAppSelectionCubit(
+      appCoordinator: sl<FocusAppManagerCoordinator>(),
+    ),
+  );
 }

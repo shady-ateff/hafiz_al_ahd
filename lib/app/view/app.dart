@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hafiz_al_ahd/core/DI/service_locator.dart';
 import 'package:hafiz_al_ahd/core/utils/app_theme.dart';
 import 'package:hafiz_al_ahd/core/theme/cubit/theme_cubit.dart';
@@ -24,6 +26,15 @@ import 'package:hafiz_al_ahd/features/quran/presentation/cubit/quran_settings_cu
 import 'package:hafiz_al_ahd/features/quran/presentation/cubit/quran_bookmark_cubit.dart'; // 👈 استيراد اعدادات المصحف
 import 'package:hafiz_al_ahd/features/quran_audio/presentation/cubit/quran_audio_cubit.dart';
 import 'package:hafiz_al_ahd/features/notifications/presentation/cubit/prayer_alarm_settings_cubit.dart';
+import 'package:hafiz_al_ahd/features/focus_mode_poc/presentation/screens/focus_poc_screen.dart';
+import 'package:hafiz_al_ahd/features/focus_mode_poc/data/focus_poc_channel.dart';
+import 'package:hafiz_al_ahd/features/focus_mode/presentation/services/focus_deep_link_manager.dart';
+import 'package:hafiz_al_ahd/features/focus_mode/domain/entities/focus_ward_type.dart';
+import 'package:hafiz_al_ahd/features/focus_mode/domain/services/focus_session_coordinator.dart';
+import 'package:hafiz_al_ahd/features/focus_mode/domain/services/focus_session_recovery_manager.dart';
+import 'package:hafiz_al_ahd/features/focus_mode/domain/services/focus_schedule_coordinator.dart';
+import 'package:hafiz_al_ahd/features/focus_mode/domain/services/focus_app_manager_coordinator.dart';
+import 'package:hafiz_al_ahd/features/focus_mode/presentation/screens/focus_mode_settings_screen.dart';
 import 'package:hafiz_al_ahd/features/splash/splash_screen.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:tray_manager/tray_manager.dart';
@@ -38,8 +49,10 @@ class App extends StatefulWidget {
 }
 
 // 2. 👈 ضفنا الـ Listeners بتاعة الويندوز والأيقونة
-class _AppState extends State<App> with TrayListener, WindowListener {
+class _AppState extends State<App>
+    with TrayListener, WindowListener, WidgetsBindingObserver {
   late Future<bool> _onboardingFuture;
+  StreamSubscription<Map<String, dynamic>>? _focusEventSubscription;
 
   /// True after the splash has been shown once in this process lifetime.
   /// Stays true even when app is backgrounded & resumed (same process).
@@ -56,10 +69,104 @@ class _AppState extends State<App> with TrayListener, WindowListener {
       windowManager.addListener(this);
       _preventClose();
     }
+
+    if (Platform.isAndroid) {
+      WidgetsBinding.instance.addObserver(this);
+      _focusEventSubscription = FocusPoCChannel.eventStream.listen((event) {
+        if (event['type'] == 'onNavigateToWard') {
+          final ward = event['wardTitle'] as String?;
+          if (ward != null && ward.isNotEmpty) {
+            FocusDeepLinkManager.navigateToWard(ward);
+          }
+        }
+      });
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _initFocusModeOnStartup();
+        _checkPendingWardDeepLink();
+      });
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && Platform.isAndroid) {
+      _checkPendingWardDeepLink();
+      _syncCoordinatorWithNativeIfRunning();
+    }
+  }
+
+  void _syncCoordinatorWithNativeIfRunning() async {
+    try {
+      final nativeStatus = await FocusPoCChannel.getEnforcementStatus();
+      if (nativeStatus['isRunning'] == true) {
+        final wardTitle = nativeStatus['wardTitle'] as String? ?? '';
+        FocusWardType wardType = FocusWardType.custom;
+        if (wardTitle.contains('صباح')) {
+          wardType = FocusWardType.morningAzkar;
+        } else if (wardTitle.contains('مساء')) {
+          wardType = FocusWardType.eveningAzkar;
+        } else if (wardTitle.contains('قرآن') || wardTitle.contains('كهف')) {
+          wardType = FocusWardType.quranReading;
+        } else if (wardTitle.contains('صلاة')) {
+          wardType = FocusWardType.postPrayerAzkar;
+        }
+
+        if (sl.isRegistered<FocusSessionCoordinator>() &&
+            !sl<FocusSessionCoordinator>().state.isActive) {
+          sl<FocusSessionCoordinator>().startSession(
+            sessionId: nativeStatus['sessionId'] as String? ??
+                'live_${DateTime.now().millisecondsSinceEpoch}',
+            wardType: wardType,
+            startEnforcementImmediately: false,
+          );
+        }
+      }
+    } catch (_) {}
+  }
+
+  void _checkPendingWardDeepLink() async {
+    try {
+      final pendingWard = await FocusPoCChannel.getPendingWardIntent();
+      if (pendingWard != null && pendingWard.isNotEmpty) {
+        FocusDeepLinkManager.navigateToWard(pendingWard);
+      }
+    } catch (_) {}
+  }
+
+  void _initFocusModeOnStartup() async {
+    try {
+      final isMasterEnabled = sl.isRegistered<SharedPreferences>()
+          ? (sl<SharedPreferences>().getBool('focus_mode_master_enabled') ?? false)
+          : false;
+
+      if (sl.isRegistered<FocusSessionRecoveryManager>()) {
+        final recovery = await sl<FocusSessionRecoveryManager>().reconcileAndRecover();
+        if (recovery.session != null && sl.isRegistered<FocusSessionCoordinator>()) {
+          sl<FocusSessionCoordinator>().restoreSession(
+            session: recovery.session!,
+            progress: recovery.progress,
+          );
+        }
+      }
+      _syncCoordinatorWithNativeIfRunning();
+      if (isMasterEnabled && sl.isRegistered<FocusScheduleCoordinator>()) {
+        await sl<FocusScheduleCoordinator>().syncAllSchedules();
+      }
+      if (sl.isRegistered<FocusAppManagerCoordinator>()) {
+        await sl<FocusAppManagerCoordinator>().syncAllExemptionsToNative();
+      }
+    } catch (_) {
+      // Ignored: Startup background sync must never crash the app.
+    }
   }
 
   @override
   void dispose() {
+    _focusEventSubscription?.cancel();
+    if (Platform.isAndroid) {
+      WidgetsBinding.instance.removeObserver(this);
+    }
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       trayManager.removeListener(this);
       windowManager.removeListener(this);
@@ -146,6 +253,10 @@ class _AppState extends State<App> with TrayListener, WindowListener {
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
             themeMode: themeState.themeMode,
+            routes: {
+              '/focus_poc': (context) => const FocusPoCScreen(),
+              '/focus_mode': (context) => const FocusModeSettingsScreen(),
+            },
             home: FutureBuilder<bool>(
               future: _onboardingFuture,
               builder: (context, snapshot) {

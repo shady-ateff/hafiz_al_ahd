@@ -237,11 +237,16 @@ class AboutAppScreen extends StatelessWidget {
                       final version = snapshot.hasData
                           ? snapshot.data!.version
                           : '...';
-                      return _buildDetailRow(
-                        'الإصدار',
-                        version,
-                        textColor,
-                        dividerColor,
+                      return InkWell(
+                        onLongPress: () {
+                          Navigator.pushNamed(context, '/focus_poc');
+                        },
+                        child: _buildDetailRow(
+                          'الإصدار',
+                          version,
+                          textColor,
+                          dividerColor,
+                        ),
                       );
                     },
                   ),

@@ -10,6 +10,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hafiz_al_ahd/features/gamification/presentation/cubit/gamification_cubit.dart';
 import 'package:hafiz_al_ahd/features/azkar/presentation/cubit/azkar_tracker_cubit.dart';
 import 'package:hafiz_al_ahd/features/azkar/presentation/widgets/celebration_dialog.dart';
+import 'package:hafiz_al_ahd/core/DI/service_locator.dart';
+import 'package:hafiz_al_ahd/features/focus_mode/domain/entities/focus_ward_type.dart';
+import 'package:hafiz_al_ahd/features/focus_mode/domain/entities/ward_completion_event.dart';
+import 'package:hafiz_al_ahd/features/focus_mode/domain/ports/adhkar_completion_port.dart';
+import 'package:hafiz_al_ahd/features/focus_mode/domain/services/focus_session_coordinator.dart';
+import 'package:hafiz_al_ahd/features/focus_mode_poc/data/focus_poc_channel.dart';
 
 class MisbahaScreen extends StatefulWidget {
   // 👈 1. المسبحة بقت بتستقبل AzkarItem مباشرة
@@ -115,6 +121,51 @@ class _MisbahaScreenState extends State<MisbahaScreen>
           _isTransitioning = false; 
         }
       } else {
+        final FocusWardType activeWard = sl.isRegistered<FocusSessionCoordinator>() &&
+                sl<FocusSessionCoordinator>().state.isActive
+            ? sl<FocusSessionCoordinator>().state.wardType
+            : FocusWardType.custom;
+
+        final FocusWardType wardType;
+        final String categoryKey;
+        final firstCategory = _currentAzkarList.isNotEmpty
+            ? _currentAzkarList.first.category
+            : '';
+
+        if (firstCategory.contains('صباح')) {
+          wardType = FocusWardType.morningAzkar;
+          categoryKey = wardType.categoryKey;
+        } else if (firstCategory.contains('مساء')) {
+          wardType = FocusWardType.eveningAzkar;
+          categoryKey = wardType.categoryKey;
+        } else if (firstCategory.contains('صلاة')) {
+          wardType = FocusWardType.postPrayerAzkar;
+          categoryKey = wardType.categoryKey;
+        } else if (activeWard != FocusWardType.custom) {
+          wardType = activeWard;
+          categoryKey = wardType.categoryKey;
+        } else {
+          wardType = FocusWardType.custom;
+          categoryKey = 'custom';
+        }
+
+        if (sl.isRegistered<AdhkarCompletionPort>()) {
+          sl<AdhkarCompletionPort>().dispatchEvent(
+            AdhkarCompletionEvent.completed(
+              wardType: wardType,
+              categoryKey: categoryKey,
+              totalCount: _currentAzkarList.length,
+            ),
+          );
+        }
+
+        if (sl.isRegistered<FocusSessionCoordinator>() &&
+            sl<FocusSessionCoordinator>().state.isActive) {
+          sl<FocusSessionCoordinator>().completeActiveSession();
+        }
+
+        FocusPoCChannel.stopMonitoring();
+
         showCelebrationDialog(
           context,
           onContinue: () {
