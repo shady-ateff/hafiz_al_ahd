@@ -300,7 +300,7 @@ class _FocusModeSettingsView extends StatelessWidget {
           Switch(
             value: isEnabled,
             onChanged: (val) => cubit.toggleMasterSwitch(val),
-            activeColor: AppColors.lightGold,
+            activeThumbColor: AppColors.lightGold,
             activeTrackColor: AppColors.secondaryGold.withValues(alpha: 0.5),
           ),
         ],
@@ -315,13 +315,13 @@ class _FocusModeSettingsView extends StatelessWidget {
         gradient: LinearGradient(
           colors: [
             AppColors.primaryBlack,
-            AppColors.secondaryGold.withOpacity(0.25),
+            AppColors.secondaryGold.withValues(alpha: 0.25),
           ],
           begin: Alignment.topRight,
           end: Alignment.bottomLeft,
         ),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.secondaryGold.withOpacity(0.5)),
+        border: Border.all(color: AppColors.secondaryGold.withValues(alpha: 0.5)),
       ),
       child: Row(
         children: [
@@ -496,20 +496,37 @@ class _FocusModeSettingsView extends StatelessWidget {
     FocusSchedule schedule,
     FocusSettingsCubit cubit,
   ) async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final pickedTime = await showTimePicker(
       context: context,
       initialTime: TimeOfDay(hour: schedule.hour, minute: schedule.minute),
+      helpText: 'تحديد موعد الورد',
+      confirmText: 'تأكيد',
+      cancelText: 'إلغاء',
+      hourLabelText: 'الساعة',
+      minuteLabelText: 'الدقيقة',
+      errorInvalidText: 'وقت غير صالح',
       builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: AppColors.secondaryGold,
-              onPrimary: AppColors.darkText,
-              surface: AppColors.primaryBlack,
-              onSurface: AppColors.lightText,
+        return Directionality(
+          textDirection: TextDirection.rtl,
+          child: Theme(
+            data: Theme.of(context).copyWith(
+              colorScheme: isDark
+                  ? const ColorScheme.dark(
+                      primary: AppColors.secondaryGold,
+                      onPrimary: Colors.white,
+                      surface: AppColors.primaryBlack,
+                      onSurface: AppColors.lightText,
+                    )
+                  : const ColorScheme.light(
+                      primary: AppColors.secondaryGold,
+                      onPrimary: Colors.white,
+                      surface: Color(0xFFFFFDF8),
+                      onSurface: Color(0xFF1A1208),
+                    ),
             ),
+            child: child!,
           ),
-          child: child!,
         );
       },
     );

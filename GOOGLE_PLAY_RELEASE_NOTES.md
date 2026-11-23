@@ -1,31 +1,31 @@
 # ملاحظات الإصدار لـ Google Play (Google Play Release Notes)
-**الإصدار**: `3.4.0` (Build `13`)  
-**التاريخ**: 21 نوفمبر 2026  
+**الإصدار**: `4.0.0` (Build `14`)  
+**التاريخ**: 23 نوفمبر 2026  
 
 ---
 
 ## 🇸🇦 النسخة العربية (Arabic - ar)
-> ⚠️ **ملاحظة**: متجر Google Play يشترط حداً أقصى 500 حرف. النص أدناه مُحسّن ومعدّ وجاهز للنسخ المباشر (475 حرفاً):
+> ⚠️ **ملاحظة**: متجر Google Play يشترط حداً أقصى 500 حرف. النص أدناه مُحسّن ومعدّ وجاهز للنسخ المباشر (476 حرفاً):
 
 ```text
-✨ جديد الإصدار 3.4.0:
-🎧 مشغل التلاوة الصوتي الذكي: استمع لكبار القراء مع تظليل الآية المقروءة لحظياً وتقليب الصفحات التلقائي أثناء الاستماع.
-🏝️ الجزيرة التفاعلية: تحكم أنيق وسريع في التلاوة في أسفل الشاشة أو عبر إشعارات شاشة القفل في الخلفية.
-🔁 أدوات متقدمة للحفظ: تكرار الآيات، وتكرار السور، وتحديد نطاق مخصص للحفظ والمراجعة.
-📥 التحميل دون إنترنت: حمّل أي سورة أو المصحف كاملاً للاستماع دون اتصال مع إشعارات تقدم التحميل في الخلفية.
-⚡ تحسينات عامة في الأداء واستقرار النظام.
+✨ جديد الإصدار 4.0.0 (تحديث رئيسي شامل):
+🛡️ وضع التركيز ودرع الأوراد: حماية أورادك وأذكارك وورد القرآن من مشتتات الهاتف بحجب التطبيقات أثناء الجلسة.
+🔍 فاحص صلاحيات التطبيق: شاشة ذكية لفحص أذونات النظام وضمان عمل التنبيهات والأذان بأعلى دقة.
+📖 تجربة مصحف متطورة: أزرار تحكم ومؤشر صفحات متوافق مع شريط النظام (SafeArea)، ودعم السحب لإغلاق قائمة القراء.
+⏰ محدد وقت الأوراد: تصميم إسلامي ذهبي فخم لاختيار أوقات الأوراد.
+⚡ تحسينات عامة وسرعة فائقة في الأداء.
 ```
 
 ---
 
 ## 🇬🇧 النسخة الإنجليزية (English - en-US)
-> ⚠️ **Note**: Google Play limits "What's new" to 500 characters. The text below is optimized and ready to copy directly (495 characters):
+> ⚠️ **Note**: Google Play limits "What's new" to 500 characters. The text below is optimized and ready to copy directly (490 characters):
 
 ```text
-What's new in v3.4.0:
-🎧 Smart Quran Audio Player: Listen to renowned reciters with real-time ayah highlighting & auto page-turning.
-🏝️ Dynamic Island Bar: Floating controls for easy playback management & lock screen background media controls.
-🔁 Quran Memorization Tools: Repeat single ayah, whole surah, or custom memorization ranges with ease.
-📥 Offline Library: Download single surahs or the full Quran for offline playback with background progress notifications.
-⚡ Performance enhancements & bug fixes.
+What's new in v4.0.0 (Major Release):
+🛡️ Focus Mode Shield: Guard your Quran & Adhkar sessions from phone distractions with automated app blocking & smart schedules.
+🔍 App Permissions Diagnostic: Dedicated screen to verify critical system permissions for reliable alarms & alerts.
+📖 Enhanced Mushaf Experience: Navigation-safe bottom controls, page slider & drag-to-dismiss reciter settings sheet.
+⏰ Custom Islamic Time Picker: Luxurious gold theme for scheduling wirds.
+⚡ Performance enhancements & stability fixes.
 ```

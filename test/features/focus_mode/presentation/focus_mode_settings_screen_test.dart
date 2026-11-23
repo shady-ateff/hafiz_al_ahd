@@ -123,4 +123,37 @@ void main() {
     expect(find.text('ورد القرآن الكريم'), findsOneWidget);
     expect(find.text('التطبيقات المستثناة أثناء الورد'), findsOneWidget);
   });
+
+  testWidgets('Tapping on schedule time opens custom themed TimePicker', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: FocusModeSettingsScreen(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Enable master switch so schedules are interactive
+    final masterSwitch = find.byType(Switch).first;
+    await tester.tap(masterSwitch);
+    await tester.pumpAndSettle();
+
+    final editTimeButton = find.byIcon(Icons.edit).first;
+    await tester.ensureVisible(editTimeButton);
+    await tester.pumpAndSettle();
+
+    await tester.tap(editTimeButton);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(TimePickerDialog), findsOneWidget);
+    expect(find.text('تحديد موعد الورد'), findsOneWidget);
+    expect(find.text('تأكيد'), findsOneWidget);
+    expect(find.text('إلغاء'), findsOneWidget);
+  });
 }

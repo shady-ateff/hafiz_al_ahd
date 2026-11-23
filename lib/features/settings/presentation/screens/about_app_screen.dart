@@ -66,7 +66,7 @@ class AboutAppScreen extends StatelessWidget {
                 color: cardColor,
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
-                  color: AppColors.secondaryGold.withOpacity(0.3),
+                  color: AppColors.secondaryGold.withValues(alpha: 0.3),
                   width: 1,
                 ),
               ),
@@ -75,7 +75,7 @@ class AboutAppScreen extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppColors.secondaryGold.withOpacity(0.1),
+                      color: AppColors.secondaryGold.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
                     child: Image.asset(
@@ -99,7 +99,7 @@ class AboutAppScreen extends StatelessWidget {
                   Text(
                     'تطبيق "حافظ العهد" هو رفيقك اليومي للحفاظ على صلواتك وأذكارك بكل سهولة وفي واجهة عصرية ومريحة للعين (تدعم الوضع الليلي والنهاري).',
                     style: GoogleFonts.cairo(
-                      color: textColor.withOpacity(0.8),
+                      color: textColor.withValues(alpha: 0.8),
                       fontSize: 14,
                       height: 1.6,
                     ),
@@ -121,6 +121,13 @@ class AboutAppScreen extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             _buildFeatureItem(
+              'وضع التركيز ودرع حماية الأوراد',
+              'حماية وقت أورادك اليومية وأذكارك وورد القرآن الكريم من مشتتات الهاتف بحجب التطبيقات المحددة، مع دعم جدولة المواعيد وتتبع إتمام الورد الفعلي واستثناء التطبيقات المهمة.',
+              Icons.shield_rounded,
+              textColor,
+            ),
+
+            _buildFeatureItem(
               'مواقيت الصلاة الدقيقة',
               'حساب فلكي دقيق لأوقات الصلاة بناءً على موقعك الجغرافي وروزنامة بلدك المعتمدة.',
               Icons.access_time_filled_rounded,
@@ -138,7 +145,7 @@ class AboutAppScreen extends StatelessWidget {
               Icons.headphones_rounded,
               textColor,
             ),
-         
+
             _buildFeatureItem(
               'تحميل السور والمصحف كاملاً (بلا إنترنت)',
               'إمكانية تحميل تلاوة أي سورة أو المصحف كاملاً للقارئ المفضل للاستماع دون اتصال، مع إشعارات تقدم التحميل ومتابعتها في الخلفية.',
@@ -163,7 +170,7 @@ class AboutAppScreen extends StatelessWidget {
               Icons.share_rounded,
               textColor,
             ),
-            
+
             _buildFeatureItem(
               'الأذكار وحصن المسلم',
               'أذكار الصباح والمساء وما بعد الصلاة مع مسبحة إلكترونية وتتبع ذكي للأوراد اليومية.',
@@ -193,10 +200,10 @@ class AboutAppScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.secondaryGold.withOpacity(0.05),
+                color: AppColors.secondaryGold.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: AppColors.secondaryGold.withOpacity(0.2),
+                  color: AppColors.secondaryGold.withValues(alpha: 0.2),
                 ),
               ),
               child: Text(
@@ -219,7 +226,7 @@ class AboutAppScreen extends StatelessWidget {
                 color: cardColor,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: AppColors.secondaryGold.withOpacity(0.3),
+                  color: AppColors.secondaryGold.withValues(alpha: 0.3),
                   width: 1,
                 ),
               ),
@@ -237,16 +244,11 @@ class AboutAppScreen extends StatelessWidget {
                       final version = snapshot.hasData
                           ? snapshot.data!.version
                           : '...';
-                      return InkWell(
-                        onLongPress: () {
-                          Navigator.pushNamed(context, '/focus_poc');
-                        },
-                        child: _buildDetailRow(
-                          'الإصدار',
-                          version,
-                          textColor,
-                          dividerColor,
-                        ),
+                      return _buildDetailRow(
+                        'الإصدار',
+                        version,
+                        textColor,
+                        dividerColor,
                       );
                     },
                   ),
@@ -258,7 +260,7 @@ class AboutAppScreen extends StatelessWidget {
                   ),
                   _buildDetailRow(
                     'تاريخ التحديث',
-                    '21/11/2026',
+                    '23/11/2026',
                     textColor,
                     dividerColor,
                   ),
@@ -288,7 +290,7 @@ class AboutAppScreen extends StatelessWidget {
                   color: cardColor,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: AppColors.secondaryGold.withOpacity(0.3),
+                    color: AppColors.secondaryGold.withValues(alpha: 0.3),
                     width: 1,
                   ),
                 ),
@@ -315,7 +317,7 @@ class AboutAppScreen extends StatelessWidget {
                           Text(
                             'shadyatef.com',
                             style: GoogleFonts.cairo(
-                              color: textColor.withOpacity(0.6),
+                              color: textColor.withValues(alpha: 0.6),
                               fontSize: 14,
                             ),
                           ),
@@ -344,7 +346,7 @@ class AboutAppScreen extends StatelessWidget {
                   color: cardColor,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: AppColors.secondaryGold.withOpacity(0.3),
+                    color: AppColors.secondaryGold.withValues(alpha: 0.3),
                     width: 1,
                   ),
                 ),
@@ -393,7 +395,7 @@ class AboutAppScreen extends StatelessWidget {
                   color: cardColor,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: AppColors.secondaryGold.withOpacity(0.3),
+                    color: AppColors.secondaryGold.withValues(alpha: 0.3),
                     width: 1,
                   ),
                 ),
@@ -420,7 +422,7 @@ class AboutAppScreen extends StatelessWidget {
                           Text(
                             'رأيك يسعدنا ويدعم استمرار التطبيق',
                             style: GoogleFonts.cairo(
-                              color: textColor.withOpacity(0.6),
+                              color: textColor.withValues(alpha: 0.6),
                               fontSize: 14,
                             ),
                           ),
@@ -472,7 +474,7 @@ class AboutAppScreen extends StatelessWidget {
                 Text(
                   desc,
                   style: GoogleFonts.cairo(
-                    color: textColor.withOpacity(0.7),
+                    color: textColor.withValues(alpha: 0.7),
                     fontSize: 13,
                     height: 1.5,
                   ),
@@ -502,7 +504,7 @@ class AboutAppScreen extends StatelessWidget {
               Text(
                 title,
                 style: GoogleFonts.cairo(
-                  color: textColor.withOpacity(0.8),
+                  color: textColor.withValues(alpha: 0.8),
                   fontSize: 14,
                 ),
               ),
