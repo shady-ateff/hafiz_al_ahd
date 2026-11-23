@@ -112,8 +112,10 @@ class _TafseerBottomSheetContent extends StatelessWidget {
                       const BorderRadius.vertical(top: Radius.circular(24)),
                   child: Material(
                     color: sheetBgColor,
-                    child: Column(
-                  children: [
+                    child: SafeArea(
+                      top: false,
+                      child: Column(
+                        children: [
                     // 1. Drag Handle
                     const SizedBox(height: 12),
                     Container(
@@ -250,6 +252,7 @@ class _TafseerBottomSheetContent extends StatelessWidget {
                 ),
               ),
             ),
+          ),
           );
         },
           ),

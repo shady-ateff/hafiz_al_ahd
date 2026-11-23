@@ -60,11 +60,17 @@ class _AzkarScreenState extends State<AzkarScreen> {
           centerTitle: true,
           actions: [
             IconButton(
-              icon: Icon(Icons.workspace_premium_rounded, color: AppColors.secondaryGold, size: 30),
+              icon: Icon(
+                Icons.workspace_premium_rounded,
+                color: AppColors.secondaryGold,
+                size: 30,
+              ),
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const ProfileScreen()),
+                  MaterialPageRoute(
+                    builder: (context) => const ProfileScreen(),
+                  ),
                 );
               },
             ),
@@ -83,7 +89,11 @@ class _AzkarScreenState extends State<AzkarScreen> {
                   // استخدام Future.microtask لضمان إتمام الـ Build الحالي قبل الانتقال
                   Future.microtask(() {
                     if (mounted) {
-                      _navigateToCategory(context, widget.initialCategory!, list);
+                      _navigateToCategory(
+                        context,
+                        widget.initialCategory!,
+                        list,
+                      );
                     }
                   });
                 }
@@ -91,9 +101,7 @@ class _AzkarScreenState extends State<AzkarScreen> {
             },
             builder: (context, state) {
               if (state is AzkarLoading || state is AzkarInitial) {
-                return const Center(
-                  child:  AppLoader()
-                );
+                return const Center(child: AppLoader());
               }
 
               if (state is AzkarError) {
@@ -190,16 +198,24 @@ class _AzkarScreenState extends State<AzkarScreen> {
                   children: [
                     BlocBuilder<GamificationCubit, GamificationState>(
                       builder: (context, gamificationState) {
-                        if (gamificationState is GamificationLoaded || gamificationState is LevelUpState || gamificationState is AchievementUnlockedState) {
+                        if (gamificationState is GamificationLoaded ||
+                            gamificationState is LevelUpState ||
+                            gamificationState is AchievementUnlockedState) {
                           dynamic stateObj = gamificationState;
                           int level = stateObj.profile.level;
                           int xp = stateObj.profile.xp;
                           int nextLevelXp = level * 100;
                           return Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20.0,
+                              vertical: 8.0,
+                            ),
                             child: Row(
                               children: [
-                                Icon(Icons.star_rounded, color: AppColors.secondaryGold),
+                                Icon(
+                                  Icons.star_rounded,
+                                  color: AppColors.secondaryGold,
+                                ),
                                 const SizedBox(width: 8),
                                 Text(
                                   'المستوى $level',
@@ -214,7 +230,8 @@ class _AzkarScreenState extends State<AzkarScreen> {
                                     borderRadius: BorderRadius.circular(10),
                                     child: LinearProgressIndicator(
                                       value: xp / nextLevelXp,
-                                      backgroundColor: AppColors.secondaryGold.withOpacity(0.2),
+                                      backgroundColor: AppColors.secondaryGold
+                                          .withOpacity(0.2),
                                       color: AppColors.secondaryGold,
                                       minHeight: 6,
                                     ),
@@ -348,84 +365,84 @@ class _AzkarScreenState extends State<AzkarScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'عرض الكل',
-                style: GoogleFonts.cairo(
-                  color: AppColors.secondaryGold,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              Text(
-                'الأذكار اليومية',
-                style: GoogleFonts.cairo(
-                  color: context.primaryText, // 👈 لون دايناميك بدل الأبيض
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: DailyAzkarCard(
-                  title: 'أذكار الصباح',
-                  count: '${azkarMap['أذكار الصباح']?.length ?? 0} ذكر',
-                  icon: CupertinoIcons.sun_max_fill,
-                  onTap: () => _navigateToCategory(
-                    context,
-                    'أذكار الصباح',
-                    azkarMap['أذكار الصباح'] ?? [],
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Text(
+                //   'عرض الكل',
+                //   style: GoogleFonts.cairo(
+                //     color: AppColors.secondaryGold,
+                //     fontSize: 14,
+                //     fontWeight: FontWeight.w600,
+                //   ),
+                // ),
+                Text(
+                  'الأذكار اليومية',
+                  style: GoogleFonts.cairo(
+                    color: context.primaryText, // 👈 لون دايناميك بدل الأبيض
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: DailyAzkarCard(
-                  title: 'أذكار المساء',
-                  count: '${azkarMap['أذكار المساء']?.length ?? 0} ذكر',
-                  icon: CupertinoIcons.moon_fill,
-                  onTap: () => _navigateToCategory(
-                    context,
-                    'أذكار المساء',
-                    azkarMap['أذكار المساء'] ?? [],
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 36),
-          Text(
-            'كافة التصنيفات',
-            style: GoogleFonts.cairo(
-              color: context.primaryText, // 👈 لون دايناميك بدل الأبيض
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+              ],
             ),
-          ),
-          const SizedBox(height: 16),
-          ...categories.map((cat) {
-            final list = azkarMap[cat.key] ?? [];
-            return CategoryCard(
-              title: cat.displayTitle,
-              subtitle: cat.subtitle,
-              countBadge: '${list.length} ذكر',
-              icon: cat.icon,
-              onTap: list.isNotEmpty
-                  ? () => _navigateToCategory(context, cat.displayTitle, list)
-                  : null,
-            );
-          }),
-        ],
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: DailyAzkarCard(
+                    title: 'أذكار الصباح',
+                    count: '${azkarMap['أذكار الصباح']?.length ?? 0} ذكر',
+                    icon: CupertinoIcons.sun_max_fill,
+                    onTap: () => _navigateToCategory(
+                      context,
+                      'أذكار الصباح',
+                      azkarMap['أذكار الصباح'] ?? [],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: DailyAzkarCard(
+                    title: 'أذكار المساء',
+                    count: '${azkarMap['أذكار المساء']?.length ?? 0} ذكر',
+                    icon: CupertinoIcons.moon_fill,
+                    onTap: () => _navigateToCategory(
+                      context,
+                      'أذكار المساء',
+                      azkarMap['أذكار المساء'] ?? [],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 36),
+            Text(
+              'كافة التصنيفات',
+              style: GoogleFonts.cairo(
+                color: context.primaryText, // 👈 لون دايناميك بدل الأبيض
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ...categories.map((cat) {
+              final list = azkarMap[cat.key] ?? [];
+              return CategoryCard(
+                title: cat.displayTitle,
+                subtitle: cat.subtitle,
+                countBadge: '${list.length} ذكر',
+                icon: cat.icon,
+                onTap: list.isNotEmpty
+                    ? () => _navigateToCategory(context, cat.displayTitle, list)
+                    : null,
+              );
+            }),
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 }
 
 class _CategoryConfig {

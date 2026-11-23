@@ -102,11 +102,13 @@ class SurahJuzBottomSheet extends StatelessWidget {
               ),
               child: Material(
                 color: sheetBgColor,
-                child: DefaultTabController(
-                  length: 2,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
+                child: SafeArea(
+                  top: false,
+                  child: DefaultTabController(
+                    length: 2,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
                       // Drag Handle
                       const SizedBox(height: 12),
                       Container(
@@ -262,6 +264,7 @@ class SurahJuzBottomSheet extends StatelessWidget {
                   ),
                 ),
               ),
+            ),
             ),
           ),
         ),

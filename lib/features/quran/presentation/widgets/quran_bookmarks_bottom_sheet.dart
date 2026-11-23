@@ -211,9 +211,11 @@ class _QuranBookmarksBottomSheetState extends State<QuranBookmarksBottomSheet> {
                 ),
                 child: Material(
                   color: sheetBgColor,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
+                  child: SafeArea(
+                    top: false,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
                       // 1. Drag Handle
                       Container(
                         margin: const EdgeInsets.only(top: 12, bottom: 8),
@@ -484,6 +486,7 @@ class _QuranBookmarksBottomSheetState extends State<QuranBookmarksBottomSheet> {
               ),
             ),
           ),
+          ),
         ),
       ),
     );
@@ -709,6 +712,7 @@ class _QuranBookmarksBottomSheetState extends State<QuranBookmarksBottomSheet> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (sheetCtx) => QuranBookmarkEditSheet(
         ayahId: bookmark.ayahId,

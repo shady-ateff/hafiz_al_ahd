@@ -1,6 +1,6 @@
 import 'dart:async';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hafiz_al_ahd/core/utils/app_colors.dart';
 import '../cubit/quran_cubit.dart';
@@ -30,6 +30,13 @@ import '../widgets/quran_bookmarks_bottom_sheet.dart';
 import '../widgets/quran_bookmark_edit_sheet.dart';
 import '../widgets/quran_tafseer_bottom_sheet.dart';
 import '../services/quran_atlas_prewarmer.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:hafiz_al_ahd/features/focus_mode/domain/entities/focus_session_state.dart';
+import 'package:hafiz_al_ahd/features/focus_mode/domain/entities/focus_session_status.dart';
+import 'package:hafiz_al_ahd/features/focus_mode/domain/entities/focus_ward_type.dart';
+import 'package:hafiz_al_ahd/features/focus_mode/domain/services/focus_session_coordinator.dart';
+import 'package:hafiz_al_ahd/features/focus_mode_poc/data/focus_poc_channel.dart';
+import 'package:hafiz_al_ahd/features/focus_mode/presentation/services/quran_focus_dwell_tracker.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/presentation/cubit/quran_audio_cubit.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/presentation/cubit/quran_audio_state.dart';
 import 'package:hafiz_al_ahd/features/quran_audio/presentation/widgets/quran_audio_dynamic_island.dart';
@@ -42,6 +49,7 @@ class QuranScreen extends StatefulWidget {
   final QuranClipboardService? clipboardService;
   final QuranShareService? shareService;
   final BaseQuranAtlasPrewarmer? atlasPrewarmer;
+  final QuranFocusDwellTracker? focusDwellTracker;
 
   const QuranScreen({
     super.key,
@@ -51,6 +59,7 @@ class QuranScreen extends StatefulWidget {
     this.clipboardService,
     this.shareService,
     this.atlasPrewarmer,
+    this.focusDwellTracker,
   });
 
   static void showInstructionsDialog(BuildContext context) {
@@ -221,6 +230,13 @@ class _QuranScreenState extends State<QuranScreen>
   late final PageController _pageController;
   late final ValueNotifier<int> _currentPageNotifier;
   late final BaseQuranAtlasPrewarmer _atlasPrewarmer;
+  late final QuranFocusDwellTracker _focusDwellTracker;
+  StreamSubscription<FocusSessionState>? _focusSessionSub;
+  final Set<int> _sessionPagesRead = {};
+  bool _isFocusGoalEligible = false;
+  int? _focusGoalReachedPageNumber;
+  bool _hasShownFocusCompletionDialog = false;
+  Timer? _completionDialogTimer;
   bool _isFullScreen = false;
   bool _isAppActive = true;
 
@@ -282,13 +298,33 @@ class _QuranScreenState extends State<QuranScreen>
     _pageController = PageController(initialPage: initial - 1);
     _currentPageNotifier = ValueNotifier<int>(initial);
     _atlasPrewarmer = widget.atlasPrewarmer ?? QuranAtlasPrewarmer();
+    _focusDwellTracker = widget.focusDwellTracker ?? QuranFocusDwellTracker();
+    _focusDwellTracker.onPageBecameVisible(initial);
     WidgetsBinding.instance.addObserver(this);
+    if (sl.isRegistered<FocusSessionCoordinator>()) {
+      _focusSessionSub = sl<FocusSessionCoordinator>().onStateChanged.listen((state) {
+        if (state.status == FocusSessionStatus.completed &&
+            state.wardType == FocusWardType.quranReading &&
+            mounted) {
+          _isFocusGoalEligible = true;
+          _focusGoalReachedPageNumber ??= _currentPageNotifier.value;
+          if (_completionDialogTimer == null && !_hasShownFocusCompletionDialog) {
+            _completionDialogTimer = Timer(const Duration(minutes: 1), () {
+              if (mounted && !_hasShownFocusCompletionDialog) {
+                _showFocusCompletionFeedback();
+              }
+            });
+          }
+        }
+      });
+    }
     _loadLastPage();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     _isAppActive = state == AppLifecycleState.resumed;
+    _focusDwellTracker.onAppLifecycleChanged(state);
     if (!_isAppActive) {
       _atlasPrewarmer.cancel();
     }
@@ -298,6 +334,8 @@ class _QuranScreenState extends State<QuranScreen>
     final prefs = sl<SharedPreferences>();
     final lastPage = widget.initialPage ?? (prefs.getInt('last_quran_page') ?? 1);
     _currentPageNotifier.value = lastPage;
+    _focusDwellTracker.onPageBecameVisible(lastPage);
+    _checkAndTrackPageForFocus(lastPage);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_pageController.hasClients) {
@@ -330,8 +368,138 @@ class _QuranScreenState extends State<QuranScreen>
     await prefs.setInt('last_quran_page', pageNumber);
   }
 
+  void _checkAndTrackPageForFocus(int pageNumber) async {
+    if (_isFocusGoalEligible) {
+      if (!_hasShownFocusCompletionDialog) {
+        final isNewPage = !_sessionPagesRead.contains(pageNumber);
+        final hasLeftGoalPage = _focusGoalReachedPageNumber != null &&
+            pageNumber != _focusGoalReachedPageNumber;
+        if (isNewPage || hasLeftGoalPage) {
+          _sessionPagesRead.add(pageNumber);
+          _showFocusCompletionFeedback();
+        }
+      }
+      return;
+    }
+
+    try {
+      final isEnforcing = await FocusPoCChannel.isServiceRunning();
+      final isCoordinatorActive = sl.isRegistered<FocusSessionCoordinator>() &&
+          sl<FocusSessionCoordinator>().state.isActive &&
+          sl<FocusSessionCoordinator>().state.wardType == FocusWardType.quranReading;
+
+      if (!isEnforcing && !isCoordinatorActive) {
+        return;
+      }
+
+      _sessionPagesRead.add(pageNumber);
+
+      int targetPages = 2;
+      if (sl.isRegistered<SharedPreferences>()) {
+        targetPages = sl<SharedPreferences>().getInt('focus_quran_target_pages') ?? 2;
+      }
+      if (isCoordinatorActive) {
+        final goal = sl<FocusSessionCoordinator>().state.quranGoal;
+        if (goal != null && goal.targetValue > 0) {
+          targetPages = goal.targetValue;
+        }
+      }
+
+      if (_sessionPagesRead.length >= targetPages) {
+        _isFocusGoalEligible = true;
+        _focusGoalReachedPageNumber = pageNumber;
+
+        // Immediately lift protection and mark session complete in background
+        if (sl.isRegistered<FocusSessionCoordinator>()) {
+          await sl<FocusSessionCoordinator>().completeActiveSession();
+        }
+        await FocusPoCChannel.stopMonitoring();
+
+        // Delay celebratory dialog: wait 1 minute before showing on screen, or trigger on pop / page exceed
+        _completionDialogTimer?.cancel();
+        _completionDialogTimer = Timer(const Duration(minutes: 1), () {
+          if (mounted && !_hasShownFocusCompletionDialog) {
+            _showFocusCompletionFeedback();
+          }
+        });
+      }
+    } catch (_) {}
+  }
+
+  void _showFocusCompletionFeedback({VoidCallback? onDismissed}) {
+    if (_hasShownFocusCompletionDialog) {
+      onDismissed?.call();
+      return;
+    }
+    _hasShownFocusCompletionDialog = true;
+    _completionDialogTimer?.cancel();
+
+    HapticFeedback.heavyImpact();
+    FocusPoCChannel.stopMonitoring();
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF181D24),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: const BorderSide(color: Color(0xFFBC8C15), width: 1.5),
+        ),
+        title: Row(
+          children: [
+            const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 28),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'تم إتمام ورد القرآن الكريم',
+                style: GoogleFonts.cairo(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'تقبّل الله طاعتكم! تم إتمام الورد القرآني بنجاح ورفع وضع التركيز.',
+          style: GoogleFonts.cairo(
+            color: const Color(0xFFD1D5DB),
+            fontSize: 14,
+            height: 1.5,
+          ),
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              onDismissed?.call();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFBC8C15),
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: Text(
+              'الحمد لله',
+              style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    ).then((_) {
+      onDismissed?.call();
+    });
+  }
+
   @override
   void dispose() {
+    _completionDialogTimer?.cancel();
+    _focusSessionSub?.cancel();
+    _focusDwellTracker.dispose();
     _pendingPageTurnTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _atlasPrewarmer.dispose();
@@ -559,6 +727,7 @@ class _QuranScreenState extends State<QuranScreen>
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (sheetCtx) => QuranBookmarkEditSheet(
         ayahId: ayah.id,
@@ -1094,7 +1263,17 @@ class _QuranScreenState extends State<QuranScreen>
   Widget build(BuildContext context) {
     final audioCubit = _tryGetAudioCubit(context);
 
-    return BlocBuilder<QuranSettingsCubit, QuranSettingsState>(
+    return PopScope(
+      canPop: !_isFocusGoalEligible || _hasShownFocusCompletionDialog,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (_isFocusGoalEligible && !_hasShownFocusCompletionDialog) {
+          _showFocusCompletionFeedback(onDismissed: () {
+            if (mounted) Navigator.of(context).pop();
+          });
+        }
+      },
+      child: BlocBuilder<QuranSettingsCubit, QuranSettingsState>(
       builder: (context, settingsState) {
         final isDark = _isDarkMode(context, settingsState.quranThemeMode);
         final bgColor = isDark
@@ -1143,6 +1322,8 @@ class _QuranScreenState extends State<QuranScreen>
                     }
                     final int pageNumber = index + 1;
                     _currentPageNotifier.value = pageNumber;
+                    _focusDwellTracker.onPageBecameVisible(pageNumber);
+                    _checkAndTrackPageForFocus(pageNumber);
                     if (_pendingTargetPage == pageNumber) {
                       _pendingTargetPage = null;
                     }
@@ -1446,6 +1627,7 @@ class _QuranScreenState extends State<QuranScreen>
                               showModalBottomSheet(
                                 context: context,
                                 isScrollControlled: true,
+                                useSafeArea: true,
                                 backgroundColor: Colors.transparent,
                                 builder: (sheetCtx) => QuranBookmarksBottomSheet(
                                   onBookmarkSelected: (bookmark) => _navigateToBookmark(bookmark),
@@ -1467,6 +1649,7 @@ class _QuranScreenState extends State<QuranScreen>
                               showModalBottomSheet(
                                 context: context,
                                 isScrollControlled: true,
+                                useSafeArea: true,
                                 backgroundColor: Colors.transparent,
                                 builder: (context) {
                                   return SurahJuzBottomSheet(
@@ -1497,6 +1680,7 @@ class _QuranScreenState extends State<QuranScreen>
                               showModalBottomSheet(
                                 context: context,
                                 isScrollControlled: true,
+                                useSafeArea: true,
                                 backgroundColor: Colors.transparent,
                                 builder: (context) {
                                   return const QuranThemeBottomSheet();
@@ -1522,150 +1706,154 @@ class _QuranScreenState extends State<QuranScreen>
               ),
             ),
 
-              // 3. Bottom Slider
+              // 3. Bottom Controls (Floating Dynamic Island Audio Player & Page Slider Cursor inside SafeArea)
               AnimatedPositioned(
-                duration: const Duration(milliseconds: 300),
-                bottom: _isFullScreen ? -150 : 30,
-                left: 20,
-                right: 20,
+                duration: const Duration(milliseconds: 320),
+                curve: Curves.easeOutCubic,
+                bottom: _isFullScreen ? -320 : 0,
+                left: 0,
+                right: 0,
                 child: IgnorePointer(
                   ignoring: _isFullScreen,
                   child: AnimatedOpacity(
-                    duration: const Duration(milliseconds: 300),
+                    duration: const Duration(milliseconds: 280),
                     opacity: _isFullScreen ? 0.0 : 1.0,
-                    child: ValueListenableBuilder<int>(
-                      valueListenable: _currentPageNotifier,
-                      builder: (context, currentPage, child) {
-                        return Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 15,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? const Color(0xFF222222).withValues(alpha: 0.9)
-                                : Colors.white.withValues(alpha: 0.9),
-                            borderRadius: BorderRadius.circular(30),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.1),
-                                blurRadius: 10,
-                                offset: const Offset(0, 5),
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            children: [
-                              InkWell(
-                                onTap: _showPageJumpDialog,
-                                borderRadius: BorderRadius.circular(8),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.secondaryGold.withValues(alpha: 0.15),
-                                    border: Border.all(color: AppColors.secondaryGold.withValues(alpha: 0.5)),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        Icons.edit_rounded,
-                                        size: 14,
-                                        color: isDark ? Colors.white70 : AppColors.deepBackground,
+                    child: SafeArea(
+                      top: false,
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (audioCubit != null) ...[
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                child: ValueListenableBuilder<int>(
+                                  valueListenable: _currentPageNotifier,
+                                  builder: (context, currentPage, _) {
+                                    final pageSurah = getSurahNumberForPage(currentPage);
+                                    final firstAyah = sl<BaseQuranMappingRepository>()
+                                        .getFirstAyahOnPage(currentPage);
+                                    return BlocProvider.value(
+                                      value: audioCubit,
+                                      child: QuranAudioDynamicIsland(
+                                        key: const ValueKey('quran_audio_dynamic_island'),
+                                        defaultSurahNumber: firstAyah?.surahNumber ?? pageSurah,
+                                        defaultStartAyahNumber: firstAyah?.ayahNumber,
+                                        isFullScreen: _isFullScreen,
                                       ),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        '$currentPage',
-                                        style: TextStyle(
-                                          fontFamily: 'Tajawal',
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16,
-                                          color: isDark
-                                            ? Colors.white
-                                            : AppColors.deepBackground,
+                                    );
+                                  },
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                            ],
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 20),
+                              child: ValueListenableBuilder<int>(
+                                valueListenable: _currentPageNotifier,
+                                builder: (context, currentPage, child) {
+                                  return Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 20,
+                                      vertical: 15,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: isDark
+                                          ? const Color(0xFF222222).withValues(alpha: 0.9)
+                                          : Colors.white.withValues(alpha: 0.9),
+                                      borderRadius: BorderRadius.circular(30),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(alpha: 0.1),
+                                          blurRadius: 10,
+                                          offset: const Offset(0, 5),
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
+                                      ],
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        InkWell(
+                                          onTap: _showPageJumpDialog,
+                                          borderRadius: BorderRadius.circular(8),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.secondaryGold.withValues(alpha: 0.15),
+                                              border: Border.all(color: AppColors.secondaryGold.withValues(alpha: 0.5)),
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(
+                                                  Icons.edit_rounded,
+                                                  size: 14,
+                                                  color: isDark ? Colors.white70 : AppColors.deepBackground,
+                                                ),
+                                                const SizedBox(width: 6),
+                                                Text(
+                                                  '$currentPage',
+                                                  style: TextStyle(
+                                                    fontFamily: 'Tajawal',
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 16,
+                                                    color: isDark
+                                                      ? Colors.white
+                                                      : AppColors.deepBackground,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                        Expanded(
+                                          child: SliderTheme(
+                                            data: SliderThemeData(
+                                              activeTrackColor: const Color(0xffD4AF37),
+                                              inactiveTrackColor: isDark
+                                                  ? Colors.grey[800]
+                                                  : const Color(0xffD4AF37).withValues(alpha: 0.3),
+                                              thumbColor: const Color(0xffD4AF37),
+                                              trackHeight: 4.0,
+                                            ),
+                                            child: Slider(
+                                              value: currentPage.toDouble(),
+                                              min: 1,
+                                              max: 604,
+                                              onChanged: (value) {
+                                                _currentPageNotifier.value = value.toInt();
+                                              },
+                                              onChangeEnd: (value) {
+                                                _pageController.jumpToPage(value.toInt() - 1);
+                                              },
+                                            ),
+                                          ),
+                                        ),
+                                        Text(
+                                          '604',
+                                          style: TextStyle(
+                                            fontFamily: 'Tajawal',
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                            color: isDark
+                                                ? Colors.white
+                                                : AppColors.deepBackground,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
                               ),
-                              Expanded(
-                                child: SliderTheme(
-                                  data: SliderThemeData(
-                                    activeTrackColor: const Color(0xffD4AF37),
-                                    inactiveTrackColor: isDark
-                                        ? Colors.grey[800]
-                                        : const Color(0xffD4AF37).withValues(alpha: 0.3),
-                                    thumbColor: const Color(0xffD4AF37),
-                                    trackHeight: 4.0,
-                                  ),
-                                  child: Slider(
-                                    value: currentPage.toDouble(),
-                                    min: 1,
-                                    max: 604,
-                                    onChanged: (value) {
-                                      _currentPageNotifier.value = value.toInt();
-                                    },
-                                    onChangeEnd: (value) {
-                                      _pageController.jumpToPage(value.toInt() - 1);
-                                    },
-                                  ),
-                                ),
-                              ),
-                              Text(
-                                '604',
-                                style: TextStyle(
-                                  fontFamily: 'Tajawal',
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                  color: isDark
-                                      ? Colors.white
-                                      : AppColors.deepBackground,
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-              ),
-
-              // 4. Floating Dynamic Island Audio Player
-              if (audioCubit != null)
-                AnimatedPositioned(
-                  duration: const Duration(milliseconds: 320),
-                  curve: Curves.easeOutCubic,
-                  bottom: _isFullScreen ? -220 : 92,
-                  left: 16,
-                  right: 16,
-                  child: IgnorePointer(
-                    ignoring: _isFullScreen,
-                    child: AnimatedOpacity(
-                      duration: const Duration(milliseconds: 280),
-                      opacity: _isFullScreen ? 0.0 : 1.0,
-                      child: ValueListenableBuilder<int>(
-                        valueListenable: _currentPageNotifier,
-                        builder: (context, currentPage, _) {
-                          final pageSurah = getSurahNumberForPage(currentPage);
-                          final firstAyah = sl<BaseQuranMappingRepository>()
-                              .getFirstAyahOnPage(currentPage);
-                          return BlocProvider.value(
-                            value: audioCubit,
-                            child: QuranAudioDynamicIsland(
-                              key: const ValueKey('quran_audio_dynamic_island'),
-                              defaultSurahNumber: firstAyah?.surahNumber ?? pageSurah,
-                              defaultStartAyahNumber: firstAyah?.ayahNumber,
-                              isFullScreen: _isFullScreen,
                             ),
-                          );
-                        },
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
+              ),
             ],
           );
         }
@@ -1773,6 +1961,7 @@ class _QuranScreenState extends State<QuranScreen>
           body: bodyContent,
         );
       },
-    );
-  }
+    ),
+  );
+}
 }
