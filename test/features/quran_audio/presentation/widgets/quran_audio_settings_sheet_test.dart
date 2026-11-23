@@ -475,6 +475,17 @@ void main() {
       expect(find.text('حفظ وتطبيق الإعدادات'), findsOneWidget);
     });
 
+    testWidgets('1B. Uses DraggableScrollableSheet and wires its scrollController to main ListView for drag-to-dismiss', (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pump(const Duration(milliseconds: 50));
+
+      final draggableSheetFinder = find.byType(DraggableScrollableSheet);
+      expect(draggableSheetFinder, findsOneWidget);
+
+      final listView = tester.widget<ListView>(find.byType(ListView).first);
+      expect(listView.controller, isNotNull);
+    });
+
     testWidgets('2. Selecting a different reciter updates selected reciter in Cubit', (tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 2.0;

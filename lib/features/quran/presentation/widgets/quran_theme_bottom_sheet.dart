@@ -40,12 +40,14 @@ class QuranThemeBottomSheet extends StatelessWidget {
                   const BorderRadius.vertical(top: Radius.circular(24)),
               child: Material(
                 color: sheetBgColor,
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
+                child: SafeArea(
+                  top: false,
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
                       // Drag Handle
                       Container(
                         width: 44,
@@ -163,6 +165,7 @@ class QuranThemeBottomSheet extends StatelessWidget {
                 ),
               ),
             ),
+          ),
           ),
         ),
       ),

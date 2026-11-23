@@ -104,8 +104,10 @@ class QuranAyahActionBottomSheet extends StatelessWidget {
                   ),
                   child: Material(
                     color: sheetBgColor,
-                    child: Column(
-                      children: [
+                    child: SafeArea(
+                      top: false,
+                      child: Column(
+                        children: [
                         // 1. Drag Handle
                         const SizedBox(height: 12),
                         Container(
@@ -247,7 +249,8 @@ class QuranAyahActionBottomSheet extends StatelessWidget {
                     ),
                   ),
                 ),
-              );
+              ),
+            );
             },
           ),
         ),

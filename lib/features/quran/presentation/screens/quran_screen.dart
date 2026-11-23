@@ -727,6 +727,7 @@ class _QuranScreenState extends State<QuranScreen>
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (sheetCtx) => QuranBookmarkEditSheet(
         ayahId: ayah.id,
@@ -1626,6 +1627,7 @@ class _QuranScreenState extends State<QuranScreen>
                               showModalBottomSheet(
                                 context: context,
                                 isScrollControlled: true,
+                                useSafeArea: true,
                                 backgroundColor: Colors.transparent,
                                 builder: (sheetCtx) => QuranBookmarksBottomSheet(
                                   onBookmarkSelected: (bookmark) => _navigateToBookmark(bookmark),
@@ -1647,6 +1649,7 @@ class _QuranScreenState extends State<QuranScreen>
                               showModalBottomSheet(
                                 context: context,
                                 isScrollControlled: true,
+                                useSafeArea: true,
                                 backgroundColor: Colors.transparent,
                                 builder: (context) {
                                   return SurahJuzBottomSheet(
@@ -1677,6 +1680,7 @@ class _QuranScreenState extends State<QuranScreen>
                               showModalBottomSheet(
                                 context: context,
                                 isScrollControlled: true,
+                                useSafeArea: true,
                                 backgroundColor: Colors.transparent,
                                 builder: (context) {
                                   return const QuranThemeBottomSheet();
@@ -1702,150 +1706,154 @@ class _QuranScreenState extends State<QuranScreen>
               ),
             ),
 
-              // 3. Bottom Slider
+              // 3. Bottom Controls (Floating Dynamic Island Audio Player & Page Slider Cursor inside SafeArea)
               AnimatedPositioned(
-                duration: const Duration(milliseconds: 300),
-                bottom: _isFullScreen ? -150 : 30,
-                left: 20,
-                right: 20,
+                duration: const Duration(milliseconds: 320),
+                curve: Curves.easeOutCubic,
+                bottom: _isFullScreen ? -320 : 0,
+                left: 0,
+                right: 0,
                 child: IgnorePointer(
                   ignoring: _isFullScreen,
                   child: AnimatedOpacity(
-                    duration: const Duration(milliseconds: 300),
+                    duration: const Duration(milliseconds: 280),
                     opacity: _isFullScreen ? 0.0 : 1.0,
-                    child: ValueListenableBuilder<int>(
-                      valueListenable: _currentPageNotifier,
-                      builder: (context, currentPage, child) {
-                        return Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 15,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? const Color(0xFF222222).withValues(alpha: 0.9)
-                                : Colors.white.withValues(alpha: 0.9),
-                            borderRadius: BorderRadius.circular(30),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.1),
-                                blurRadius: 10,
-                                offset: const Offset(0, 5),
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            children: [
-                              InkWell(
-                                onTap: _showPageJumpDialog,
-                                borderRadius: BorderRadius.circular(8),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.secondaryGold.withValues(alpha: 0.15),
-                                    border: Border.all(color: AppColors.secondaryGold.withValues(alpha: 0.5)),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        Icons.edit_rounded,
-                                        size: 14,
-                                        color: isDark ? Colors.white70 : AppColors.deepBackground,
+                    child: SafeArea(
+                      top: false,
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (audioCubit != null) ...[
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                child: ValueListenableBuilder<int>(
+                                  valueListenable: _currentPageNotifier,
+                                  builder: (context, currentPage, _) {
+                                    final pageSurah = getSurahNumberForPage(currentPage);
+                                    final firstAyah = sl<BaseQuranMappingRepository>()
+                                        .getFirstAyahOnPage(currentPage);
+                                    return BlocProvider.value(
+                                      value: audioCubit,
+                                      child: QuranAudioDynamicIsland(
+                                        key: const ValueKey('quran_audio_dynamic_island'),
+                                        defaultSurahNumber: firstAyah?.surahNumber ?? pageSurah,
+                                        defaultStartAyahNumber: firstAyah?.ayahNumber,
+                                        isFullScreen: _isFullScreen,
                                       ),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        '$currentPage',
-                                        style: TextStyle(
-                                          fontFamily: 'Tajawal',
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16,
-                                          color: isDark
-                                            ? Colors.white
-                                            : AppColors.deepBackground,
+                                    );
+                                  },
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                            ],
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 20),
+                              child: ValueListenableBuilder<int>(
+                                valueListenable: _currentPageNotifier,
+                                builder: (context, currentPage, child) {
+                                  return Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 20,
+                                      vertical: 15,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: isDark
+                                          ? const Color(0xFF222222).withValues(alpha: 0.9)
+                                          : Colors.white.withValues(alpha: 0.9),
+                                      borderRadius: BorderRadius.circular(30),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(alpha: 0.1),
+                                          blurRadius: 10,
+                                          offset: const Offset(0, 5),
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
+                                      ],
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        InkWell(
+                                          onTap: _showPageJumpDialog,
+                                          borderRadius: BorderRadius.circular(8),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.secondaryGold.withValues(alpha: 0.15),
+                                              border: Border.all(color: AppColors.secondaryGold.withValues(alpha: 0.5)),
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(
+                                                  Icons.edit_rounded,
+                                                  size: 14,
+                                                  color: isDark ? Colors.white70 : AppColors.deepBackground,
+                                                ),
+                                                const SizedBox(width: 6),
+                                                Text(
+                                                  '$currentPage',
+                                                  style: TextStyle(
+                                                    fontFamily: 'Tajawal',
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 16,
+                                                    color: isDark
+                                                      ? Colors.white
+                                                      : AppColors.deepBackground,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                        Expanded(
+                                          child: SliderTheme(
+                                            data: SliderThemeData(
+                                              activeTrackColor: const Color(0xffD4AF37),
+                                              inactiveTrackColor: isDark
+                                                  ? Colors.grey[800]
+                                                  : const Color(0xffD4AF37).withValues(alpha: 0.3),
+                                              thumbColor: const Color(0xffD4AF37),
+                                              trackHeight: 4.0,
+                                            ),
+                                            child: Slider(
+                                              value: currentPage.toDouble(),
+                                              min: 1,
+                                              max: 604,
+                                              onChanged: (value) {
+                                                _currentPageNotifier.value = value.toInt();
+                                              },
+                                              onChangeEnd: (value) {
+                                                _pageController.jumpToPage(value.toInt() - 1);
+                                              },
+                                            ),
+                                          ),
+                                        ),
+                                        Text(
+                                          '604',
+                                          style: TextStyle(
+                                            fontFamily: 'Tajawal',
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                            color: isDark
+                                                ? Colors.white
+                                                : AppColors.deepBackground,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
                               ),
-                              Expanded(
-                                child: SliderTheme(
-                                  data: SliderThemeData(
-                                    activeTrackColor: const Color(0xffD4AF37),
-                                    inactiveTrackColor: isDark
-                                        ? Colors.grey[800]
-                                        : const Color(0xffD4AF37).withValues(alpha: 0.3),
-                                    thumbColor: const Color(0xffD4AF37),
-                                    trackHeight: 4.0,
-                                  ),
-                                  child: Slider(
-                                    value: currentPage.toDouble(),
-                                    min: 1,
-                                    max: 604,
-                                    onChanged: (value) {
-                                      _currentPageNotifier.value = value.toInt();
-                                    },
-                                    onChangeEnd: (value) {
-                                      _pageController.jumpToPage(value.toInt() - 1);
-                                    },
-                                  ),
-                                ),
-                              ),
-                              Text(
-                                '604',
-                                style: TextStyle(
-                                  fontFamily: 'Tajawal',
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                  color: isDark
-                                      ? Colors.white
-                                      : AppColors.deepBackground,
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-              ),
-
-              // 4. Floating Dynamic Island Audio Player
-              if (audioCubit != null)
-                AnimatedPositioned(
-                  duration: const Duration(milliseconds: 320),
-                  curve: Curves.easeOutCubic,
-                  bottom: _isFullScreen ? -220 : 92,
-                  left: 16,
-                  right: 16,
-                  child: IgnorePointer(
-                    ignoring: _isFullScreen,
-                    child: AnimatedOpacity(
-                      duration: const Duration(milliseconds: 280),
-                      opacity: _isFullScreen ? 0.0 : 1.0,
-                      child: ValueListenableBuilder<int>(
-                        valueListenable: _currentPageNotifier,
-                        builder: (context, currentPage, _) {
-                          final pageSurah = getSurahNumberForPage(currentPage);
-                          final firstAyah = sl<BaseQuranMappingRepository>()
-                              .getFirstAyahOnPage(currentPage);
-                          return BlocProvider.value(
-                            value: audioCubit,
-                            child: QuranAudioDynamicIsland(
-                              key: const ValueKey('quran_audio_dynamic_island'),
-                              defaultSurahNumber: firstAyah?.surahNumber ?? pageSurah,
-                              defaultStartAyahNumber: firstAyah?.ayahNumber,
-                              isFullScreen: _isFullScreen,
                             ),
-                          );
-                        },
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
+              ),
             ],
           );
         }

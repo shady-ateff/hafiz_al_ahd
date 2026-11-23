@@ -79,6 +79,20 @@ class _FocusAppSelectionScreenState extends State<FocusAppSelectionScreen> {
                               _searchController.clear();
                               cubit.search('');
                             },
+                            padding: EdgeInsets.zero,
+
+                            style: IconButton.styleFrom(
+                              foregroundColor: AppColors.secondaryGold,
+                              padding: EdgeInsets.zero,
+                              iconSize: 20,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                side: BorderSide(
+                                  color: AppColors.lightGold,
+                                  width: 1.0,
+                                ),
+                              ),
+                            ),
                           )
                         : null,
                     filled: true,

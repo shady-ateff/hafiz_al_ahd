@@ -28,6 +28,7 @@ class QuranAudioSettingsSheet extends StatefulWidget {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => BlocProvider.value(
         value: context.read<QuranAudioCubit>(),
@@ -101,86 +102,105 @@ class _QuranAudioSettingsSheetState extends State<QuranAudioSettingsSheet> {
     final textColor = isDark ? Colors.white : AppColors.darkText;
     final secondaryText = isDark ? Colors.white70 : Colors.black54;
 
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Container(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.85,
-        ),
-        decoration: BoxDecoration(
-          color: sheetBg,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-          border: Border.all(
-            color: AppColors.secondaryGold.withValues(alpha: 0.3),
-            width: 1.2,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.3),
-              blurRadius: 20,
-              offset: const Offset(0, -4),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 12),
-            // Drag Handle
-            Container(
-              width: 44,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey.withValues(alpha: 0.4),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 16),
+    final isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
 
-            // Sheet Title
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppColors.secondaryGold.withValues(alpha: 0.15),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.tune_rounded,
-                      color: AppColors.secondaryGold,
-                      size: 22,
-                    ),
+    final initialSize = isLandscape ? 0.85 : 0.80;
+    final minSize = isLandscape ? 0.35 : 0.30;
+    const maxSize = 0.95;
+    final snapSizes = isLandscape
+        ? const [0.85, 0.95]
+        : const [0.50, 0.80, 0.95];
+
+    return DraggableScrollableSheet(
+      initialChildSize: initialSize,
+      minChildSize: minSize,
+      maxChildSize: maxSize,
+      snap: true,
+      snapSizes: snapSizes,
+      builder: (context, scrollController) {
+        return Directionality(
+          textDirection: TextDirection.rtl,
+          child: Align(
+            alignment: Alignment.bottomCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 600),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: sheetBg,
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(28)),
+                  border: Border.all(
+                    color: AppColors.secondaryGold.withValues(alpha: 0.3),
+                    width: 1.2,
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'إعدادات التلاوة والحفظ',
-                      style: TextStyle(
-                        fontFamily: 'Tajawal',
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: textColor,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.3),
+                      blurRadius: 20,
+                      offset: const Offset(0, -4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 12),
+                    // Drag Handle
+                    Container(
+                      width: 44,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.withValues(alpha: 0.4),
+                        borderRadius: BorderRadius.circular(2),
                       ),
                     ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: Icon(Icons.close_rounded, color: secondaryText),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(height: 24, thickness: 0.5),
+                    const SizedBox(height: 16),
 
-            Expanded(
-              child: BlocBuilder<QuranAudioCubit, QuranAudioState>(
-                builder: (context, state) {
-                  return ListView(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    children: [
+                    // Sheet Title
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppColors.secondaryGold.withValues(alpha: 0.15),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.tune_rounded,
+                              color: AppColors.secondaryGold,
+                              size: 22,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'إعدادات التلاوة والحفظ',
+                              style: TextStyle(
+                                fontFamily: 'Tajawal',
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: textColor,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () => Navigator.pop(context),
+                            icon: Icon(Icons.close_rounded, color: secondaryText),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Divider(height: 24, thickness: 0.5),
+
+                    Expanded(
+                      child: BlocBuilder<QuranAudioCubit, QuranAudioState>(
+                        builder: (context, state) {
+                          return ListView(
+                            controller: scrollController,
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            children: [
                       // Section 1: Reciter Selection
                       _buildSectionHeader(
                         'اختيار القارئ',
@@ -250,6 +270,7 @@ class _QuranAudioSettingsSheetState extends State<QuranAudioSettingsSheet> {
 
             // Apply Button
             SafeArea(
+              top: false,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 10, 20, 16),
                 child: SizedBox(
@@ -280,8 +301,12 @@ class _QuranAudioSettingsSheetState extends State<QuranAudioSettingsSheet> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  ),
+);
+},
+);
+}
 
   Widget _buildSectionHeader(String title, IconData icon, Color color) {
     return Row(
