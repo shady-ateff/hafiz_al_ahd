@@ -12,6 +12,7 @@ import 'package:hafiz_al_ahd/features/settings/domain/usecases/get_iqama_delays_
 import 'package:hafiz_al_ahd/features/settings/domain/usecases/save_iqama_delays_usecase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hafiz_al_ahd/features/settings/presentation/screens/about_app_screen.dart';
+import 'package:hafiz_al_ahd/features/settings/presentation/screens/app_permissions_screen.dart';
 import 'package:hafiz_al_ahd/features/settings/presentation/screens/prayer_alarm_settings_screen.dart';
 import 'package:hafiz_al_ahd/features/focus_mode/presentation/screens/focus_mode_settings_screen.dart';
 import 'package:hafiz_al_ahd/core/services/rating_reminder_service.dart';
@@ -1177,6 +1178,86 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               ),
                             ),
                           ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+
+                    // ── App Permissions Diagnostic ───────────────────────────────────
+                    _buildSectionTitle('صلاحيات وتشغيل التطبيق', textColor),
+                    const SizedBox(height: 12),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: cardColor,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: AppColors.secondaryGold.withOpacity(0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(16),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const AppPermissionsScreen(),
+                              ),
+                            );
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 16,
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.secondaryGold.withOpacity(0.15),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Icon(
+                                    Icons.verified_user_outlined,
+                                    color: AppColors.secondaryGold,
+                                    size: 26,
+                                  ),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'فحص صلاحيات التطبيق',
+                                        style: GoogleFonts.cairo(
+                                          color: textColor,
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'التأكد من أذونات الأذان، المنبهات، الخلفية، ووضع التركيز',
+                                        style: GoogleFonts.cairo(
+                                          color: textColor.withOpacity(0.6),
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const Icon(
+                                  Icons.arrow_forward_ios_rounded,
+                                  color: AppColors.secondaryGold,
+                                  size: 16,
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
                     ),

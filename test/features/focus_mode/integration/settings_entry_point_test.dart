@@ -1,5 +1,6 @@
 import 'package:dartz/dartz.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hafiz_al_ahd/core/DI/service_locator.dart';
@@ -65,6 +66,26 @@ void main() {
 
   setUp(() async {
     sl.reset();
+
+    const MethodChannel pocChannel =
+        MethodChannel('com.shadyatef.hafiz_alahd/focus_poc');
+    const MethodChannel permHandlerChannel =
+        MethodChannel('flutter.baseflow.com/permissions/methods');
+
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(pocChannel, (call) async {
+      if (call.method == 'checkPermissions') {
+        return {
+          'hasUsageAccess': false,
+          'hasOverlayPermission': false,
+          'canScheduleExactAlarms': true,
+        };
+      }
+      return null;
+    });
+
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(permHandlerChannel, (call) async => 1);
 
     SharedPreferences.setMockInitialValues({
       'isIqamaEnabled': true,
@@ -169,5 +190,38 @@ void main() {
     // Verify navigation landed on FocusModeSettingsScreen
     expect(find.text('حافظ على عهدك مع الله'), findsOneWidget);
     expect(find.text('أورادك اليومية المجدولة'), findsOneWidget);
+  });
+
+  testWidgets('SettingsScreen displays App Permissions card and navigates to AppPermissionsScreen', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(
+      BlocProvider<ThemeCubit>(
+        create: (_) => ThemeCubit(),
+        child: const MaterialApp(
+          home: SettingsScreen(),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    // Verify App Permissions card is present in Settings
+    final permissionsCardFinder = find.text('فحص صلاحيات التطبيق');
+    expect(permissionsCardFinder, findsOneWidget);
+
+    // Scroll to it and tap
+    await tester.ensureVisible(permissionsCardFinder);
+    await tester.tap(permissionsCardFinder);
+    await tester.pumpAndSettle();
+
+    // Verify navigation landed on AppPermissionsScreen
+    expect(find.text('فحص صلاحيات التطبيق'), findsWidgets);
+    expect(find.text('صلاحيات الأذان ومواقيت الصلاة الأساسية'), findsOneWidget);
   });
 }

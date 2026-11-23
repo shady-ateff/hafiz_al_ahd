@@ -115,7 +115,8 @@ class _AppState extends State<App>
         if (sl.isRegistered<FocusSessionCoordinator>() &&
             !sl<FocusSessionCoordinator>().state.isActive) {
           sl<FocusSessionCoordinator>().startSession(
-            sessionId: nativeStatus['sessionId'] as String? ??
+            sessionId:
+                nativeStatus['sessionId'] as String? ??
                 'live_${DateTime.now().millisecondsSinceEpoch}',
             wardType: wardType,
             startEnforcementImmediately: false,
@@ -137,12 +138,15 @@ class _AppState extends State<App>
   void _initFocusModeOnStartup() async {
     try {
       final isMasterEnabled = sl.isRegistered<SharedPreferences>()
-          ? (sl<SharedPreferences>().getBool('focus_mode_master_enabled') ?? false)
+          ? (sl<SharedPreferences>().getBool('focus_mode_master_enabled') ??
+                false)
           : false;
 
       if (sl.isRegistered<FocusSessionRecoveryManager>()) {
-        final recovery = await sl<FocusSessionRecoveryManager>().reconcileAndRecover();
-        if (recovery.session != null && sl.isRegistered<FocusSessionCoordinator>()) {
+        final recovery = await sl<FocusSessionRecoveryManager>()
+            .reconcileAndRecover();
+        if (recovery.session != null &&
+            sl.isRegistered<FocusSessionCoordinator>()) {
           sl<FocusSessionCoordinator>().restoreSession(
             session: recovery.session!,
             progress: recovery.progress,
@@ -173,7 +177,6 @@ class _AppState extends State<App>
     }
     super.dispose();
   }
-  
 
   void _preventClose() async {
     await windowManager.setPreventClose(true);
@@ -234,14 +237,18 @@ class _AppState extends State<App>
         ),
         BlocProvider(create: (context) => ThemeCubit()..loadSavedTheme()),
         BlocProvider(
-          create: (context) => GamificationCubit(
-            repository: GamificationRepositoryImpl(),
-          )..init(),
+          create: (context) =>
+              GamificationCubit(repository: GamificationRepositoryImpl())
+                ..init(),
         ),
         BlocProvider(create: (context) => AzkarTrackerCubit()),
-        BlocProvider(create: (context) => sl<QuranCubit>()), // 👈 إضافة QuranCubit
+        BlocProvider(
+          create: (context) => sl<QuranCubit>(),
+        ), // 👈 إضافة QuranCubit
         BlocProvider(create: (context) => sl<QuranSettingsCubit>()),
-        BlocProvider(create: (context) => sl<QuranBookmarkCubit>()..loadBookmarks()), // 👈 إضافة اعدادات المصحف
+        BlocProvider(
+          create: (context) => sl<QuranBookmarkCubit>()..loadBookmarks(),
+        ), // 👈 إضافة اعدادات المصحف
         BlocProvider(create: (context) => sl<QuranAudioCubit>()..init()),
       ],
       child: BlocBuilder<ThemeCubit, ThemeState>(
@@ -263,15 +270,14 @@ class _AppState extends State<App>
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Scaffold(
                     backgroundColor: Color(0xFF121212),
-                    body: Center(
-                      child: AppLoader(),
-                    ),
+                    body: Center(child: AppLoader()),
                   );
                 }
 
                 final isComplete = snapshot.data ?? false;
-                final destination =
-                    isComplete ? const MainScreen() : const OnboardingScreen();
+                final destination = isComplete
+                    ? const MainScreen()
+                    : const OnboardingScreen();
 
                 // Show splash only on the very first cold start of this process.
                 // If _splashShown is already true, the app was merely resumed from
@@ -290,7 +296,7 @@ class _AppState extends State<App>
                 child: child ?? const SizedBox.shrink(),
               );
             },
-            debugShowCheckedModeBanner: true,
+            debugShowCheckedModeBanner: false,
             localizationsDelegates: const [
               GlobalMaterialLocalizations.delegate,
               GlobalWidgetsLocalizations.delegate,
